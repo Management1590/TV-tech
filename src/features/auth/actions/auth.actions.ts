@@ -44,24 +44,30 @@ export async function loginAction(email: string, password: string): Promise<Auth
         return { success: false, error: 'Invalid admin credentials.' };
       }
 
-      // Upsert admin user in Prisma database
-      const adminUser = await prisma.user.upsert({
-        where: { email: adminEmail },
-        update: { role: UserRole.ADMIN, isActive: true },
-        create: {
-          email: adminEmail,
-          fullName: 'MODERN ELECTRONICS Admin',
-          role: UserRole.ADMIN,
-          isActive: true,
-        },
-        select: { id: true, email: true, fullName: true, role: true },
-      });
+      // Upsert admin user in Prisma database (with resilient fallback)
+      let adminUserId = 'env-admin-master';
+      try {
+        const adminUser = await prisma.user.upsert({
+          where: { email: adminEmail },
+          update: { role: UserRole.ADMIN, isActive: true },
+          create: {
+            email: adminEmail,
+            fullName: 'MODERN ELECTRONICS Admin',
+            role: UserRole.ADMIN,
+            isActive: true,
+          },
+          select: { id: true, email: true, fullName: true, role: true },
+        });
+        adminUserId = adminUser.id;
+      } catch (dbErr) {
+        console.warn('Database pool warning during admin login, proceeding with verified env auth:', dbErr);
+      }
 
       // Set secure HTTP-only session cookie
       const cookieStore = await cookies();
       cookieStore.set('tv-tech-session', JSON.stringify({
-        userId: adminUser.id,
-        email: adminUser.email,
+        userId: adminUserId,
+        email: adminEmail,
         role: UserRole.ADMIN,
         authProvider: 'ENV_ADMIN',
         timestamp: Date.now(),
