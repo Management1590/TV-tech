@@ -7,10 +7,17 @@ const globalForPrisma = globalThis as unknown as {
   pool: Pool | undefined;
 };
 
+function getDatabaseConnectionString(): string | undefined {
+  const g = globalThis as any;
+  const hyperdrive = (process.env as any).HYPERDRIVE || g.HYPERDRIVE || g.__env?.HYPERDRIVE;
+  if (hyperdrive && typeof hyperdrive === 'object' && hyperdrive.connectionString) {
+    return hyperdrive.connectionString;
+  }
+  return process.env.DATABASE_URL;
+}
+
 function createPrismaClient(): PrismaClient {
-  // Supports Cloudflare Hyperdrive connection, or standard DATABASE_URL
-  const hyperdrive = (process.env as any).HYPERDRIVE;
-  const connectionString = hyperdrive?.connectionString || process.env.DATABASE_URL;
+  const connectionString = getDatabaseConnectionString();
 
   if (connectionString) {
     const pool = globalForPrisma.pool ?? new Pool({ connectionString });

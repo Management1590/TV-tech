@@ -1,11 +1,22 @@
 ﻿{
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tv-tech-os",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2026-08-26",
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
   "observability": {
     "enabled": true
-  }
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "d589bde7c49a4761b0308cb4ad06bb7b"
+    }
+  ]
 }
