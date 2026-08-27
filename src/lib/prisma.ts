@@ -8,7 +8,10 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
+  // Supports Cloudflare Hyperdrive connection, or standard DATABASE_URL
+  const hyperdrive = (process.env as any).HYPERDRIVE;
+  const connectionString = hyperdrive?.connectionString || process.env.DATABASE_URL;
+
   if (connectionString) {
     const pool = globalForPrisma.pool ?? new Pool({ connectionString });
     if (process.env.NODE_ENV !== 'production') globalForPrisma.pool = pool;
