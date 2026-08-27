@@ -742,3 +742,5 @@ model ItemViewLog {
   @@index([viewedAt])
   @@map("item_view_logs")
 }
+
+

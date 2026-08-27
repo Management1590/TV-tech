@@ -20,52 +20,91 @@ export default async function DashboardPage() {
     redirect('/inventory');
   }
 
-  const [
-    totalItems,
-    outOfStock,
-    lowStock,
-    totalFolders,
-    topSelling,
-    recentActivity,
-    analyticsData,
-    rawFolders,
-  ] = await Promise.all([
-    prisma.item.count(),
-    prisma.item.count({ where: { isOutOfStock: true } }),
-    prisma.item.count({ where: { quantityMode: 'NUMERIC', quantity: { lte: 5 }, isOutOfStock: false } }),
-    prisma.folder.count(),
-    prisma.itemStockSettings.findMany({
-      orderBy: { totalSold: 'desc' },
-      take: 8,
-      include: {
-        item: {
-          include: {
-            folderItems: { include: { folder: { select: { name: true } } } },
-            entity: { include: { mediaAttachments: { include: { media: true }, take: 1 } } },
+  let totalItems = 0;
+  let outOfStock = 0;
+  let lowStock = 0;
+  let totalFolders = 0;
+  let topSelling: any[] = [];
+  let recentActivity: any[] = [];
+  let analyticsData: any = {
+    snapshots: [],
+    currentValuation: {
+      totalInventoryCost: 0,
+      totalInventoryRetail: 0,
+      totalCatalogItems: 0,
+      totalInStockUnits: 0,
+    },
+    periodAggregates: {
+      totalRevenue: 0,
+      totalProfit: 0,
+      totalCogs: 0,
+      unitsSold: 0,
+      unitsPurchased: 0,
+      marginPercent: '0%',
+    },
+  };
+  let formattedFolders: any[] = [];
+
+  try {
+    const [
+      itemsCount,
+      oosCount,
+      lowCount,
+      foldersCount,
+      topSellingRecords,
+      activityLogs,
+      rawFolders,
+    ] = await Promise.all([
+      prisma.item.count().catch(() => 0),
+      prisma.item.count({ where: { isOutOfStock: true } }).catch(() => 0),
+      prisma.item.count({ where: { quantityMode: 'NUMERIC', quantity: { lte: 5 }, isOutOfStock: false } }).catch(() => 0),
+      prisma.folder.count().catch(() => 0),
+      prisma.itemStockSettings.findMany({
+        orderBy: { totalSold: 'desc' },
+        take: 8,
+        include: {
+          item: {
+            include: {
+              folderItems: { include: { folder: { select: { name: true } } } },
+              entity: { include: { mediaAttachments: { include: { media: true }, take: 1 } } },
+            },
           },
         },
-      },
-    }),
-    prisma.auditLog.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      include: { user: true },
-    }),
-    getDailySnapshots('all'),
-    prisma.folder.findMany({
-      select: {
-        id: true,
-        name: true,
-        _count: { select: { folderItems: true } },
-      },
-    }),
-  ]);
+      }).catch(() => []),
+      prisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        include: { user: true },
+      }).catch(() => []),
+      prisma.folder.findMany({
+        select: {
+          id: true,
+          name: true,
+          _count: { select: { folderItems: true } },
+        },
+      }).catch(() => []),
+    ]);
 
-  const formattedFolders = rawFolders.map((f) => ({
-    id: f.id,
-    name: f.name,
-    _count: { folderItems: f._count.folderItems },
-  }));
+    totalItems = itemsCount;
+    outOfStock = oosCount;
+    lowStock = lowCount;
+    totalFolders = foldersCount;
+    topSelling = topSellingRecords;
+    recentActivity = activityLogs;
+    formattedFolders = rawFolders.map((f: any) => ({
+      id: f.id,
+      name: f.name,
+      _count: { folderItems: f._count?.folderItems ?? 0 },
+    }));
+
+    try {
+      analyticsData = await getDailySnapshots('all');
+    } catch (analyticsErr) {
+      console.warn('Analytics snapshot computation warning:', analyticsErr);
+    }
+  } catch (err) {
+    console.error('Dashboard data fetching fallback:', err);
+  }
 
   return (
     <div className="space-y-5 sm:space-y-8 p-1 sm:p-4 md:p-8">
