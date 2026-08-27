@@ -1,0 +1,393 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  body {
+    font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    @apply bg-background text-foreground;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ============================================================
+   PREMIUM LIGHT THEME — Utility Classes
+   ============================================================ */
+
+/* Premium card surface */
+.glass-card {
+  background: oklch(1 0 0);
+  border: 1px solid oklch(0.92 0.005 250);
+  border-radius: 0.75rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(100, 116, 145, 0.06);
+}
+
+.glass-card:hover {
+  border-color: oklch(0.84 0.015 250);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    0 16px 40px rgba(100, 116, 145, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Premium panel surface */
+.glass-panel {
+  background: oklch(1 0 0);
+  border: 1px solid oklch(0.92 0.005 250);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 4px 12px rgba(100, 116, 145, 0.05);
+}
+
+/* Elevated surface */
+.surface-elevated {
+  background: oklch(1 0 0);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 6px 16px rgba(100, 116, 145, 0.06),
+    0 12px 32px rgba(100, 116, 145, 0.04);
+  border: 1px solid oklch(0.93 0.005 250);
+}
+
+/* Muted surface */
+.surface-muted {
+  background: oklch(0.965 0.004 250);
+}
+
+/* Blending shadow */
+.shadow-blend {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(100, 116, 145, 0.06);
+}
+
+/* ============================================================
+   MICRO-ANIMATIONS — Press, Click & Interaction Feedback
+   ============================================================ */
+
+/* Universal button press — subtle scale-down on click */
+button:not(:disabled):active,
+[role="menuitem"]:active,
+[data-slot="button"]:not(:disabled):active {
+  transform: scale(0.97) !important;
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Dropdown triggers — bounce on open */
+[data-state="open"] > [data-slot="button"],
+[aria-expanded="true"] {
+  transform: scale(0.97);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dropdown/Popover/Select content — slide-in + fade */
+[data-slot="popover-content"],
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"],
+[data-slot="command-dialog"] {
+  animation: slideUpFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Context menu — scale-in from point */
+[data-slot="context-menu-content"] {
+  animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dialog/Sheet — smooth entrance */
+[data-slot="dialog-content"] {
+  animation: dialogEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Sheet slide-in */
+[data-slot="sheet-content"] {
+  animation: sheetSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Menu items hover — smooth highlight */
+[role="menuitem"],
+[role="option"] {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Badge/Chip press */
+[data-slot="badge"]:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+/* Tab triggers — smooth transitions */
+[data-slot="tabs-trigger"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-slot="tabs-trigger"]:active {
+  transform: scale(0.96);
+}
+
+/* Icon button spin/bounce on hover */
+button[class*="icon"]:hover svg,
+[data-slot="button"][class*="icon"]:hover svg {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Link cards — smooth lift */
+a .glass-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dialogEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes sheetSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Shimmer skeleton animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Custom Scrollbar — Light */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(0.965 0.004 250);
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.82 0.01 250);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.72 0.015 250);
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ============================================================
+   PREMIUM LIGHT COLOR SYSTEM
+   Deeper off-white background for card/component separation
+   ============================================================ */
+:root {
+  --background: oklch(0.955 0.006 250);
+  --foreground: oklch(0.145 0.015 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0.015 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0.015 250);
+  --primary: oklch(0.45 0.2 260);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.96 0.005 250);
+  --secondary-foreground: oklch(0.20 0.015 250);
+  --muted: oklch(0.945 0.006 250);
+  --muted-foreground: oklch(0.50 0.02 250);
+  --accent: oklch(0.945 0.006 250);
+  --accent-foreground: oklch(0.20 0.015 250);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.895 0.008 250);
+  --input: oklch(0.895 0.008 250);
+  --ring: oklch(0.45 0.2 260);
+  --chart-1: oklch(0.45 0.2 260);
+  --chart-2: oklch(0.60 0.15 165);
+  --chart-3: oklch(0.55 0.18 290);
+  --chart-4: oklch(0.70 0.14 80);
+  --chart-5: oklch(0.60 0.18 30);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.975 0.004 250);
+  --sidebar-foreground: oklch(0.145 0.015 250);
+  --sidebar-primary: oklch(0.45 0.2 260);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.945 0.006 250);
+  --sidebar-accent-foreground: oklch(0.20 0.015 250);
+  --sidebar-border: oklch(0.895 0.008 250);
+  --sidebar-ring: oklch(0.45 0.2 260);
+}
+
+/* ============================================================
+   MOBILE OPTIMIZATION — Touch, Safe Areas & Responsive Polish
+   ============================================================ */
+
+/* Prevent iOS auto-enlarging text in landscape */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Prevent pull-to-refresh and overscroll bounce on mobile */
+body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure all interactive elements have comfortable tap areas on mobile & remove hold triggers */
+@media (max-width: 767px) {
+  /* Disable hold-to-open native context menus and selection callouts on mobile */
+  *, a, button, [role="button"], img, svg {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+
+  /* Minimum touch target for buttons, links, interactive elements */
+  button:not([class*="p-0"]):not([class*="w-7"]):not([class*="h-7"]),
+  [role="menuitem"],
+  [role="option"] {
+    min-height: 40px;
+  }
+
+  /* Make small icon-only buttons easier to tap */
+  button[class*="p-0"],
+  button[class*="w-7"],
+  button[class*="h-7"] {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+
+
+  /* Dialogs: ensure mobile scrollability & safe boundaries */
+  [data-slot="dialog-content"] {
+    max-height: 85dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Slightly larger text in inputs for readability and to prevent iOS zoom */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Toasts: position above bottom nav on mobile */
+  [data-sonner-toaster] {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+    top: auto !important;
+  }
+}
+
+/* Mobile bottom-sheet dialog slide-up animation */
+@keyframes mobileSheetSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Handle safe-area-inset for notched devices */
+@supports (padding: env(safe-area-inset-bottom)) {
+  @media (max-width: 767px) {
+    body {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+}

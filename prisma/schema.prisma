@@ -1,0 +1,744 @@
+// ============================================================
+// TV Tech OS — Prisma Schema (v4 - Master Specification)
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pg_trgm, uuid_ossp(map: "uuid-ossp")]
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum QuantityMode {
+  NUMERIC
+  UNKNOWN
+}
+
+enum ParameterValueType {
+  TEXT
+  NUMBER
+  DECIMAL
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
+  DATE
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  PDF
+}
+
+enum StorageProvider {
+  CLOUDINARY
+  SUPABASE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LINK          // FolderItem created; Item linked to EntityRelationship
+  UNLINK        // FolderItem removed; Item unlinked
+  MOVE          // Folder moved to a new parent
+  RENAME        // Folder or Item renamed
+  GENERATE_CODE // Short code generated for a supplier record
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  RETURN
+  INTERNAL_USE
+  ADJUSTMENT
+  DAMAGE
+  LOST
+}
+
+enum PurchaseListStatus {
+  DRAFT
+  READY_TO_PRINT
+  ORDERED
+  PARTIALLY_RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// USER
+// ============================================================
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  fullName  String   @map("full_name")
+  role      UserRole @default(STAFF)
+  avatarUrl String?  @map("avatar_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdFolders    Folder[]             @relation("FolderCreator")
+  createdItems      Item[]               @relation("ItemCreator")
+  folderItemLinks   FolderItem[]         @relation("FolderItemLinker")
+  supplierRecords   SupplierRecord[]     @relation("SupplierRecordCreator")
+  uploadedMedia     Media[]              @relation("MediaUploader")
+  createdPages      KnowledgePage[]      @relation("PageCreator")
+  relationships     EntityRelationship[] @relation("RelationshipCreator")
+  auditLogs         AuditLog[]
+  stockMovements    StockMovement[]      @relation("MovementPerformer")
+  purchaseLists     PurchaseList[]       @relation("PurchaseListCreator")
+  itemViewLogs      ItemViewLog[]
+
+  @@map("users")
+}
+
+// ============================================================
+// ENTITY REGISTRY (Universal Object Registry)
+// ============================================================
+
+model EntityType {
+  code        String   @id
+  label       String
+  description String?
+  isSystem    Boolean  @default(true) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  entities Entity[]
+
+  @@map("entity_types")
+}
+
+model Entity {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityTypeCode String   @map("entity_type_code")
+  displayName    String   @map("display_name")
+  searchText     String?  @map("search_text")
+  metadata       Json?    @db.JsonB
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entityType    EntityType           @relation(fields: [entityTypeCode], references: [code])
+  folder        Folder?
+  item          Item?
+  supplier      Supplier?
+  supplierRec   SupplierRecord?
+  purchaseList  PurchaseList?
+  tvBrand       TvBrand?
+  tvModel       TvModel?
+  kbFolder      KnowledgeFolder?
+  kbPage        KnowledgePage?
+  mediaRecord   Media?
+
+  // Relationships (as source or target)
+  sourceRelationships EntityRelationship[] @relation("SourceEntity")
+  targetRelationships EntityRelationship[] @relation("TargetEntity")
+
+  // Media attachments
+  mediaAttachments EntityMedia[]
+
+  // Search index
+  searchEntries SearchIndex[]
+
+  @@index([entityTypeCode])
+  @@map("entities")
+}
+
+// ============================================================
+// INVENTORY — FOLDERS
+// ============================================================
+
+model Folder {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId          String   @unique @map("entity_id") @db.Uuid
+  name              String
+  description       String?
+  slug              String
+  parentId          String?  @map("parent_id") @db.Uuid
+  materializedPath  String   @map("materialized_path")
+  depth             Int      @default(0)
+  sortOrder         Int      @default(0) @map("sort_order")
+  thumbnailUrl      String?  @map("thumbnail_url")
+  thumbnailPublicId String?  @map("thumbnail_public_id")
+  containsItems     Boolean  @default(false) @map("contains_items")
+  itemCount         Int      @default(0) @map("item_count")
+  childFolderCount  Int      @default(0) @map("child_folder_count")
+  openCount         Int      @default(0) @map("open_count")
+  createdById       String?  @map("created_by") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entity      Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    Folder[] @relation("FolderHierarchy")
+  createdBy   User?    @relation("FolderCreator", fields: [createdById], references: [id])
+
+  folderItems          FolderItem[]
+  parameterDefinitions ParameterDefinition[]
+
+  @@unique([parentId, slug])
+  @@index([parentId])
+  @@index([materializedPath])
+  @@index([containsItems])
+  @@map("folders")
+}
+
+// ============================================================
+// INVENTORY — DYNAMIC PARAMETERS (EAV with Ancestor Inheritance)
+// ============================================================
+
+model ParameterDefinition {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folderId     String?            @map("folder_id") @db.Uuid
+  name         String
+  slug         String
+  valueType    ParameterValueType @default(TEXT) @map("value_type")
+  options      Json?              @db.JsonB
+  isRequired   Boolean            @default(false) @map("is_required")
+  sortOrder    Int                @default(0) @map("sort_order")
+  defaultValue String?            @map("default_value")
+  unit         String?
+  description  String?
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  folder Folder?              @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  values ItemParameterValue[]
+
+  @@unique([folderId, slug])
+  @@index([folderId])
+  @@map("parameter_definitions")
+}
+
+model ItemParameterValue {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId                String    @map("item_id") @db.Uuid
+  parameterDefinitionId String    @map("parameter_definition_id") @db.Uuid
+  valueText             String?   @map("value_text")
+  valueNumber           Decimal?  @map("value_number") @db.Decimal(15, 4)
+  valueBoolean          Boolean?  @map("value_boolean")
+  valueDate             DateTime? @map("value_date") @db.Date
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  item                Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  parameterDefinition ParameterDefinition @relation(fields: [parameterDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, parameterDefinitionId])
+  @@index([parameterDefinitionId])
+  @@index([valueText])
+  @@map("item_parameter_values")
+}
+
+// ============================================================
+// INVENTORY — ITEMS (Independent Domain Entity)
+// ============================================================
+
+model Item {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId     String       @unique @map("entity_id") @db.Uuid
+  name         String
+  location     String?
+  quantityMode QuantityMode @default(NUMERIC) @map("quantity_mode")
+  quantity     Int?
+  isOutOfStock Boolean      @default(false) @map("is_out_of_stock")
+  notes        String?
+  createdById  String?      @map("created_by") @db.Uuid
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  entity            Entity               @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  createdBy         User?                @relation("ItemCreator", fields: [createdById], references: [id])
+  folderItems       FolderItem[]
+  parameterValues   ItemParameterValue[]
+  supplierRecords   SupplierRecord[]
+  stockMovements    StockMovement[]
+  stockSettings     ItemStockSettings?
+  purchaseListItems PurchaseListItem[]
+  viewLogs          ItemViewLog[]
+
+  @@index([name])
+  @@index([location])
+  @@index([isOutOfStock])
+  @@index([createdAt])
+  @@map("items")
+}
+
+// ============================================================
+// FOLDER-ITEM JUNCTION (MANY-TO-MANY LINKING)
+// ============================================================
+
+model FolderItem {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folderId   String   @map("folder_id") @db.Uuid
+  itemId     String   @map("item_id") @db.Uuid
+  sortOrder  Int      @default(0) @map("sort_order")
+  linkedById String?  @map("linked_by") @db.Uuid
+  linkedAt   DateTime @default(now()) @map("linked_at")
+
+  // Relations
+  folder   Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  linkedBy User?  @relation("FolderItemLinker", fields: [linkedById], references: [id])
+
+  @@unique([folderId, itemId])
+  @@index([folderId])
+  @@index([itemId])
+  @@map("folder_items")
+}
+
+// ============================================================
+// SUPPLIER ENTITY (Normalized Domain Object)
+// ============================================================
+
+model Supplier {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId  String   @unique @map("entity_id") @db.Uuid
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entity          Entity           @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  supplierRecords SupplierRecord[]
+
+  @@index([name])
+  @@map("suppliers")
+}
+
+// ============================================================
+// SUPPLIER PRICE RECORDS (APPEND-ONLY PRICE HISTORY)
+// ============================================================
+
+model SupplierRecord {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId     String    @unique @map("entity_id") @db.Uuid
+  itemId       String    @map("item_id") @db.Uuid
+  supplierId   String?   @map("supplier_id") @db.Uuid
+  supplierName String    @map("supplier_name")
+  costPrice    Decimal?  @map("cost_price") @db.Decimal(12, 2)
+  sellingPrice Decimal?  @map("selling_price") @db.Decimal(12, 2)
+  purchaseDate DateTime? @map("purchase_date") @db.Date
+  remarks      String?
+  shortCode    String    @unique @map("short_code") @db.VarChar(4)
+  qrCodeData   String?   @map("qr_code_data")
+  createdById  String?   @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  entity    Entity    @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  item      Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  supplier  Supplier? @relation(fields: [supplierId], references: [id])
+  createdBy User?     @relation("SupplierRecordCreator", fields: [createdById], references: [id])
+
+  @@index([itemId])
+  @@index([supplierId])
+  @@index([purchaseDate])
+  @@map("supplier_records")
+}
+
+// ============================================================
+// EVENT-SOURCED STOCK MOVEMENTS
+// ============================================================
+
+model StockMovement {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId             String            @map("item_id") @db.Uuid
+  movementType       StockMovementType @map("movement_type")
+  quantityChange     Int               @map("quantity_change")
+  previousQuantity   Int?              @map("previous_quantity")
+  newQuantity        Int?              @map("new_quantity")
+  unitCost           Decimal?          @map("unit_cost") @db.Decimal(12, 2)
+  unitPrice          Decimal?          @map("unit_price") @db.Decimal(12, 2)
+  totalAmount        Decimal?          @map("total_amount") @db.Decimal(12, 2)
+  referenceNumber    String?           @map("reference_number")
+  notes              String?
+  performedById      String?           @map("performed_by") @db.Uuid
+  purchaseListItemId String?           @map("purchase_list_item_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  item             Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  performedBy      User?             @relation("MovementPerformer", fields: [performedById], references: [id])
+  purchaseListItem PurchaseListItem? @relation(fields: [purchaseListItemId], references: [id])
+
+  @@index([itemId])
+  @@index([movementType])
+  @@index([createdAt])
+  @@index([itemId, movementType])
+  @@index([itemId, createdAt])
+  @@map("stock_movements")
+}
+
+// ============================================================
+// DAILY INVENTORY & FINANCIAL ANALYTICS SNAPSHOTS
+// ============================================================
+
+model DailyInventorySnapshot {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date                 DateTime @unique @db.Date
+  totalInventoryCost   Decimal  @default(0) @map("total_inventory_cost") @db.Decimal(14, 2) // Σ(in_stock_qty × latest_cost_price)
+  totalInventoryRetail Decimal  @default(0) @map("total_inventory_retail") @db.Decimal(14, 2) // Σ(in_stock_qty × latest_selling_price)
+  totalRevenue         Decimal  @default(0) @map("total_revenue") @db.Decimal(14, 2) // Σ(units_sold × selling_price)
+  totalProfit          Decimal  @default(0) @map("total_profit") @db.Decimal(14, 2) // Σ(units_sold × (selling - cost))
+  totalCogs            Decimal  @default(0) @map("total_cogs") @db.Decimal(14, 2) // Cost of goods sold
+  unitsSold            Int      @default(0) @map("units_sold")
+  unitsPurchased       Int      @default(0) @map("units_purchased")
+  totalInStockUnits    Int      @default(0) @map("total_in_stock_units")
+  totalCatalogItems    Int      @default(0) @map("total_catalog_items")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@map("daily_inventory_snapshots")
+}
+
+// ============================================================
+// ITEM STOCK SETTINGS & ANALYTICS DENORMALIZATION
+// ============================================================
+
+model ItemStockSettings {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId          String    @unique @map("item_id") @db.Uuid
+  minimumStock    Int       @default(0) @map("minimum_stock")
+  needToPurchase  Boolean   @default(false) @map("need_to_purchase")
+  lastSoldAt      DateTime? @map("last_sold_at")
+  lastPurchasedAt DateTime? @map("last_purchased_at")
+  totalSold       Int       @default(0) @map("total_sold")
+  totalPurchased  Int       @default(0) @map("total_purchased")
+  viewCount       Int       @default(0) @map("view_count")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([needToPurchase])
+  @@map("item_stock_settings")
+}
+
+// ============================================================
+// PURCHASE MANAGER
+// ============================================================
+
+model PurchaseList {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId    String             @unique @map("entity_id") @db.Uuid
+  title       String
+  notes       String?
+  status      PurchaseListStatus @default(DRAFT)
+  itemCount   Int                @default(0) @map("item_count")
+  createdById String?            @map("created_by") @db.Uuid
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  entity    Entity             @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  createdBy User?              @relation("PurchaseListCreator", fields: [createdById], references: [id])
+  items     PurchaseListItem[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("purchase_lists")
+}
+
+model PurchaseListItem {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  purchaseListId String    @map("purchase_list_id") @db.Uuid
+  itemId         String?   @map("item_id") @db.Uuid
+  itemName       String?   @map("item_name")
+  description    String?
+  quantity       Int       @default(1)
+  receivedQty    Int       @default(0) @map("received_qty")
+  estimatedCost  Decimal?  @map("estimated_cost") @db.Decimal(12, 2)
+  notes          String?
+  sortOrder      Int       @default(0) @map("sort_order")
+  isAutoSuggest  Boolean   @default(false) @map("is_auto_suggest")
+  suggestReason  String?   @map("suggest_reason")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  purchaseList   PurchaseList    @relation(fields: [purchaseListId], references: [id], onDelete: Cascade)
+  item           Item?           @relation(fields: [itemId], references: [id])
+  stockMovements StockMovement[]
+
+  @@index([purchaseListId])
+  @@index([itemId])
+  @@map("purchase_list_items")
+}
+
+// ============================================================
+// TV KNOWLEDGE BASE
+// ============================================================
+
+model TvBrand {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId   String   @unique @map("entity_id") @db.Uuid
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  logoUrl     String?  @map("logo_url")
+  modelCount Int      @default(0) @map("model_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entity Entity    @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  models TvModel[]
+
+  @@map("tv_brands")
+}
+
+model TvModel {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId       String   @unique @map("entity_id") @db.Uuid
+  brandId        String   @map("brand_id") @db.Uuid
+  modelNumber    String   @map("model_number")
+  slug           String
+  screenSize     Int?     @map("screen_size")
+  displayType    String?  @map("display_type")
+  chassisNo      String?  @map("chassis_no")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entity           Entity            @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  brand            TvBrand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  knowledgeFolders KnowledgeFolder[]
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@index([modelNumber])
+  @@map("tv_models")
+}
+
+model KnowledgeFolder {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId  String   @unique @map("entity_id") @db.Uuid
+  modelId   String   @map("model_id") @db.Uuid
+  name      String
+  slug      String
+  parentId  String?  @map("parent_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  isSystem  Boolean  @default(false) @map("is_system")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entity   Entity            @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  model    TvModel           @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  parent   KnowledgeFolder?  @relation("KBFolderHierarchy", fields: [parentId], references: [id])
+  children KnowledgeFolder[] @relation("KBFolderHierarchy")
+  pages    KnowledgePage[]
+
+  @@unique([modelId, parentId, slug])
+  @@index([modelId])
+  @@map("knowledge_folders")
+}
+
+model KnowledgePage {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId    String   @unique @map("entity_id") @db.Uuid
+  kbFolderId  String   @map("kb_folder_id") @db.Uuid
+  title       String
+  contentJson Json?    @map("content_json") @db.JsonB
+  contentHtml String?  @map("content_html")
+  createdById String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entity   Entity          @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  kbFolder KnowledgeFolder @relation(fields: [kbFolderId], references: [id], onDelete: Cascade)
+  createdBy User?          @relation("PageCreator", fields: [createdById], references: [id])
+
+  @@index([kbFolderId])
+  @@map("knowledge_pages")
+}
+
+// ============================================================
+// UNIVERSAL RELATIONSHIP ENGINE
+// ============================================================
+
+model RelationshipType {
+  code              String   @id
+  label             String
+  forwardLabel      String   @map("forward_label")
+  reverseLabel      String   @map("reverse_label")
+  sourceEntityType String   @map("source_entity_type")
+  targetEntityType String   @map("target_entity_type")
+  description       String?
+  isSystem          Boolean  @default(true) @map("is_system")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  relationships EntityRelationship[]
+
+  @@map("relationship_types")
+}
+
+model EntityRelationship {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  relationshipTypeCode String   @map("relationship_type_code")
+  sourceEntityId       String   @map("source_entity_id") @db.Uuid
+  targetEntityId       String   @map("target_entity_id") @db.Uuid
+  notes                String?
+  metadata             Json?    @db.JsonB
+  createdById          String?  @map("created_by") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  // Relations
+  relationshipType RelationshipType @relation(fields: [relationshipTypeCode], references: [code])
+  sourceEntity     Entity           @relation("SourceEntity", fields: [sourceEntityId], references: [id], onDelete: Cascade)
+  targetEntity     Entity           @relation("TargetEntity", fields: [targetEntityId], references: [id], onDelete: Cascade)
+  createdBy        User?            @relation("RelationshipCreator", fields: [createdById], references: [id])
+
+  @@unique([relationshipTypeCode, sourceEntityId, targetEntityId])
+  @@index([sourceEntityId])
+  @@index([targetEntityId])
+  @@map("entity_relationships")
+}
+
+// ============================================================
+// MEDIA MANAGEMENT
+// ============================================================
+
+model Media {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId     String          @unique @map("entity_id") @db.Uuid
+  mediaType    MediaType       @map("media_type")
+  provider     StorageProvider @default(CLOUDINARY)
+  publicId     String          @map("public_id")
+  url          String
+  secureUrl    String?         @map("secure_url")
+  filename     String?
+  mimeType     String?         @map("mime_type")
+  sizeBytes    Int?            @map("size_bytes")
+  width        Int?
+  height       Int?
+  durationSecs Decimal?        @map("duration_secs") @db.Decimal(8, 2)
+  uploadedById String?         @map("uploaded_by") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  entity            Entity        @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  uploadedBy        User?         @relation("MediaUploader", fields: [uploadedById], references: [id])
+  entityAttachments EntityMedia[]
+
+  @@index([mediaType])
+  @@map("media")
+}
+
+model EntityMedia {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId  String   @map("entity_id") @db.Uuid
+  mediaId   String   @map("media_id") @db.Uuid
+  purpose   String   @default("GALLERY")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  media  Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([entityId, mediaId])
+  @@index([entityId])
+  @@index([mediaId])
+  @@map("entity_media")
+}
+
+// ============================================================
+// UNIVERSAL SEARCH INDEX
+// ============================================================
+
+model SearchIndex {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId    String   @unique @map("entity_id") @db.Uuid
+  entityType  String   @map("entity_type")
+  title       String
+  subtitle    String?
+  searchText  String   @map("search_text")
+  shortCode   String?  @map("short_code")
+  parameters  Json?    @db.JsonB
+  displayData Json?    @map("display_data") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([entityType])
+  @@index([shortCode])
+  @@map("search_index")
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String?     @map("user_id") @db.Uuid
+  action       AuditAction
+  entityType   String      @map("entity_type")
+  entityId     String?     @map("entity_id") @db.Uuid
+  changes      Json?       @db.JsonB
+  ipAddress    String?     @map("ip_address")
+  userAgent    String?     @map("user_agent")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// ANALYTICS TRACKING — ITEM VIEW LOGS
+// ============================================================
+
+model ItemViewLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId    String   @map("item_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  viewedAt  DateTime @default(now()) @map("viewed_at")
+
+  // Relations
+  item Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([itemId])
+  @@index([viewedAt])
+  @@map("item_view_logs")
+}
