@@ -20,7 +20,7 @@ export default async function InventoryRootPage(props: {
   const userRole = user?.role || 'STAFF';
 
   // Fetch total item count across DB
-  const totalItemCount = await prisma.item.count();
+  const totalItemCount = await prisma.item.count().catch(() => 0);
 
   // Extract query, sort, and parameter filters from searchParams
   const q = typeof searchParams.q === 'string' ? searchParams.q : undefined;
@@ -64,13 +64,22 @@ export default async function InventoryRootPage(props: {
     !!q || Object.keys(paramFilters).length > 0 || !!sort || view === 'all' || !!stockFilter;
 
   // Fetch universal parameter definitions and execute dynamic cross-folder filter
-  const filterResult = await filterUniversalInventoryItems({
-    searchQuery: q,
-    sortMode: sort,
-    stockFilter,
-    viewAll: view === 'all',
-    paramFilters,
-  });
+  let filterResult: any = {
+    items: [],
+    universalParams: [],
+    totalMatches: 0,
+  };
+  try {
+    filterResult = await filterUniversalInventoryItems({
+      searchQuery: q,
+      sortMode: sort,
+      stockFilter,
+      viewAll: view === 'all',
+      paramFilters,
+    });
+  } catch (err) {
+    console.error('Inventory universal filter error:', err);
+  }
 
   // Fetch root folders
   const folders = await prisma.folder.findMany({
@@ -87,6 +96,9 @@ export default async function InventoryRootPage(props: {
         },
       },
     },
+  }).catch((err) => {
+    console.error('Fetch root folders error:', err);
+    return [];
   });
 
   // Fetch all folders for parameter management
@@ -99,6 +111,9 @@ export default async function InventoryRootPage(props: {
         orderBy: { sortOrder: 'asc' },
       },
     },
+  }).catch((err) => {
+    console.error('Fetch all folders error:', err);
+    return [];
   });
 
   return (
@@ -135,7 +150,7 @@ export default async function InventoryRootPage(props: {
           <div className="flex items-center gap-2 shrink-0">
             <CreateFolderDialog />
             <ManageParametersDialog
-              universalParameters={filterResult.universalParams.map((p) => ({
+              universalParameters={(filterResult.universalParams || []).map((p: any) => ({
                 id: p.id,
                 name: p.name,
                 slug: p.slug,
@@ -162,7 +177,7 @@ export default async function InventoryRootPage(props: {
 
       {/* Main Inventory View with Instant Live Skeleton Feedback */}
       <InventoryViewContainer
-        universalParams={filterResult.universalParams.map((p) => ({
+        universalParams={(filterResult.universalParams || []).map((p: any) => ({
           id: p.id,
           name: p.name,
           slug: p.slug,
@@ -170,8 +185,8 @@ export default async function InventoryRootPage(props: {
           unit: p.unit,
           isRequired: p.isRequired,
         }))}
-        totalMatches={filterResult.totalCount}
-        items={filterResult.items}
+        totalMatches={filterResult.totalMatches ?? filterResult.totalCount ?? 0}
+        items={filterResult.items || []}
         folders={folders}
         userRole={userRole}
         isFilterOrSortActive={isFilterOrSortActive}
