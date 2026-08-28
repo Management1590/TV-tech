@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import * as folderService from '@/features/inventory/services/folder.service';
 import { matchesOrderedPattern, calculateMatchScore } from '@/features/search/services/search.service';
+import { processAndUploadThumbnailUrl } from '@/lib/server-upload-thumbnail';
 
 function generateSlug(name: string): string {
   return name
@@ -29,11 +30,13 @@ export async function createFolderAction(data: {
   }
 
   try {
+    const cleanThumb = await processAndUploadThumbnailUrl(data.thumbnailUrl, 'tv-tech-os/folders');
+
     const result = await folderService.createFolder({
       name: data.name.trim(),
       description: data.description?.trim() || undefined,
       parentId: data.parentId || null,
-      thumbnailUrl: data.thumbnailUrl?.trim() || undefined,
+      thumbnailUrl: cleanThumb || undefined,
       createdById: user.id,
     });
 
@@ -60,10 +63,12 @@ export async function updateFolderThumbnailAction(folderId: string, thumbnailUrl
 
     if (!folder) return { success: false, error: 'Folder not found.' };
 
+    const cleanThumb = await processAndUploadThumbnailUrl(thumbnailUrl, 'tv-tech-os/folders');
+
     await prisma.$transaction(async (tx) => {
       await tx.folder.update({
         where: { id: folderId },
-        data: { thumbnailUrl },
+        data: { thumbnailUrl: cleanThumb },
       });
 
       await tx.auditLog.create({
@@ -72,7 +77,7 @@ export async function updateFolderThumbnailAction(folderId: string, thumbnailUrl
           action: 'UPDATE',
           entityType: 'FOLDER',
           entityId: folder.entityId,
-          changes: { thumbnailUrl },
+          changes: { thumbnailUrl: cleanThumb },
         },
       });
     });

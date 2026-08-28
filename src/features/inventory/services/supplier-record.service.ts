@@ -9,6 +9,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { SupplierRecord } from '@prisma/client';
+import { ensureEntityType } from '@/lib/ensure-entity-types';
 import crypto from 'crypto';
 
 export interface CreateSupplierRecordInput {
@@ -60,6 +61,9 @@ export async function createSupplierRecord(
   const shortCode = await generateUniqueShortCode();
 
   return await prisma.$transaction(async (tx) => {
+    // 0. Ensure EntityType exists
+    await ensureEntityType('SUPPLIER_RECORD', tx);
+
     // 1. Create Entity Registry entry
     const entity = await tx.entity.create({
       data: {

@@ -53,6 +53,7 @@ export function SetFolderThumbnailDialog({
   const clipId = useId().replace(/:/g, '');
 
   const [mode, setMode] = useState<'upload' | 'url'>('upload');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string>(currentThumbnailUrl || '');
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentThumbnailUrl || null);
   const [isPending, startTransition] = useTransition();
@@ -81,6 +82,7 @@ export function SetFolderThumbnailDialog({
       const parsed = parseThumbnailUrl(currentThumbnailUrl);
       setThumbnailUrl(parsed.url);
       setPreviewUrl(parsed.url || null);
+      setSelectedFile(null);
       setScale(parsed.scale);
       setPosition({ x: parsed.x, y: parsed.y });
       setImageAspect(null);
@@ -103,16 +105,13 @@ export function SetFolderThumbnailDialog({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setPreviewUrl(result);
-      setThumbnailUrl(result);
-      setScale(1);
-      setPosition({ x: 0, y: 0 });
-      setImageAspect(null);
-    };
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedFile(file);
+    setPreviewUrl(objectUrl);
+    setThumbnailUrl('');
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+    setImageAspect(null);
   };
 
   // Mouse / Touch Drag Handlers
@@ -191,19 +190,45 @@ export function SetFolderThumbnailDialog({
     }
 
     startTransition(async () => {
-      const finalUrl = formatThumbnailUrl(thumbnailUrl || previewUrl, position.x, position.y, scale);
+      let baseImageUrl = thumbnailUrl;
+
+      if (selectedFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('folder', 'tv-tech-os/folders');
+
+          const uploadRes = await fetch('/api/media/upload-thumbnail', {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+
+          if (!uploadData.success || !uploadData.url) {
+            toast.error(uploadData.error || 'Failed to upload image to CDN');
+            return;
+          }
+          baseImageUrl = uploadData.url;
+        } catch (err: any) {
+          toast.error(err.message || 'Image upload failed');
+          return;
+        }
+      }
+
+      const finalUrl = formatThumbnailUrl(baseImageUrl || previewUrl, position.x, position.y, scale);
       const res = await updateFolderThumbnailAction(folderId, finalUrl || null);
       if (res.success) {
         toast.success(`Thumbnail updated for "${folderName}"`);
         onOpenChange(false);
         router.refresh();
       } else {
-        toast.error(res.error || 'Failed to update folder thumbnail');
+        toast.error(res.error || 'Failed to update thumbnail');
       }
     });
   };
 
   const handleRemove = () => {
+    setSelectedFile(null);
     setPreviewUrl(null);
     setThumbnailUrl('');
     handleResetPosition();

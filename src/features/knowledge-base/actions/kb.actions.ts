@@ -7,6 +7,12 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
+import {
+  ensureEntityType,
+  ensureRelationshipType,
+  getEntityTypeConnectOrCreate,
+} from '@/lib/ensure-entity-types';
+import { processAndUploadThumbnailUrl } from '@/lib/server-upload-thumbnail';
 
 function generateSlug(name: string): string {
   return name
@@ -29,11 +35,13 @@ export async function createTvBrandAction(data: {
 
   try {
     const slug = generateSlug(data.name);
+    const cleanLogoUrl = await processAndUploadThumbnailUrl(data.logoUrl, 'tv-tech-os/brands');
 
     const brand = await prisma.$transaction(async (tx) => {
+      await ensureEntityType('TV_BRAND', tx);
       const entity = await tx.entity.create({
         data: {
-          entityType: { connect: { code: 'TV_BRAND' } },
+          entityType: getEntityTypeConnectOrCreate('TV_BRAND'),
           displayName: data.name,
         },
       });
@@ -44,7 +52,7 @@ export async function createTvBrandAction(data: {
           name: data.name,
           slug,
           description: data.description?.trim() || null,
-          logoUrl: data.logoUrl || null,
+          logoUrl: cleanLogoUrl || null,
         },
       });
 
@@ -157,13 +165,15 @@ export async function setTvBrandThumbnailAction(brandId: string, logoUrl: string
   }
 
   try {
+    const cleanLogoUrl = await processAndUploadThumbnailUrl(logoUrl, 'tv-tech-os/brands');
+
     await prisma.$transaction(async (tx) => {
       const brand = await tx.tvBrand.findUnique({ where: { id: brandId } });
       if (!brand) throw new Error('Brand not found.');
 
       await tx.tvBrand.update({
         where: { id: brandId },
-        data: { logoUrl: logoUrl || null },
+        data: { logoUrl: cleanLogoUrl || null },
       });
 
       await tx.auditLog.create({
@@ -172,7 +182,7 @@ export async function setTvBrandThumbnailAction(brandId: string, logoUrl: string
           action: 'UPDATE',
           entityType: 'TV_BRAND',
           entityId: brand.entityId,
-          changes: { logoUrl: logoUrl || null },
+          changes: { logoUrl: cleanLogoUrl || null },
         },
       });
     });
@@ -258,9 +268,12 @@ export async function createTvModelAction(data: {
       const slug = generateSlug(data.modelNumber);
       const screenSizeInt = data.screenSize ? parseInt(data.screenSize, 10) : null;
 
+      await ensureEntityType('TV_MODEL', tx);
+      await ensureEntityType('KNOWLEDGE_FOLDER', tx);
+
       const entity = await tx.entity.create({
         data: {
-          entityType: { connect: { code: 'TV_MODEL' } },
+          entityType: getEntityTypeConnectOrCreate('TV_MODEL'),
           displayName: `${brand.name} ${data.modelNumber}`,
         },
       });
@@ -278,20 +291,15 @@ export async function createTvModelAction(data: {
         },
       });
 
-      // Create default knowledge folders with their own entities
+      // Create the 2 default premade technical folders (Backlight & More info)
       const systemFolders = [
-        'Backlight Strips',
-        'Display Panel',
-        'Main Board',
-        'Power Board',
-        'T-Con Board',
-        'Software & Firmware',
-        'Service Notes'
+        'Backlight',
+        'More info',
       ];
       for (let i = 0; i < systemFolders.length; i++) {
         const folderEntity = await tx.entity.create({
           data: {
-            entityType: { connect: { code: 'KNOWLEDGE_FOLDER' } },
+            entityType: getEntityTypeConnectOrCreate('KNOWLEDGE_FOLDER'),
             displayName: `${brand.name} ${data.modelNumber} / ${systemFolders[i]}`,
           },
         });
@@ -367,6 +375,8 @@ export async function linkItemToTvModelAction(itemIdOrEntityId: string, modelIdO
 
     await prisma.$transaction(async (tx) => {
       // Get or create the relationship type
+      await ensureRelationshipType('ITEM_COMPATIBLE_TV_MODEL', tx);
+
       let relType = await tx.relationshipType.findUnique({
         where: { code: 'ITEM_COMPATIBLE_TV_MODEL' },
       });

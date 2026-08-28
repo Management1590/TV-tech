@@ -243,31 +243,33 @@ export function DashboardAnalyticsCharts({
         </div>
 
         {/* Time Period Filter Pills matching user specifications */}
-        <div className="flex items-center gap-1 p-1 bg-muted border border-border/80 rounded-xl overflow-x-auto max-w-full shrink-0">
-          {(
-            [
-              { label: 'Today', value: 'today' },
-              { label: 'Yesterday', value: 'yesterday' },
-              { label: 'This Month', value: 'this_month' },
-              { label: '3 Months', value: '3m' },
-              { label: '6 Months', value: '6m' },
-              { label: 'Year', value: 'year' },
-              { label: 'All Time', value: 'all' },
-            ] as const
-          ).map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => setPeriod(p.value)}
-              className={`px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 whitespace-nowrap ${
-                period === p.value
-                  ? 'bg-white text-foreground shadow-sm font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="w-full sm:w-auto overflow-x-auto no-scrollbar -mx-1 px-1 py-0.5">
+          <div className="flex items-center gap-1 p-1 bg-muted/80 border border-border/80 rounded-xl w-max sm:w-auto min-w-full sm:min-w-0">
+            {(
+              [
+                { label: 'Today', value: 'today' },
+                { label: 'Yesterday', value: 'yesterday' },
+                { label: 'This Month', value: 'this_month' },
+                { label: '3 Months', value: '3m' },
+                { label: '6 Months', value: '6m' },
+                { label: 'Year', value: 'year' },
+                { label: 'All Time', value: 'all' },
+              ] as const
+            ).map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setPeriod(p.value)}
+                className={`h-7 sm:h-7.5 px-2.5 sm:px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 whitespace-nowrap flex items-center justify-center ${
+                  period === p.value
+                    ? 'bg-white text-foreground shadow-xs font-bold ring-1 ring-border/60'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -277,116 +279,135 @@ export function DashboardAnalyticsCharts({
         onValueChange={(val: any) => setActiveTab(val)}
         className="space-y-4 sm:space-y-5"
       >
-        <div className="flex flex-col gap-3">
-          {/* Scrollable TabsList on mobile */}
-          <div className="overflow-x-auto pb-1 max-w-full -mx-1 px-1">
-            <TabsList className="bg-muted border border-border/80 p-1 rounded-2xl h-10 w-max flex flex-nowrap shrink-0">
-              <TabsTrigger
-                value="profit"
-                className="text-[11px] sm:text-xs font-bold px-3 sm:px-4 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm cursor-pointer gap-1.5 whitespace-nowrap"
+        <div className="flex flex-col gap-2.5 sm:gap-3">
+          {/* Mobile-optimized, scrollbar-free Tabs Switcher */}
+          <div className="w-full overflow-x-auto no-scrollbar -mx-1 px-1 py-0.5">
+            <div className="bg-muted/80 border border-border/80 p-1 rounded-xl w-max sm:w-auto min-w-full sm:min-w-0 inline-flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('profit')}
+                className={`h-8 sm:h-8.5 px-3 sm:px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTab === 'profit'
+                    ? 'bg-white text-primary shadow-xs ring-1 ring-border/60'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
+                }`}
               >
                 <IndianRupee className="w-3.5 h-3.5" /> Profits & Inventory Cost
-              </TabsTrigger>
-              <TabsTrigger
-                value="inventory"
-                className="text-[11px] sm:text-xs font-bold px-3 sm:px-4 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm cursor-pointer gap-1.5 whitespace-nowrap"
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('inventory')}
+                className={`h-8 sm:h-8.5 px-3 sm:px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTab === 'inventory'
+                    ? 'bg-white text-primary shadow-xs ring-1 ring-border/60'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
+                }`}
               >
                 <Package className="w-3.5 h-3.5" /> Stock Velocity
-              </TabsTrigger>
-              <TabsTrigger
-                value="categories"
-                className="text-[11px] sm:text-xs font-bold px-3 sm:px-4 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm cursor-pointer gap-1.5 whitespace-nowrap"
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('categories')}
+                className={`h-8 sm:h-8.5 px-3 sm:px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTab === 'categories'
+                    ? 'bg-white text-primary shadow-xs ring-1 ring-border/60'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
+                }`}
               >
                 <Layers className="w-3.5 h-3.5" /> Category Breakdown
-              </TabsTrigger>
-            </TabsList>
+              </button>
+            </div>
           </div>
 
           {/* Metric Active Toggles for Profit Tab */}
           {activeTab === 'profit' && (
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setShowRevenue(!showRevenue)}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
-                  showRevenue
-                    ? 'bg-primary/5 text-primary border-primary/25 shadow-2xs'
-                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                Total Revenue
-              </button>
+            <div className="w-full overflow-x-auto no-scrollbar -mx-1 px-1 py-0.5">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap w-max sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowRevenue(!showRevenue)}
+                  className={`flex items-center gap-1.5 h-7 sm:h-7.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    showRevenue
+                      ? 'bg-primary/10 text-primary border-primary/30 shadow-2xs font-bold'
+                      : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                  Total Revenue
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setShowProfit(!showProfit)}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
-                  showProfit
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
-                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                Realized Profit
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowProfit(!showProfit)}
+                  className={`flex items-center gap-1.5 h-7 sm:h-7.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    showProfit
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs font-bold'
+                      : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  Realized Profit
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setShowInventoryCost(!showInventoryCost)}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
-                  showInventoryCost
-                    ? 'bg-violet-50 text-violet-700 border-violet-300 shadow-2xs'
-                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0" />
-                Total Inventory Cost
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowInventoryCost(!showInventoryCost)}
+                  className={`flex items-center gap-1.5 h-7 sm:h-7.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    showInventoryCost
+                      ? 'bg-violet-50 text-violet-700 border-violet-300 shadow-2xs font-bold'
+                      : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0" />
+                  Total Inventory Cost
+                </button>
+              </div>
             </div>
           )}
 
           {/* Metric Active Toggles for Inventory Velocity Tab */}
           {activeTab === 'inventory' && (
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setShowInflow(!showInflow)}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
-                  showInflow
-                    ? 'bg-primary/5 text-primary border-primary/25 shadow-2xs'
-                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                Units Purchased (In)
-              </button>
+            <div className="w-full overflow-x-auto no-scrollbar -mx-1 px-1 py-0.5">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap w-max sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowInflow(!showInflow)}
+                  className={`flex items-center gap-1.5 h-7 sm:h-7.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    showInflow
+                      ? 'bg-primary/10 text-primary border-primary/30 shadow-2xs font-bold'
+                      : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                  Units Purchased (In)
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setShowOutflow(!showOutflow)}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
-                  showOutflow
-                    ? 'bg-amber-50 text-amber-700 border-amber-300 shadow-2xs'
-                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                Units Sold (Out)
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowOutflow(!showOutflow)}
+                  className={`flex items-center gap-1.5 h-7 sm:h-7.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    showOutflow
+                      ? 'bg-amber-50 text-amber-700 border-amber-300 shadow-2xs font-bold'
+                      : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  Units Sold (Out)
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setShowTotalUnits(!showTotalUnits)}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
-                  showTotalUnits
-                    ? 'bg-violet-50 text-violet-700 border-violet-300 shadow-2xs'
-                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0" />
-                In-Stock Units
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTotalUnits(!showTotalUnits)}
+                  className={`flex items-center gap-1.5 h-7 sm:h-7.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    showTotalUnits
+                      ? 'bg-violet-50 text-violet-700 border-violet-300 shadow-2xs font-bold'
+                      : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0" />
+                  In-Stock Units
+                </button>
+              </div>
             </div>
           )}
         </div>

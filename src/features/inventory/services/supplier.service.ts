@@ -6,6 +6,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { Supplier } from '@prisma/client';
+import { ensureEntityType } from '@/lib/ensure-entity-types';
 
 export interface CreateSupplierInput {
   name: string;
@@ -25,6 +26,7 @@ export interface UpdateSupplierInput {
 
 export async function createSupplier(input: CreateSupplierInput): Promise<Supplier> {
   return await prisma.$transaction(async (tx) => {
+    await ensureEntityType('SUPPLIER', tx);
     const entity = await tx.entity.create({
       data: {
         entityTypeCode: 'SUPPLIER',

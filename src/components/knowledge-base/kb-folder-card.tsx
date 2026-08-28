@@ -31,8 +31,9 @@ interface KbFolderCardProps {
 
 export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCardProps) {
   const clipId = useId().replace(/:/g, '');
-  const isBacklight = folder.name.toLowerCase() === 'backlight';
-  const isMoreInfo = folder.name.toLowerCase() === 'more info';
+  const nameLower = folder.name.toLowerCase();
+  const isBacklight = nameLower.includes('backlight');
+  const isMoreInfo = nameLower.includes('more info') || nameLower.includes('more-info');
 
   // Folder specific color theme configurations
   const theme = isBacklight

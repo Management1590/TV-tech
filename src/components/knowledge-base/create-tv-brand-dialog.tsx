@@ -57,6 +57,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
     initY: 0,
   });
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageAspect, setImageAspect] = useState<number | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -83,14 +84,11 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setPreviewUrl(result);
-      setLogoUrl(result);
-      handleResetPosition();
-    };
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedFile(file);
+    setPreviewUrl(objectUrl);
+    setLogoUrl('');
+    handleResetPosition();
   };
 
   // Drag Handlers
@@ -151,8 +149,33 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
     if (!name.trim()) return;
 
     startTransition(async () => {
-      const finalLogoUrl = (logoUrl || previewUrl)
-        ? formatThumbnailUrl(logoUrl || previewUrl, position.x, position.y, scale)
+      let baseLogoUrl = logoUrl;
+
+      if (selectedFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('folder', 'tv-tech-os/brands');
+
+          const uploadRes = await fetch('/api/media/upload-thumbnail', {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+
+          if (!uploadData.success || !uploadData.url) {
+            toast.error(uploadData.error || 'Failed to upload image to CDN');
+            return;
+          }
+          baseLogoUrl = uploadData.url;
+        } catch (err: any) {
+          toast.error(err.message || 'Image upload failed');
+          return;
+        }
+      }
+
+      const finalLogoUrl = (baseLogoUrl || previewUrl)
+        ? formatThumbnailUrl(baseLogoUrl || previewUrl, position.x, position.y, scale)
         : undefined;
 
       const result = await createTvBrandAction({
@@ -167,6 +190,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
         setName('');
         setDescription('');
         setLogoUrl('');
+        setSelectedFile(null);
         setPreviewUrl(null);
         handleResetPosition();
       } else {

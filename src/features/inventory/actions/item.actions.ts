@@ -11,6 +11,7 @@ import { matchesOrderedPattern, calculateMatchScore } from '@/features/search/se
 import { cloudinary } from '@/lib/cloudinary';
 import { createMediaAttachment } from '@/features/media/services/media.service';
 import { captureDailySnapshot } from '@/features/analytics/services/inventory-analytics.service';
+import { ensureEntityType, getEntityTypeConnectOrCreate } from '@/lib/ensure-entity-types';
 import { MediaType, StorageProvider } from '@prisma/client';
 
 function generateShortCode(): string {
@@ -132,8 +133,12 @@ export async function createItemAction(data: {
           attempts++;
         }
 
+        await ensureEntityType('SUPPLIER_RECORD', tx);
         const srEntity = await tx.entity.create({
-          data: { entityType: { connect: { code: 'SUPPLIER_RECORD' } }, displayName: `${data.supplierName} - ${data.name}` },
+          data: {
+            entityType: getEntityTypeConnectOrCreate('SUPPLIER_RECORD'),
+            displayName: `${data.supplierName} - ${data.name}`,
+          },
         });
 
         await tx.supplierRecord.create({
@@ -877,8 +882,12 @@ export async function addSupplierRecordAction(data: {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      await ensureEntityType('SUPPLIER_RECORD', tx);
       const entity = await tx.entity.create({
-        data: { entityType: { connect: { code: 'SUPPLIER_RECORD' } }, displayName: `${data.supplierName} - Record` },
+        data: {
+          entityType: getEntityTypeConnectOrCreate('SUPPLIER_RECORD'),
+          displayName: `${data.supplierName} - Record`,
+        },
       });
 
       const record = await tx.supplierRecord.create({

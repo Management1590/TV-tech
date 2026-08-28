@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { captureDailySnapshot } from '@/features/analytics/services/inventory-analytics.service';
+import { ensureEntityType, getEntityTypeConnectOrCreate } from '@/lib/ensure-entity-types';
 import type { PurchaseListStatus } from '@prisma/client';
 
 // ── Create Purchase List ──
@@ -21,9 +22,10 @@ export async function createPurchaseListAction(data: {
 
   try {
     const list = await prisma.$transaction(async (tx) => {
+      await ensureEntityType('PURCHASE_LIST', tx);
       const entity = await tx.entity.create({
         data: {
-          entityType: { connect: { code: 'PURCHASE_LIST' } },
+          entityType: getEntityTypeConnectOrCreate('PURCHASE_LIST'),
           displayName: data.title,
         },
       });

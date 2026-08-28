@@ -52,6 +52,7 @@ export function SetBrandThumbnailDialog({
   const clipId = useId().replace(/:/g, '');
 
   const [mode, setMode] = useState<'upload' | 'url'>('upload');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string>(currentLogoUrl || '');
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLogoUrl || null);
   const [isPending, startTransition] = useTransition();
@@ -80,6 +81,7 @@ export function SetBrandThumbnailDialog({
       const parsed = parseThumbnailUrl(currentLogoUrl);
       setThumbnailUrl(parsed.url);
       setPreviewUrl(parsed.url || null);
+      setSelectedFile(null);
       setScale(parsed.scale);
       setPosition({ x: parsed.x, y: parsed.y });
       setImageAspect(null);
@@ -102,16 +104,13 @@ export function SetBrandThumbnailDialog({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setPreviewUrl(result);
-      setThumbnailUrl(result);
-      setScale(1);
-      setPosition({ x: 0, y: 0 });
-      setImageAspect(null);
-    };
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedFile(file);
+    setPreviewUrl(objectUrl);
+    setThumbnailUrl('');
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+    setImageAspect(null);
   };
 
   // Mouse / Touch Drag Handlers
@@ -189,7 +188,33 @@ export function SetBrandThumbnailDialog({
     }
 
     startTransition(async () => {
-      const finalUrl = formatThumbnailUrl(thumbnailUrl || previewUrl, position.x, position.y, scale);
+      let baseImageUrl = thumbnailUrl;
+
+      // If user uploaded a new local file, upload via direct multipart API first
+      if (selectedFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('folder', 'tv-tech-os/brands');
+
+          const uploadRes = await fetch('/api/media/upload-thumbnail', {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+
+          if (!uploadData.success || !uploadData.url) {
+            toast.error(uploadData.error || 'Failed to upload image to CDN');
+            return;
+          }
+          baseImageUrl = uploadData.url;
+        } catch (err: any) {
+          toast.error(err.message || 'Image upload failed');
+          return;
+        }
+      }
+
+      const finalUrl = formatThumbnailUrl(baseImageUrl || previewUrl, position.x, position.y, scale);
       const res = await setTvBrandThumbnailAction(brandId, finalUrl || null);
       if (res.success) {
         toast.success(`Thumbnail updated for "${brandName}"`);
@@ -202,6 +227,7 @@ export function SetBrandThumbnailDialog({
   };
 
   const handleRemove = () => {
+    setSelectedFile(null);
     setPreviewUrl(null);
     setThumbnailUrl('');
     handleResetPosition();
