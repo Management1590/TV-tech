@@ -13,6 +13,9 @@ export default async function KnowledgeBasePage() {
     include: {
       _count: { select: { models: true } },
     },
+  }).catch((err) => {
+    console.error('Failed to fetch TV brands:', err);
+    return [];
   });
 
   return (
