@@ -237,7 +237,7 @@ export function AddSupplierRecordDialog({
             </div>
 
             {/* Short code info card */}
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-950/20 border border-primary/20 text-xs text-primary/90">
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs text-primary/90">
               <Hash className="w-4 h-4 text-primary shrink-0" />
               <span>
                 A unique <strong>4-character short code</strong> (e.g. #FK5Y) will be auto-generated and added to the selector immediately.

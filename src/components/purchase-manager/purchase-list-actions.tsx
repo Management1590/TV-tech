@@ -9,7 +9,7 @@ import { updatePurchaseListStatusAction, deletePurchaseListAction } from '@/feat
 import type { PurchaseListStatus } from '@prisma/client';
 
 const STATUS_CONFIG: Record<PurchaseListStatus, { label: string; color: string; next?: PurchaseListStatus }> = {
-  DRAFT: { label: 'Draft', color: 'bg-slate-500/20 text-muted-foreground', next: 'READY_TO_PRINT' },
+  DRAFT: { label: 'Draft', color: 'bg-muted/50 text-muted-foreground', next: 'READY_TO_PRINT' },
   READY_TO_PRINT: { label: 'Ready to Print', color: 'bg-primary/15 text-primary', next: 'ORDERED' },
   ORDERED: { label: 'Ordered', color: 'bg-amber-500/20 text-amber-600', next: 'PARTIALLY_RECEIVED' },
   PARTIALLY_RECEIVED: { label: 'Partial', color: 'bg-orange-500/20 text-orange-400', next: 'COMPLETED' },

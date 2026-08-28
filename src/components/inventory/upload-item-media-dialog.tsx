@@ -266,8 +266,8 @@ export function UploadItemMediaDialog({
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
                     isDragging
-                      ? 'border-blue-500 bg-primary/10 scale-[0.99]'
-                      : 'border-border hover:border-blue-500/50 bg-muted/40 hover:bg-muted/70'
+                      ? 'border-primary bg-primary/10 scale-[0.99]'
+                      : 'border-border hover:border-primary/50 bg-muted/40 hover:bg-muted/70'
                   }`}
                 >
                   <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-[0_0_15px_rgba(59,130,246,0.15)]">
@@ -278,7 +278,7 @@ export function UploadItemMediaDialog({
                     <p className="text-xs text-muted-foreground mt-1">
                       High-resolution photos (JPG, PNG, WebP, GIF), 4K video clips, or audio
                     </p>
-                    <Badge variant="outline" className="mt-2 text-[10px] bg-blue-950/40 border-primary/20 text-primary">
+                    <Badge variant="outline" className="mt-2 text-[10px] bg-primary/5 border-primary/20 text-primary">
                       No File Size Limit
                     </Badge>
                   </div>
@@ -389,13 +389,13 @@ export function UploadItemMediaDialog({
               checked={isPrimary}
               onChange={(e) => setIsPrimary(e.target.checked)}
               disabled={isUploading}
-              className="rounded border-border bg-background text-blue-600 focus:ring-primary h-4 w-4 pointer-events-none"
+              className="rounded border-border bg-background text-primary focus:ring-primary h-4 w-4 pointer-events-none"
             />
           </div>
 
           {/* Upload Progress Bar & Status */}
           {isUploading && (
-            <div className="space-y-2 p-3.5 bg-blue-950/20 border border-primary/20 rounded-xl">
+            <div className="space-y-2 p-3.5 bg-primary/5 border border-primary/20 rounded-xl">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-primary flex items-center gap-1.5">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />

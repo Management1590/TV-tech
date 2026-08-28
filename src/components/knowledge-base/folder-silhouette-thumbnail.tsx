@@ -53,14 +53,14 @@ export function FolderSilhouetteThumbnail({
 
       {/* Clipped Folder Body */}
       <div
-        className="relative w-full h-full bg-slate-100/90 overflow-hidden shadow-xs flex flex-col justify-end"
+        className="relative w-full h-full bg-muted overflow-hidden shadow-xs flex flex-col justify-end"
         style={{
           clipPath: `url(#folder-thumb-clip-${clipId})`,
           boxShadow: '0 2px 5px rgba(0,0,0,0.08), 0 8px 18px rgba(100,116,145,0.12)',
         }}
       >
         {parsedThumb.url ? (
-          <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-200/90 flex items-center justify-center">
+          <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center">
             <img
               src={parsedThumb.url}
               alt={name}
@@ -74,7 +74,7 @@ export function FolderSilhouetteThumbnail({
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/85 via-indigo-100/60 to-slate-200/90 flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/85 via-indigo-100/60 to-muted/80 flex items-center justify-center overflow-hidden">
             <div className="w-6 h-6 rounded-xl bg-white/90 border border-primary/30 shadow-2xs flex items-center justify-center text-primary">
               {fallbackIcon === 'tv' ? (
                 <Tv className="w-3.5 h-3.5 text-primary" />

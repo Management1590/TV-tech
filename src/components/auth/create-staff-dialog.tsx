@@ -120,7 +120,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                 placeholder="e.g. Ramesh Kumar"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="pl-9 h-10 rounded-xl bg-slate-50/70 border-border text-foreground text-xs placeholder:text-muted-foreground/60 focus-visible:ring-primary"
+                className="pl-9 h-10 rounded-xl bg-muted/40 border-border text-foreground text-xs placeholder:text-muted-foreground/60 focus-visible:ring-primary"
                 required
                 disabled={isPending}
               />
@@ -142,7 +142,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                 placeholder="ramesh@modernelectronics.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-9 h-10 rounded-xl bg-slate-50/70 border-border text-foreground text-xs placeholder:text-muted-foreground/60 focus-visible:ring-primary"
+                className="pl-9 h-10 rounded-xl bg-muted/40 border-border text-foreground text-xs placeholder:text-muted-foreground/60 focus-visible:ring-primary"
                 required
                 disabled={isPending}
               />
@@ -164,7 +164,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                 placeholder="Min 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 pr-10 h-10 rounded-xl bg-slate-50/70 border-border text-foreground text-xs placeholder:text-muted-foreground/60 focus-visible:ring-primary"
+                className="pl-9 pr-10 h-10 rounded-xl bg-muted/40 border-border text-foreground text-xs placeholder:text-muted-foreground/60 focus-visible:ring-primary"
                 required
                 disabled={isPending}
               />
@@ -180,7 +180,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
           </div>
 
           {/* Access info note */}
-          <div className="p-3 rounded-xl bg-slate-50/90 border border-border/70 flex items-start gap-2.5 text-[11px] text-muted-foreground leading-relaxed">
+          <div className="p-3 rounded-xl bg-muted/50 border border-border/70 flex items-start gap-2.5 text-[11px] text-muted-foreground leading-relaxed">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <span>
               Staff account will be stored in Supabase with standard technician permissions for the Knowledge Base and Inventory.

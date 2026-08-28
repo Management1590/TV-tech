@@ -241,7 +241,7 @@ export function EditItemDialog({
 
           {/* Exact Quantity when NUMERIC */}
           {quantityMode === 'NUMERIC' && (
-            <div className="space-y-1.5 p-3 rounded-xl bg-blue-950/20 border border-primary/20">
+            <div className="space-y-1.5 p-3 rounded-xl bg-primary/5 border border-primary/20">
               <Label className="text-xs font-semibold text-primary">Current In-Stock Quantity</Label>
               <Input
                 type="number"

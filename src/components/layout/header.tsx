@@ -19,6 +19,7 @@ import {
   X,
   CheckCircle2,
 } from 'lucide-react';
+import { AppLogo } from '@/components/shared/app-logo';
 import { CommandPalette } from '@/components/shared/command-palette';
 import { logoutAction } from '@/features/auth/actions/auth.actions';
 import { Button } from '@/components/ui/button';
@@ -94,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-border/70 shadow-2xs transition-all" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/70 shadow-2xs transition-all" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Top-Left Back Button / Logo Branding */}
         {shouldShowBackButton ? (
@@ -103,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               type="button"
               onClick={handleBack}
               aria-label="Go Back"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/10 to-blue-500/10 border border-primary/25 hover:border-primary/50 flex items-center justify-center text-primary shadow-2xs hover:bg-primary/15 active:scale-90 transition-all duration-200 cursor-pointer shrink-0 group"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/10 to-primary/10 border border-primary/25 hover:border-primary/50 flex items-center justify-center text-primary shadow-2xs hover:bg-primary/15 active:scale-90 transition-all duration-200 cursor-pointer shrink-0 group"
               title="Go back (restores scroll position)"
             >
               <ArrowLeft className="w-5 h-5 text-primary stroke-[2.5] group-hover:-translate-x-0.5 transition-transform" />
@@ -120,8 +121,8 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           </div>
         ) : isKbRoute ? (
           <div className="flex items-center gap-2.5 shrink-0 select-none cursor-default">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/15 to-blue-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs">
-              <Tv className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/15 to-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs">
+              <AppLogo className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="hidden sm:flex flex-col">
               <div className="flex items-center gap-1.5 font-extrabold text-sm sm:text-base tracking-tight text-foreground leading-none">
@@ -135,8 +136,8 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           </div>
         ) : (
           <Link href={isAdmin ? '/' : '/inventory'} className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/15 to-blue-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 group-hover:shadow-md group-hover:border-primary/40 transition-all duration-200">
-              <Tv className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/15 to-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 group-hover:shadow-md group-hover:border-primary/40 transition-all duration-200">
+              <AppLogo className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="hidden sm:flex flex-col">
               <div className="flex items-center gap-1.5 font-extrabold text-sm sm:text-base tracking-tight text-foreground leading-none">
@@ -178,14 +179,14 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           <div className="hidden sm:block">
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-100/90 hover:bg-slate-200/90 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-muted/90 hover:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group"
                 aria-label="User profile menu"
               >
                 <div
                   className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center text-white shadow-2xs ${
                     isAdmin
                       ? 'bg-gradient-to-tr from-primary to-blue-600'
-                      : 'bg-gradient-to-tr from-indigo-500 to-slate-700'
+                      : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
                   }`}
                 >
                   {initials}
@@ -204,7 +205,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               <DropdownMenuContent
                 align="end"
                 sideOffset={8}
-                className="w-80 rounded-3xl bg-white border border-border shadow-2xl p-4 z-50"
+                className="w-80 rounded-3xl bg-card border border-border shadow-2xl p-4 z-50"
               >
                 {/* Profile Header Card */}
                 <div className="flex items-start gap-3 pb-3 border-b border-border/70">
@@ -212,7 +213,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                     className={`w-12 h-12 rounded-2xl font-black text-sm flex items-center justify-center text-white shadow-md shrink-0 ${
                       isAdmin
                         ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
-                        : 'bg-gradient-to-tr from-indigo-500 to-slate-700'
+                        : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
                     }`}
                   >
                     {initials}
@@ -235,7 +236,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                         variant="secondary"
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                           isAdmin
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            ? 'bg-primary/5 text-primary border-primary/20'
                             : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                         }`}
                       >
@@ -269,7 +270,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                 {isAdmin && (
                   <DropdownMenuItem
                     onClick={() => setIsCreateStaffOpen(true)}
-                    className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-slate-100 text-slate-800"
+                    className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted text-foreground"
                   >
                     <UserPlus className="w-4 h-4 text-indigo-600" />
                     <span>Create Staff Account</span>
@@ -280,7 +281,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                 <DropdownMenuItem
                   onClick={handleLogout}
                   disabled={isPending}
-                  className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold rounded-xl cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-600"
+                  className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold rounded-xl cursor-pointer text-red-600 hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600"
                 >
                   {isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin text-red-600" />
@@ -300,13 +301,13 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
             type="button"
             onClick={() => setMobileOpen(true)}
             aria-label="Open profile details"
-            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-2xl bg-slate-100/90 active:bg-slate-200 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer shadow-2xs"
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-2xl bg-muted/90 active:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer shadow-2xs"
           >
             <div
               className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center text-white shadow-xs ${
                 isAdmin
                   ? 'bg-gradient-to-tr from-primary to-blue-600'
-                  : 'bg-gradient-to-tr from-indigo-500 to-slate-700'
+                  : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
               }`}
             >
               {initials}
@@ -321,7 +322,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
             variant="ghost"
             onClick={handleLogout}
             disabled={isPending}
-            className="hidden sm:flex h-10 px-3 sm:px-3.5 rounded-2xl text-xs font-semibold text-muted-foreground hover:text-red-600 hover:bg-red-50/90 border border-border/60 hover:border-red-200 transition-all duration-200 cursor-pointer gap-2"
+            className="hidden sm:flex h-10 px-3 sm:px-3.5 rounded-2xl text-xs font-semibold text-muted-foreground hover:text-red-600 hover:bg-red-50/80 border border-border/60 hover:border-red-200/80 transition-all duration-200 cursor-pointer gap-2"
             title="Sign out of TV Tech OS"
           >
             {isPending ? (
@@ -404,7 +405,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                 className="relative z-10 w-full max-w-[300px] my-auto py-2 pointer-events-auto filter drop-shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
+                <div className="bg-card rounded-3xl p-5 border border-border shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
                   {/* Subtle Top Gradient Accent */}
                   <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary" />
 
@@ -414,7 +415,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                       className={`w-16 h-16 rounded-2xl font-black text-xl flex items-center justify-center text-white shadow-xl ${
                         isAdmin
                           ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
-                          : 'bg-gradient-to-tr from-indigo-500 to-slate-700'
+                          : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
                       }`}
                     >
                       {initials}
@@ -422,12 +423,12 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                   </div>
 
                   {/* FULL NAME - Untruncated */}
-                  <h2 className="font-black text-base sm:text-lg text-slate-900 tracking-tight leading-snug break-words max-w-full px-1">
+                  <h2 className="font-black text-base sm:text-lg text-foreground tracking-tight leading-snug break-words max-w-full px-1">
                     {displayName}
                   </h2>
 
                   {/* FULL EMAIL - Untruncated */}
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 font-medium mt-1.5 break-all max-w-full px-1">
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground font-medium mt-1.5 break-all max-w-full px-1">
                     <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="select-text">{userEmail}</span>
                   </div>
@@ -438,27 +439,27 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                       variant="secondary"
                       className={`text-xs font-bold px-3 py-1 rounded-full border ${
                         isAdmin
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          ? 'bg-primary/5 text-primary border-primary/20'
                           : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                       }`}
                     >
-                      <Shield className="w-3.5 h-3.5 mr-1 text-blue-600" />
+                      <Shield className="w-3.5 h-3.5 mr-1 text-primary" />
                       {isAdmin ? 'Super Administrator' : 'Staff Technician'}
                     </Badge>
                   </div>
 
                   {/* Account Status Info Box */}
-                  <div className="w-full mt-4 p-3 bg-slate-50 border border-slate-100 rounded-2xl space-y-2 text-xs text-left">
+                  <div className="w-full mt-4 p-3 bg-muted/50 border border-border rounded-2xl space-y-2 text-xs text-left">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Session</span>
+                      <span className="text-muted-foreground font-medium">Session</span>
                       <span className="font-bold text-emerald-600 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         Active (Live)
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Access</span>
-                      <span className="font-semibold text-slate-800">
+                      <span className="text-muted-foreground font-medium">Access</span>
+                      <span className="font-semibold text-foreground">
                         {isAdmin ? 'Full Administrative' : 'Staff Access'}
                       </span>
                     </div>
@@ -482,7 +483,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Actions Box */}
-                <div className="bg-white rounded-3xl p-2 border border-slate-200 shadow-2xl flex flex-col gap-1">
+                <div className="bg-card rounded-3xl p-2 border border-border shadow-2xl flex flex-col gap-1">
                   {/* Admin Option: Add Staff */}
                   {isAdmin && (
                     <button
@@ -493,20 +494,20 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                         setMobileOpen(false);
                         setIsCreateStaffOpen(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                     >
                       <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
                         <UserPlus className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="leading-tight text-slate-900 font-bold">Create Staff Account</div>
-                        <div className="text-[11px] font-normal text-slate-500">Add technician credentials</div>
+                        <div className="leading-tight text-foreground font-bold">Create Staff Account</div>
+                        <div className="text-[11px] font-normal text-muted-foreground">Add technician credentials</div>
                       </div>
                     </button>
                   )}
 
                   {/* Sign Out Action */}
-                  <div className={isAdmin ? 'border-t border-slate-100 my-0.5 pt-0.5' : ''}>
+                  <div className={isAdmin ? 'border-t border-border/50 my-0.5 pt-0.5' : ''}>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -515,9 +516,9 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                         setMobileOpen(false);
                         handleLogout();
                       }}
-                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 active:bg-red-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50/80 active:bg-red-100/80 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-red-50/80 text-red-600 border border-red-200/80 flex items-center justify-center shrink-0">
                         <LogOut className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -536,7 +537,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                     e.stopPropagation();
                     setMobileOpen(false);
                   }}
-                  className="w-full py-3.5 bg-white text-slate-800 font-extrabold text-sm rounded-2xl border border-slate-200 shadow-lg active:bg-slate-100 active:scale-[0.98] transition-all text-center cursor-pointer"
+                  className="w-full py-3.5 bg-card text-foreground font-extrabold text-sm rounded-2xl border border-border shadow-lg active:bg-muted active:scale-[0.98] transition-all text-center cursor-pointer"
                 >
                   Cancel
                 </button>

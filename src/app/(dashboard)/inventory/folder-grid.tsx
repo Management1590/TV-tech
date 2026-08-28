@@ -181,7 +181,7 @@ export function FolderGrid({
                 if (val) setFolderSort(val as FolderSortMode);
               }}
             >
-              <SelectTrigger className="h-8 w-[135px] sm:w-[190px] text-xs font-semibold bg-white border-border text-foreground rounded-xl shadow-2xs hover:bg-slate-50 focus:ring-primary">
+              <SelectTrigger className="h-8 w-[135px] sm:w-[190px] text-xs font-semibold bg-card border-border text-foreground rounded-xl shadow-2xs hover:bg-muted/50 focus:ring-primary">
                 <SelectValue placeholder="Sort folders..." />
               </SelectTrigger>
               <SelectContent className="bg-background border-border text-foreground text-xs shadow-lg rounded-xl">
@@ -255,7 +255,7 @@ export function FolderGrid({
             variant="outline"
             onClick={loadNextChunk}
             disabled={isLoadingMore}
-            className="text-xs font-semibold rounded-xl bg-white hover:bg-slate-50 border-border/80 text-muted-foreground gap-2 cursor-pointer"
+            className="text-xs font-semibold rounded-xl bg-card hover:bg-muted/50 border-border/80 text-muted-foreground gap-2 cursor-pointer"
           >
             {isLoadingMore ? (
               <>

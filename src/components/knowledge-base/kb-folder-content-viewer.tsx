@@ -28,6 +28,7 @@ import {
   ArrowRight,
   Layers,
   Edit3,
+  GripVertical,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -158,28 +159,79 @@ export function KbFolderContentViewer({
 
   const audioList = mediaList.filter((m) => m.mediaType === 'AUDIO');
 
+  // ============================================================
+  // DRAG & DROP (PC) + HOLD-TO-DRAG (MOBILE) STATE & ENGINES
+  // ============================================================
+
+  // ============================================================
+  // UNIVERSAL DRAG & DROP / HOLD-TO-DRAG REORDER ENGINE
+  // ============================================================
+
+  // 1. Photo & Video Drag State
+  const [activeMediaDrag, setActiveMediaDrag] = useState<{
+    sourceIdx: number;
+    targetIdx: number;
+    deltaX: number;
+    deltaY: number;
+    isFloating: boolean;
+  } | null>(null);
+  const mediaPointerRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    sourceIdx: number;
+    timer: NodeJS.Timeout | null;
+  } | null>(null);
+
+  // 2. Audio Drag State
+  const [activeAudioDrag, setActiveAudioDrag] = useState<{
+    sourceIdx: number;
+    targetIdx: number;
+    deltaX: number;
+    deltaY: number;
+    isFloating: boolean;
+  } | null>(null);
+  const audioPointerRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    sourceIdx: number;
+    timer: NodeJS.Timeout | null;
+  } | null>(null);
+
+  // 3. Document Drag State
+  const [activeDocDrag, setActiveDocDrag] = useState<{
+    sourceIdx: number;
+    targetIdx: number;
+    deltaX: number;
+    deltaY: number;
+    isFloating: boolean;
+  } | null>(null);
+  const docPointerRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    sourceIdx: number;
+    timer: NodeJS.Timeout | null;
+  } | null>(null);
+
   // Open Media Player Modal on item click
   const handleCardClick = (index: number) => {
-    if (isEditMode) return; // Do not open player during edit mode
+    if (isEditMode || activeMediaDrag !== null) return;
     setPlayerInitialIndex(index);
     setIsPlayerOpen(true);
   };
 
-  // Move item position left/right in sequence (Photos & Videos)
-  const handleMoveItem = async (index: number, direction: 'left' | 'right') => {
-    const targetIndex = direction === 'left' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= photoVideoList.length) return;
+  // Reorder Photo/Video from fromIndex to toIndex
+  const handleReorderMedia = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= photoVideoList.length || toIndex >= photoVideoList.length) return;
 
-    const currentItem = photoVideoList[index];
-    const targetItem = photoVideoList[targetIndex];
-
-    // Swap in state
-    const newPhotoVideoList = [...photoVideoList];
-    newPhotoVideoList[index] = targetItem;
-    newPhotoVideoList[targetIndex] = currentItem;
+    const list = [...photoVideoList];
+    const [movedItem] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, movedItem);
 
     const updatedMediaList: MediaItem[] = [
-      ...newPhotoVideoList.map((p) => ({
+      ...list.map((p) => ({
         id: p.id,
         mediaType: p.mediaType,
         url: p.url,
@@ -193,24 +245,19 @@ export function KbFolderContentViewer({
     ];
 
     setMediaList(updatedMediaList);
+    toast.success('Media order updated.');
 
-    // Persist reorder to database
     const orderedIds = updatedMediaList.map((m) => m.id);
     await reorderMediaAction(entityId, orderedIds);
   };
 
-  // Move item position left/right in sequence (Audio Voice Notes)
-  const handleMoveAudioItem = async (index: number, direction: 'left' | 'right') => {
-    const targetIndex = direction === 'left' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= audioList.length) return;
+  // Reorder Audio from fromIndex to toIndex
+  const handleReorderAudio = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= audioList.length || toIndex >= audioList.length) return;
 
-    const currentItem = audioList[index];
-    const targetItem = audioList[targetIndex];
-
-    // Swap in audio list
-    const newAudioList = [...audioList];
-    newAudioList[index] = targetItem;
-    newAudioList[targetIndex] = currentItem;
+    const list = [...audioList];
+    const [movedItem] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, movedItem);
 
     const updatedMediaList: MediaItem[] = [
       ...photoVideoList.map((p) => ({
@@ -223,15 +270,344 @@ export function KbFolderContentViewer({
         sizeBytes: p.sizeBytes,
         createdAt: p.createdAt || new Date(),
       })),
-      ...newAudioList,
+      ...list,
     ];
 
     setMediaList(updatedMediaList);
+    toast.success('Voice notes reordered.');
 
-    // Persist reorder to database
     const orderedIds = updatedMediaList.map((m) => m.id);
     await reorderMediaAction(entityId, orderedIds);
   };
+
+  // Reorder Documents from fromIndex to toIndex
+  const handleReorderDocs = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= pageList.length || toIndex >= pageList.length) return;
+
+    const list = [...pageList];
+    const [movedItem] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, movedItem);
+
+    setPageList(list);
+    toast.success('Documents reordered.');
+  };
+
+  // Pointer Down for Photo/Video Cards (PC drag & Mobile 200ms hold)
+  const onMediaPointerDown = (index: number, e: React.PointerEvent) => {
+    if (!isAdmin || !isEditMode) return;
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    const pointerId = e.pointerId;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const isTouch = e.pointerType === 'touch';
+
+    if (mediaPointerRef.current?.timer) {
+      clearTimeout(mediaPointerRef.current.timer);
+    }
+
+    const startFloating = () => {
+      setActiveMediaDrag({
+        sourceIdx: index,
+        targetIdx: index,
+        deltaX: 0,
+        deltaY: 0,
+        isFloating: true,
+      });
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(40);
+      }
+    };
+
+    const timer = isTouch ? setTimeout(startFloating, 200) : null;
+    mediaPointerRef.current = { pointerId, startX, startY, sourceIdx: index, timer };
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      if (mediaPointerRef.current?.timer) {
+        if (Math.hypot(dx, dy) > 8) {
+          clearTimeout(mediaPointerRef.current.timer);
+          mediaPointerRef.current.timer = null;
+          return;
+        }
+      }
+
+      if (!isTouch && !mediaPointerRef.current?.timer) {
+        if (Math.hypot(dx, dy) > 4) {
+          setActiveMediaDrag((prev) => {
+            if (!prev) {
+              return { sourceIdx: index, targetIdx: index, deltaX: dx, deltaY: dy, isFloating: true };
+            }
+            return { ...prev, deltaX: dx, deltaY: dy };
+          });
+        }
+      }
+
+      setActiveMediaDrag((prev) => {
+        if (!prev || !prev.isFloating) return prev;
+
+        const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+        const card = el?.closest('[data-media-index]');
+        let targetIdx = prev.targetIdx;
+        if (card) {
+          const parsed = Number(card.getAttribute('data-media-index'));
+          if (!isNaN(parsed) && parsed >= 0 && parsed < photoVideoList.length) {
+            targetIdx = parsed;
+          }
+        }
+        return { ...prev, deltaX: dx, deltaY: dy, targetIdx };
+      });
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      if (upEvent.pointerId !== pointerId) return;
+
+      if (mediaPointerRef.current?.timer) {
+        clearTimeout(mediaPointerRef.current.timer);
+        mediaPointerRef.current.timer = null;
+      }
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      setActiveMediaDrag((current) => {
+        if (current && current.isFloating && current.sourceIdx !== current.targetIdx) {
+          handleReorderMedia(current.sourceIdx, current.targetIdx);
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(20);
+          }
+        }
+        return null;
+      });
+
+      mediaPointerRef.current = null;
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  };
+
+  // Pointer Down for Audio Cards
+  const onAudioPointerDown = (index: number, e: React.PointerEvent) => {
+    if (!isAdmin || !isAudioEditMode) return;
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
+
+    const pointerId = e.pointerId;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const isTouch = e.pointerType === 'touch';
+
+    if (audioPointerRef.current?.timer) {
+      clearTimeout(audioPointerRef.current.timer);
+    }
+
+    const startFloating = () => {
+      setActiveAudioDrag({
+        sourceIdx: index,
+        targetIdx: index,
+        deltaX: 0,
+        deltaY: 0,
+        isFloating: true,
+      });
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(40);
+      }
+    };
+
+    const timer = isTouch ? setTimeout(startFloating, 200) : null;
+    audioPointerRef.current = { pointerId, startX, startY, sourceIdx: index, timer };
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      if (audioPointerRef.current?.timer) {
+        if (Math.hypot(dx, dy) > 8) {
+          clearTimeout(audioPointerRef.current.timer);
+          audioPointerRef.current.timer = null;
+          return;
+        }
+      }
+
+      if (!isTouch && !audioPointerRef.current?.timer) {
+        if (Math.hypot(dx, dy) > 4) {
+          setActiveAudioDrag((prev) => {
+            if (!prev) {
+              return { sourceIdx: index, targetIdx: index, deltaX: dx, deltaY: dy, isFloating: true };
+            }
+            return { ...prev, deltaX: dx, deltaY: dy };
+          });
+        }
+      }
+
+      setActiveAudioDrag((prev) => {
+        if (!prev || !prev.isFloating) return prev;
+
+        const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+        const card = el?.closest('[data-reorder-index]');
+        let targetIdx = prev.targetIdx;
+        if (card) {
+          const parsed = Number(card.getAttribute('data-reorder-index'));
+          if (!isNaN(parsed) && parsed >= 0 && parsed < audioList.length) {
+            targetIdx = parsed;
+          }
+        }
+        return { ...prev, deltaX: dx, deltaY: dy, targetIdx };
+      });
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      if (upEvent.pointerId !== pointerId) return;
+
+      if (audioPointerRef.current?.timer) {
+        clearTimeout(audioPointerRef.current.timer);
+        audioPointerRef.current.timer = null;
+      }
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      setActiveAudioDrag((current) => {
+        if (current && current.isFloating && current.sourceIdx !== current.targetIdx) {
+          handleReorderAudio(current.sourceIdx, current.targetIdx);
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(20);
+          }
+        }
+        return null;
+      });
+
+      audioPointerRef.current = null;
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  };
+
+  // Pointer Down for Document Cards
+  const onDocPointerDown = (index: number, e: React.PointerEvent) => {
+    if (!isAdmin || !isDocEditMode) return;
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    const pointerId = e.pointerId;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const isTouch = e.pointerType === 'touch';
+
+    if (docPointerRef.current?.timer) {
+      clearTimeout(docPointerRef.current.timer);
+    }
+
+    const startFloating = () => {
+      setActiveDocDrag({
+        sourceIdx: index,
+        targetIdx: index,
+        deltaX: 0,
+        deltaY: 0,
+        isFloating: true,
+      });
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(40);
+      }
+    };
+
+    const timer = isTouch ? setTimeout(startFloating, 200) : null;
+    docPointerRef.current = { pointerId, startX, startY, sourceIdx: index, timer };
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      if (docPointerRef.current?.timer) {
+        if (Math.hypot(dx, dy) > 8) {
+          clearTimeout(docPointerRef.current.timer);
+          docPointerRef.current.timer = null;
+          return;
+        }
+      }
+
+      if (!isTouch && !docPointerRef.current?.timer) {
+        if (Math.hypot(dx, dy) > 4) {
+          setActiveDocDrag((prev) => {
+            if (!prev) {
+              return { sourceIdx: index, targetIdx: index, deltaX: dx, deltaY: dy, isFloating: true };
+            }
+            return { ...prev, deltaX: dx, deltaY: dy };
+          });
+        }
+      }
+
+      setActiveDocDrag((prev) => {
+        if (!prev || !prev.isFloating) return prev;
+
+        const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+        const card = el?.closest('[data-doc-index]');
+        let targetIdx = prev.targetIdx;
+        if (card) {
+          const parsed = Number(card.getAttribute('data-doc-index'));
+          if (!isNaN(parsed) && parsed >= 0 && parsed < pageList.length) {
+            targetIdx = parsed;
+          }
+        }
+        return { ...prev, deltaX: dx, deltaY: dy, targetIdx };
+      });
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      if (upEvent.pointerId !== pointerId) return;
+
+      if (docPointerRef.current?.timer) {
+        clearTimeout(docPointerRef.current.timer);
+        docPointerRef.current.timer = null;
+      }
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      setActiveDocDrag((current) => {
+        if (current && current.isFloating && current.sourceIdx !== current.targetIdx) {
+          handleReorderDocs(current.sourceIdx, current.targetIdx);
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(20);
+          }
+        }
+        return null;
+      });
+
+      docPointerRef.current = null;
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  };
+
+  // Viewport scroll freeze while actively dragging
+  useEffect(() => {
+    const isAnyActive =
+      activeMediaDrag?.isFloating ||
+      activeAudioDrag?.isFloating ||
+      activeDocDrag?.isFloating;
+
+    if (isAnyActive) {
+      const origOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = origOverflow;
+      };
+    }
+  }, [activeMediaDrag?.isFloating, activeAudioDrag?.isFloating, activeDocDrag?.isFloating]);
 
   // Delete Confirmation Modal State
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -364,49 +740,49 @@ export function KbFolderContentViewer({
       {/* ========================================================================= */}
       {/* SECTION 1 (TOP): 📷 PHOTO & VIDEO AREA (Single Expandable Grid + Edit Mode)*/}
       {/* ========================================================================= */}
-      <Card className="bg-white border border-border/80 shadow-blend rounded-3xl p-5 sm:p-7 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/70 pb-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600/15 via-indigo-600/15 to-primary/10 border border-blue-600/25 flex items-center justify-center text-blue-600 shadow-sm">
-              <ImageIcon className="w-5 h-5" />
+      <Card className="bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/70 pb-3.5 sm:pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600/15 via-indigo-600/15 to-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs shrink-0">
+              <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base sm:text-lg font-black text-foreground tracking-tight">
                   Photo & Video Gallery
                 </CardTitle>
-                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-bold px-2">
-                  {photoVideoList.length} {photoVideoList.length === 1 ? 'Media' : 'Media'}
+                <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/20 text-[10px] sm:text-xs font-bold px-2 py-0.5">
+                  {photoVideoList.length} Media
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
                 High-resolution panel photos, board schematics, and video demonstrations with native desktop/mobile viewer.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
             {/* Separate Edit Mode Button */}
             {isAdmin && photoVideoList.length > 0 && (
               <Button
                 type="button"
                 variant={isEditMode ? 'default' : 'outline'}
                 onClick={() => setIsEditMode(!isEditMode)}
-                className={`h-10 px-4 rounded-2xl text-xs font-bold gap-2 transition-all shadow-sm active:scale-95 ${
+                className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-xs font-bold gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer justify-center ${
                   isEditMode
                     ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-amber-500/20'
-                    : 'bg-white hover:bg-slate-50 border-border/80 text-slate-700 hover:text-foreground'
+                    : 'bg-white hover:bg-muted/50 border-border/80 text-foreground/80 hover:text-foreground'
                 }`}
               >
                 {isEditMode ? (
                   <>
-                    <Check className="w-4 h-4" />
-                    <span>Done Editing</span>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Done</span>
                   </>
                 ) : (
                   <>
-                    <SlidersHorizontal className="w-4 h-4 text-amber-600" />
-                    <span>Organize & Delete</span>
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Organize</span>
                   </>
                 )}
               </Button>
@@ -417,10 +793,10 @@ export function KbFolderContentViewer({
               <Button
                 type="button"
                 onClick={() => setIsUploadDialogOpen(true)}
-                className="h-10 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-blue-500/20 hover:shadow-lg active:scale-95 shrink-0 border border-white/20"
+                className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm hover:shadow-md active:scale-95 border border-white/20"
               >
-                <UploadCloud className="w-4 h-4" />
-                <span>Upload Photos / Videos</span>
+                <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Upload</span>
               </Button>
             )}
           </div>
@@ -428,18 +804,18 @@ export function KbFolderContentViewer({
 
         {/* Edit Mode Active Banner */}
         {isEditMode && (
-          <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-900 font-semibold animate-in fade-in">
+          <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 font-semibold animate-in fade-in">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                <strong>Organize & Delete Mode:</strong> Use the left/right arrows to arrange items or the red trash icon to delete media.
+                <strong>Organize & Delete Mode:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to drag photos/videos freely.
               </span>
             </div>
             <Button
               type="button"
               size="sm"
               onClick={() => setIsEditMode(false)}
-              className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0"
+              className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 self-end sm:self-auto"
             >
               Done
             </Button>
@@ -447,8 +823,8 @@ export function KbFolderContentViewer({
         )}
 
         {photoVideoList.length === 0 ? (
-          <div className="p-12 text-center bg-slate-50/60 border border-border/80 border-dashed rounded-3xl">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center mx-auto mb-2.5 text-blue-600">
+          <div className="p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-center mx-auto mb-2.5 text-primary">
               <ImageIcon className="w-6 h-6" />
             </div>
             <p className="text-sm font-bold text-foreground">No photos or videos uploaded yet</p>
@@ -462,14 +838,32 @@ export function KbFolderContentViewer({
               {visiblePhotoVideoList.map((item, idx) => {
                 const isVideo = item.mediaType === 'VIDEO';
                 const isTriggerItem = idx === visibleMediaCount - 5 && hasMoreMedia;
+                const isSource = activeMediaDrag?.sourceIdx === idx;
+                const isTarget = activeMediaDrag?.targetIdx === idx;
+                const isFloating = isSource && activeMediaDrag?.isFloating;
 
                 return (
                   <div
                     key={item.id}
                     ref={isTriggerItem ? (triggerMediaElementRef as any) : undefined}
-                    className={`group relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 border transition-all duration-200 ${
-                      isEditMode
-                        ? 'border-amber-400 ring-2 ring-amber-400/25 shadow-sm'
+                    onPointerDown={(e) => onMediaPointerDown(idx, e)}
+                    data-media-index={idx}
+                    style={{
+                      transform: isFloating
+                        ? `translate3d(${activeMediaDrag.deltaX}px, ${activeMediaDrag.deltaY}px, 0) scale(1.08) rotate(1.5deg)`
+                        : undefined,
+                      zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
+                      transition: isFloating ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+                    }}
+                    className={`group relative aspect-[4/3] rounded-2xl overflow-hidden bg-muted border select-none ${
+                      isFloating
+                        ? 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55)] ring-4 ring-amber-500 ring-offset-2 opacity-95 pointer-events-none'
+                        : isSource && activeMediaDrag?.isFloating
+                        ? 'opacity-25 border-dashed border-2 border-amber-500 scale-95'
+                        : isTarget && activeMediaDrag?.isFloating
+                        ? 'border-primary ring-4 ring-primary/40 scale-105 shadow-xl'
+                        : isEditMode
+                        ? 'border-amber-400 ring-2 ring-amber-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
                         : 'border-border/80 shadow-2xs hover:shadow-lg hover:scale-[1.02] cursor-pointer'
                     }`}
                   >
@@ -477,15 +871,15 @@ export function KbFolderContentViewer({
                     {isVideo ? (
                       <div
                         onClick={() => handleCardClick(idx)}
-                        className="w-full h-full bg-slate-900 flex items-center justify-center relative select-none"
+                        className="w-full h-full bg-foreground flex items-center justify-center relative select-none"
                       >
-                        <Film className="w-8 h-8 text-blue-400 opacity-60" />
+                        <Film className="w-8 h-8 text-primary/80 opacity-60" />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/20 transition-colors">
                           <div className="w-10 h-10 rounded-2xl bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                             <Play className="w-5 h-5 fill-primary ml-0.5" />
                           </div>
                         </div>
-                        <Badge className="absolute top-2 left-2 text-[10px] bg-blue-600 text-white font-bold py-0 px-1.5 shadow-sm pointer-events-none">
+                        <Badge className="absolute top-2 left-2 text-[10px] bg-primary text-white font-bold py-0 px-1.5 shadow-sm pointer-events-none">
                           Video
                         </Badge>
                       </div>
@@ -497,7 +891,7 @@ export function KbFolderContentViewer({
                         <img
                           src={item.secureUrl || item.url}
                           alt={item.filename || 'Photo'}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 pointer-events-none"
                           loading="lazy"
                         />
                         {!isEditMode && (
@@ -524,11 +918,12 @@ export function KbFolderContentViewer({
 
                     {/* EDIT MODE OVERLAY (Arranging & Deleting) */}
                     {isEditMode && (
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col justify-between p-2 animate-in fade-in duration-150">
+                      <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px] flex flex-col justify-between p-2 animate-in fade-in duration-150 pointer-events-none">
                         {/* Top Bar: Order badge & Delete button */}
                         <div className="flex items-center justify-between">
-                          <Badge className="bg-amber-500 text-black font-extrabold text-[10px] px-1.5 py-0 shadow-sm">
-                            #{idx + 1}
+                          <Badge className="bg-amber-500 text-black font-black text-[11px] px-1.5 py-0.5 shadow-md flex items-center gap-0.5 pointer-events-none">
+                            <GripVertical className="w-3 h-3" />
+                            <span>#{idx + 1}</span>
                           </Badge>
                           <Button
                             type="button"
@@ -543,44 +938,19 @@ export function KbFolderContentViewer({
                                 title: item.filename || `Photo / Video #${idx + 1}`,
                               });
                             }}
-                            className="h-7 w-7 p-0 rounded-xl bg-red-600 hover:bg-red-700 shadow-md cursor-pointer"
+                            className="h-7 w-7 p-0 rounded-xl bg-red-600 hover:bg-red-700 shadow-md cursor-pointer active:scale-90 transition-transform pointer-events-auto"
                             title="Delete media"
                           >
                             <Trash2 className="w-3.5 h-3.5 text-white" />
                           </Button>
                         </div>
 
-                        {/* Bottom Bar: Move Left & Move Right Buttons */}
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            disabled={idx === 0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveItem(idx, 'left');
-                            }}
-                            className="h-7 px-2.5 rounded-xl bg-white/90 hover:bg-white text-slate-900 text-xs font-bold gap-1 shadow-md disabled:opacity-30 cursor-pointer"
-                            title="Move earlier"
-                          >
-                            <ChevronLeft className="w-3.5 h-3.5" /> Move Left
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            disabled={idx === photoVideoList.length - 1}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveItem(idx, 'right');
-                            }}
-                            className="h-7 px-2.5 rounded-xl bg-white/90 hover:bg-white text-slate-900 text-xs font-bold gap-1 shadow-md disabled:opacity-30 cursor-pointer"
-                            title="Move later"
-                          >
-                            Move Right <ChevronRight className="w-3.5 h-3.5" />
-                          </Button>
+                        {/* Center Drag Grip Badge */}
+                        <div className="flex flex-col items-center justify-center text-white/90 gap-0.5 pointer-events-none select-none py-1">
+                          <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-md">
+                            <GripVertical className="w-4 h-4 text-white" />
+                          </div>
+                          <span className="text-[10px] font-bold text-white/90 tracking-wide drop-shadow">Drag / Hold</span>
                         </div>
                       </div>
                     )}
@@ -591,9 +961,9 @@ export function KbFolderContentViewer({
               {/* Skeleton tiles while expanding next batch */}
               {isLoadingMoreMedia && (
                 <>
-                  <div className="aspect-[4/3] rounded-2xl bg-slate-200/80 animate-pulse" />
-                  <div className="aspect-[4/3] rounded-2xl bg-slate-200/80 animate-pulse" />
-                  <div className="aspect-[4/3] rounded-2xl bg-slate-200/80 animate-pulse" />
+                  <div className="aspect-[4/3] rounded-2xl bg-muted/80 animate-pulse" />
+                  <div className="aspect-[4/3] rounded-2xl bg-muted/80 animate-pulse" />
+                  <div className="aspect-[4/3] rounded-2xl bg-muted/80 animate-pulse" />
                 </>
               )}
             </div>
@@ -613,29 +983,29 @@ export function KbFolderContentViewer({
       {/* ========================================================================= */}
       {/* SECTION 2 (MIDDLE): 🎙️ AUDIO & DIRECT VOICE RECORDER                       */}
       {/* ========================================================================= */}
-      <Card className="bg-white border border-border/80 shadow-blend rounded-3xl p-5 sm:p-7 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/70 pb-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600/15 to-purple-600/10 border border-violet-500/25 flex items-center justify-center text-violet-600 shadow-sm">
-              <Mic className="w-5 h-5" />
+      <Card className="bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/70 pb-3.5 sm:pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-violet-600/15 to-purple-600/10 border border-violet-500/25 flex items-center justify-center text-violet-600 shadow-2xs shrink-0">
+              <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base sm:text-lg font-bold text-foreground">
-                  Audio & Voice Recordings
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                  Audio & Voice Notes
                 </CardTitle>
-                <Badge variant="secondary" className="bg-violet-50 text-violet-700 border-violet-200 text-xs font-bold px-2">
-                  {audioList.length} {audioList.length === 1 ? 'Track' : 'Tracks'}
+                <Badge variant="secondary" className="bg-violet-50 text-violet-700 border-violet-200 text-[10px] sm:text-xs font-bold px-2 py-0.5">
+                  {audioList.length} Tracks
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
                 Record voice notes directly from website (tap or hold) for troubleshooting logs, chime audio, and diagnostics.
               </p>
             </div>
           </div>
 
           {isAdmin && (
-            <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
               {/* Organize & Delete Mode Toggle Button (Left) */}
               {audioList.length > 0 && (
                 <Button
@@ -643,7 +1013,7 @@ export function KbFolderContentViewer({
                   variant={isAudioEditMode ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setIsAudioEditMode(!isAudioEditMode)}
-                  className={`h-10 px-4 rounded-2xl font-bold text-xs sm:text-sm gap-2 transition-all cursor-pointer shadow-sm ${
+                  className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
                     isAudioEditMode
                       ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20'
                       : 'border-violet-200 bg-violet-50/60 hover:bg-violet-100/80 text-violet-800'
@@ -651,37 +1021,39 @@ export function KbFolderContentViewer({
                 >
                   {isAudioEditMode ? (
                     <>
-                      <Check className="w-4 h-4 text-white" />
-                      <span>Done Editing</span>
+                      <Check className="w-3.5 h-3.5 text-white" />
+                      <span>Done</span>
                     </>
                   ) : (
                     <>
-                      <SlidersHorizontal className="w-4 h-4 text-violet-600" />
-                      <span>Organize & Delete</span>
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-violet-600" />
+                      <span>Organize</span>
                     </>
                   )}
                 </Button>
               )}
 
-              {/* WhatsApp-Style Direct Voice Recorder Widget (Right) */}
-              <VoiceRecorderWidget
-                entityId={entityId}
-                onRecordingComplete={(newMedia) => {
-                  setMediaList((prev) => [newMedia, ...prev]);
-                }}
-                disabled={isUploadingMedia}
-              />
+              {/* Direct Voice Recorder Widget (Right) */}
+              <div className="flex-1 sm:flex-none">
+                <VoiceRecorderWidget
+                  entityId={entityId}
+                  onRecordingComplete={(newMedia) => {
+                    setMediaList((prev) => [newMedia, ...prev]);
+                  }}
+                  disabled={isUploadingMedia}
+                />
+              </div>
             </div>
           )}
         </div>
 
         {/* Audio Edit Mode Informational Banner */}
         {isAudioEditMode && audioList.length > 0 && (
-          <div className="flex items-center justify-between p-3.5 px-4 rounded-2xl bg-violet-50/90 border border-violet-200 text-violet-900 text-xs font-semibold animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 rounded-2xl bg-violet-50/90 border border-violet-200 text-violet-900 text-xs font-semibold gap-3 animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-violet-600 animate-pulse" />
+              <span className="flex h-2.5 w-2.5 rounded-full bg-violet-600 animate-pulse shrink-0" />
               <span>
-                <strong>Organize & Delete Mode Active:</strong> Use <strong>Move Left / Move Right</strong> buttons on audio cards to rearrange tracks, or click trash to permanently delete.
+                <strong>Organize & Delete Mode Active:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to rearrange audio tracks freely.
               </span>
             </div>
             <Button
@@ -689,7 +1061,7 @@ export function KbFolderContentViewer({
               size="sm"
               variant="ghost"
               onClick={() => setIsAudioEditMode(false)}
-              className="h-7 px-2.5 text-violet-700 hover:text-violet-900 hover:bg-violet-100 font-bold rounded-xl text-xs"
+              className="h-7 px-2.5 text-violet-700 hover:text-violet-900 hover:bg-violet-100 font-bold rounded-xl text-xs self-end sm:self-auto"
             >
               Done
             </Button>
@@ -697,7 +1069,7 @@ export function KbFolderContentViewer({
         )}
 
         {audioList.length === 0 ? (
-          <div className="p-10 text-center bg-slate-50/60 border border-border/80 border-dashed rounded-3xl">
+          <div className="p-10 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl">
             <div className="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-200/80 flex items-center justify-center mx-auto mb-2.5 text-violet-600">
               <Mic className="w-6 h-6" />
             </div>
@@ -708,30 +1080,39 @@ export function KbFolderContentViewer({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {audioList.map((audio, idx) => (
-              <VoiceNotePlayerCard
-                key={audio.id}
-                id={audio.id}
-                url={audio.secureUrl || audio.url}
-                filename={audio.filename}
-                createdAt={audio.createdAt}
-                publicId={audio.publicId}
-                index={idx}
-                isEditMode={isAudioEditMode}
-                canMoveLeft={idx > 0}
-                canMoveRight={idx < audioList.length - 1}
-                onMove={(dir) => handleMoveAudioItem(idx, dir)}
-                onDelete={(id, pubId) =>
-                  setDeleteTarget({
-                    type: 'voice recording',
-                    id,
-                    publicId: pubId,
-                    title: audio.filename || `Voice Recording #${idx + 1}`,
-                  })
-                }
-                isAdmin={isAdmin}
-              />
-            ))}
+            {audioList.map((audio, idx) => {
+              const isSource = activeAudioDrag?.sourceIdx === idx;
+              const isTarget = activeAudioDrag?.targetIdx === idx;
+              const isFloating = isSource && activeAudioDrag?.isFloating;
+
+              return (
+                <VoiceNotePlayerCard
+                  key={audio.id}
+                  id={audio.id}
+                  url={audio.secureUrl || audio.url}
+                  filename={audio.filename}
+                  createdAt={audio.createdAt}
+                  publicId={audio.publicId}
+                  index={idx}
+                  isEditMode={isAudioEditMode}
+                  onDelete={(id, pubId) =>
+                    setDeleteTarget({
+                      type: 'voice recording',
+                      id,
+                      publicId: pubId,
+                      title: audio.filename || `Voice Recording #${idx + 1}`,
+                    })
+                  }
+                  isAdmin={isAdmin}
+                  onPointerDown={(e) => onAudioPointerDown(idx, e)}
+                  isFloating={isFloating}
+                  isSourceSlot={isSource}
+                  isTargetSlot={isTarget}
+                  deltaX={activeAudioDrag?.deltaX || 0}
+                  deltaY={activeAudioDrag?.deltaY || 0}
+                />
+              );
+            })}
           </div>
         )}
       </Card>
@@ -739,29 +1120,29 @@ export function KbFolderContentViewer({
       {/* ========================================================================= */}
       {/* SECTION 3 (BOTTOM): 📝 DOCUMENTS & TECHNICAL NOTES                        */}
       {/* ========================================================================= */}
-      <Card className="bg-white border border-border/80 shadow-blend rounded-3xl p-5 sm:p-7 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/70 pb-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600/15 to-teal-600/10 border border-emerald-500/25 flex items-center justify-center text-emerald-600 shadow-sm">
-              <FileText className="w-5 h-5" />
+      <Card className="bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/70 pb-3.5 sm:pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-600/15 to-teal-600/10 border border-emerald-500/25 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base sm:text-lg font-bold text-foreground">
-                  Documents & Technical Notes
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                  Documents & Notes
                 </CardTitle>
-                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-bold px-2">
-                  {pageList.length} {pageList.length === 1 ? 'Document' : 'Documents'}
+                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] sm:text-xs font-bold px-2 py-0.5">
+                  {pageList.length} Docs
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
                 Technical logs, voltage test readings, component fault notes, and repair guides.
               </p>
             </div>
           </div>
 
           {isAdmin && (
-            <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
               {/* Organize & Delete Mode Toggle Button (Left) */}
               {pageList.length > 0 && (
                 <Button
@@ -769,7 +1150,7 @@ export function KbFolderContentViewer({
                   variant={isDocEditMode ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setIsDocEditMode(!isDocEditMode)}
-                  className={`h-10 px-4 rounded-2xl font-bold text-xs sm:text-sm gap-2 transition-all cursor-pointer shadow-sm ${
+                  className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
                     isDocEditMode
                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20'
                       : 'border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/80 text-emerald-800'
@@ -777,13 +1158,13 @@ export function KbFolderContentViewer({
                 >
                   {isDocEditMode ? (
                     <>
-                      <Check className="w-4 h-4 text-white" />
-                      <span>Done Editing</span>
+                      <Check className="w-3.5 h-3.5 text-white" />
+                      <span>Done</span>
                     </>
                   ) : (
                     <>
-                      <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
-                      <span>Organize & Delete</span>
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Organize</span>
                     </>
                   )}
                 </Button>
@@ -793,10 +1174,10 @@ export function KbFolderContentViewer({
               <Button
                 type="button"
                 onClick={handleOpenCreateDoc}
-                className="h-10 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-emerald-500/20 active:scale-95 border border-white/20"
+                className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm hover:shadow-md active:scale-95 border border-white/20"
               >
-                <Plus className="w-4 h-4" />
-                <span>Create Document</span>
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>New Doc</span>
               </Button>
             </div>
           )}
@@ -804,11 +1185,11 @@ export function KbFolderContentViewer({
 
         {/* Document Edit Mode Informational Banner */}
         {isDocEditMode && pageList.length > 0 && (
-          <div className="flex items-center justify-between p-3.5 px-4 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-emerald-900 text-xs font-semibold animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-emerald-900 text-xs font-semibold gap-3 animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
               <span>
-                <strong>Organize & Delete Mode Active:</strong> Use <strong>Move Up / Move Down</strong> to rearrange document order, or click trash to permanently delete.
+                <strong>Organize & Delete Mode Active:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to reorder documents freely.
               </span>
             </div>
             <Button
@@ -816,7 +1197,7 @@ export function KbFolderContentViewer({
               size="sm"
               variant="ghost"
               onClick={() => setIsDocEditMode(false)}
-              className="h-7 px-2.5 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 font-bold rounded-xl text-xs"
+              className="h-7 px-2.5 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 font-bold rounded-xl text-xs self-end sm:self-auto"
             >
               Done
             </Button>
@@ -825,7 +1206,7 @@ export function KbFolderContentViewer({
 
         {/* Documents Stack Feed (Sequential cards visible directly) */}
         {pageList.length === 0 ? (
-          <div className="p-12 text-center bg-slate-50/60 border border-border/80 border-dashed rounded-3xl">
+          <div className="p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center mx-auto mb-2.5 text-emerald-600">
               <FileText className="w-6 h-6" />
             </div>
@@ -849,6 +1230,10 @@ export function KbFolderContentViewer({
                     year: 'numeric',
                   });
 
+              const isSource = activeDocDrag?.sourceIdx === idx;
+              const isTarget = activeDocDrag?.targetIdx === idx;
+              const isFloating = isSource && activeDocDrag?.isFloating;
+
               // Clean text content for direct readability
               const cleanDescription = (doc.contentHtml || '')
                 .replace(/<p>/gi, '')
@@ -859,9 +1244,24 @@ export function KbFolderContentViewer({
               return (
                 <div
                   key={doc.id}
-                  className={`p-5 sm:p-6 rounded-3xl bg-white border transition-all duration-200 flex flex-col gap-3 ${
-                    isDocEditMode
-                      ? 'border-emerald-400 ring-2 ring-emerald-400/25 shadow-sm'
+                  onPointerDown={(e) => onDocPointerDown(idx, e)}
+                  data-doc-index={idx}
+                  style={{
+                    transform: isFloating
+                      ? `translate3d(${activeDocDrag.deltaX}px, ${activeDocDrag.deltaY}px, 0) scale(1.02) rotate(0.5deg)`
+                      : undefined,
+                    zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
+                    transition: isFloating ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+                  }}
+                  className={`p-5 sm:p-6 rounded-3xl bg-white border flex flex-col gap-3 select-none ${
+                    isFloating
+                      ? 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] ring-4 ring-emerald-500 ring-offset-2 opacity-95 pointer-events-none'
+                      : isSource && activeDocDrag?.isFloating
+                      ? 'opacity-25 border-dashed border-2 border-emerald-500 scale-95'
+                      : isTarget && activeDocDrag?.isFloating
+                      ? 'border-emerald-600 ring-4 ring-emerald-500/30 bg-emerald-50/40 scale-[1.01] shadow-xl'
+                      : isDocEditMode
+                      ? 'border-emerald-400 ring-2 ring-emerald-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
                       : 'border-border/80 shadow-2xs hover:shadow-md'
                   }`}
                 >
@@ -869,7 +1269,7 @@ export function KbFolderContentViewer({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       {isDocEditMode ? (
-                        <Badge className="bg-emerald-600 text-white font-extrabold text-xs px-2 py-0.5 shadow-sm shrink-0 mt-0.5">
+                        <Badge className="bg-emerald-600 text-white font-extrabold text-xs px-2 py-0.5 shadow-sm shrink-0 mt-0.5 cursor-grab">
                           #{idx + 1}
                         </Badge>
                       ) : (
@@ -880,7 +1280,7 @@ export function KbFolderContentViewer({
 
                       <div className="min-w-0 flex-1">
                         {/* Heading: Bolder & Bigger */}
-                        <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 tracking-tight">
+                        <h3 className="text-base sm:text-lg lg:text-xl font-black text-foreground tracking-tight">
                           {doc.title}
                         </h3>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -898,7 +1298,7 @@ export function KbFolderContentViewer({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenEditDoc(doc)}
-                            className="h-8 px-3 rounded-xl text-xs font-bold gap-1 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 border border-border/60 shadow-2xs cursor-pointer"
+                            className="h-8 px-3 rounded-xl text-xs font-bold gap-1 text-foreground/80 hover:text-emerald-700 hover:bg-emerald-50 border border-border/60 shadow-2xs cursor-pointer"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit</span>
@@ -906,56 +1306,30 @@ export function KbFolderContentViewer({
                         )
                       ) : (
                         isAdmin && (
-                          <div className="flex items-center gap-1.5">
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              disabled={idx === 0}
-                              onClick={() => handleMoveDoc(idx, 'up')}
-                              className="h-7 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold gap-1 disabled:opacity-30 cursor-pointer"
-                              title="Move earlier"
-                            >
-                              <ChevronUp className="w-3.5 h-3.5" /> Move Up
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              disabled={idx === pageList.length - 1}
-                              onClick={() => handleMoveDoc(idx, 'down')}
-                              className="h-7 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold gap-1 disabled:opacity-30 cursor-pointer"
-                              title="Move later"
-                            >
-                              Move Down <ChevronDown className="w-3.5 h-3.5" />
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={() =>
-                                setDeleteTarget({
-                                  type: 'document note',
-                                  id: doc.id,
-                                  title: doc.title,
-                                })
-                              }
-                              className="h-7 w-7 p-0 bg-red-600 hover:bg-red-700 rounded-xl shadow-sm cursor-pointer ml-1"
-                              title="Delete Document"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-white" />
-                            </Button>
-                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              setDeleteTarget({
+                                type: 'document note',
+                                id: doc.id,
+                                title: doc.title,
+                              })
+                            }
+                            className="h-8 w-8 p-0 bg-red-600 hover:bg-red-700 rounded-xl shadow-sm cursor-pointer active:scale-90 transition-transform"
+                            title="Delete Document"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-white" />
+                          </Button>
                         )
                       )}
                     </div>
                   </div>
 
                   {/* Description: Smaller & Highly Readable */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <p className="text-sm sm:text-[15px] text-slate-700 font-normal leading-relaxed whitespace-pre-wrap selection:bg-emerald-100">
+                  <div className="pt-2 border-t border-muted">
+                    <p className="text-sm sm:text-[15px] text-foreground/80 font-normal leading-relaxed whitespace-pre-wrap selection:bg-emerald-100">
                       {cleanDescription || <span className="italic text-muted-foreground">No description provided.</span>}
                     </p>
                   </div>

@@ -186,7 +186,7 @@ export function MoveFolderDialog({
 
             {folderHistory.map((h, i) => (
               <React.Fragment key={h.id}>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <button
                   onClick={() => {
                     const newHist = folderHistory.slice(0, i + 1);
@@ -204,7 +204,7 @@ export function MoveFolderDialog({
 
             {query && (
               <>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span className="text-amber-600 font-medium truncate">
                   Search: &ldquo;{query}&rdquo;
                 </span>
@@ -273,7 +273,7 @@ export function MoveFolderDialog({
               {/* Sub-Folders List */}
               {folders.length === 0 ? (
                 <div className="text-center py-10 border border-dashed border-border rounded-xl">
-                  <FolderOpen className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                  <FolderOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
                     {query ? `No folders found matching "${query}"` : 'No sub-folders found in this category'}
                   </p>
@@ -298,9 +298,9 @@ export function MoveFolderDialog({
                         key={folder.id}
                         className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
                           isSelf || isDesc
-                            ? 'bg-muted/20 border-slate-900 opacity-60'
+                            ? 'bg-muted/20 border-border opacity-60'
                             : isParent
-                            ? 'bg-blue-950/20 border-blue-800/40'
+                            ? 'bg-primary/5 border-primary/40'
                             : 'bg-muted/60 border-border hover:border-border hover:bg-muted/90'
                         }`}
                       >
@@ -356,7 +356,7 @@ export function MoveFolderDialog({
                           )}
 
                           {isParent && (
-                            <Badge variant="outline" className="text-[11px] text-primary border-blue-800/60 bg-blue-950/40 gap-1">
+                            <Badge variant="outline" className="text-[11px] text-primary border-primary/60 bg-primary/8 gap-1">
                               <Check className="w-3 h-3" /> Current Location
                             </Badge>
                           )}

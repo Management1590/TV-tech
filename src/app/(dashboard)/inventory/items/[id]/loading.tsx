@@ -44,7 +44,7 @@ export default function ItemDetailLoading() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="p-3 bg-slate-50 border border-border/60 rounded-xl space-y-1.5">
+                <div key={i} className="p-3 bg-muted/50 border border-border/60 rounded-xl space-y-1.5">
                   <Skeleton className="h-3 w-16 rounded" />
                   <Skeleton className="h-5 w-24 rounded" />
                 </div>
@@ -57,7 +57,7 @@ export default function ItemDetailLoading() {
             <Skeleton className="h-5 w-44 rounded-md" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="p-3 bg-slate-50 border border-border/60 rounded-xl space-y-1.5">
+                <div key={i} className="p-3 bg-muted/50 border border-border/60 rounded-xl space-y-1.5">
                   <Skeleton className="h-3 w-20 rounded" />
                   <Skeleton className="h-4 w-28 rounded" />
                 </div>

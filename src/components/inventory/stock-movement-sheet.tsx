@@ -28,12 +28,15 @@ interface StockMovementSheetProps {
   itemName: string;
   currentQuantity: number | null;
   trigger?: React.ReactNode;
+  userRole?: string;
 }
 
-export function StockMovementSheet({ itemId, itemName, currentQuantity, trigger }: StockMovementSheetProps) {
+export function StockMovementSheet({ itemId, itemName, currentQuantity, trigger, userRole = 'STAFF' }: StockMovementSheetProps) {
+  const isAdmin = userRole === 'ADMIN';
+  const availableTypes = MOVEMENT_TYPES.filter((t) => isAdmin || t.value !== 'PURCHASE');
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [movementType, setMovementType] = useState<string>('PURCHASE');
+  const [movementType, setMovementType] = useState<string>(isAdmin ? 'PURCHASE' : 'SALE');
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
 
@@ -86,7 +89,7 @@ export function StockMovementSheet({ itemId, itemName, currentQuantity, trigger 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MOVEMENT_TYPES.map((t) => (
+                {availableTypes.map((t) => (
                   <SelectItem key={t.value} value={t.value}>
                     <span className={t.color}>{t.label}</span>
                   </SelectItem>

@@ -317,7 +317,7 @@ export function CreateItemDialog({
             {/* Drag & Drop / Click to select zone */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border/80 hover:border-blue-500/80 rounded-xl p-4 text-center cursor-pointer transition-all duration-200 bg-background/40 hover:bg-blue-950/10 group"
+              className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-4 text-center cursor-pointer transition-all duration-200 bg-background/40 hover:bg-primary/5 group"
             >
               <UploadCloud className="w-8 h-8 mx-auto mb-1.5 text-muted-foreground group-hover:text-primary transition-colors" />
               <p className="text-xs font-semibold text-foreground group-hover:text-primary">
@@ -336,7 +336,7 @@ export function CreateItemDialog({
                     key={img.id}
                     className={`relative group rounded-xl overflow-hidden border-2 bg-background transition-all ${
                       img.isPrimary
-                        ? 'border-blue-500 ring-2 ring-primary/30 shadow-lg shadow-primary/10'
+                        ? 'border-primary ring-2 ring-primary/30 shadow-lg shadow-primary/10'
                         : 'border-border hover:border-border'
                     }`}
                   >
@@ -355,7 +355,7 @@ export function CreateItemDialog({
                       className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                         img.isPrimary
                           ? 'bg-primary text-foreground shadow-md'
-                          : 'bg-black/70 text-muted-foreground hover:text-foreground hover:bg-blue-900/80'
+                          : 'bg-black/70 text-muted-foreground hover:text-foreground hover:bg-primary/80'
                       }`}
                       title={img.isPrimary ? 'Primary Showcase Image' : 'Click to set as Primary'}
                     >
@@ -421,7 +421,7 @@ export function CreateItemDialog({
 
           {/* Exact Count Input if NUMERIC */}
           {quantityMode === 'NUMERIC' && (
-            <div className="space-y-1.5 p-3 rounded-xl bg-blue-950/20 border border-primary/20">
+            <div className="space-y-1.5 p-3 rounded-xl bg-primary/5 border border-primary/20">
               <Label className="text-xs font-semibold text-primary">Initial In-Stock Quantity</Label>
               <Input
                 type="number"
@@ -585,7 +585,7 @@ export function CreateItemDialog({
 
           {/* Progress / Status feedback banner */}
           {uploadStatus && (
-            <div className="p-3 rounded-xl bg-blue-950/40 border border-primary/30 text-xs text-primary flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-primary/8 border border-primary/30 text-xs text-primary flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin shrink-0 text-primary" />
               <span>{uploadStatus}</span>
             </div>

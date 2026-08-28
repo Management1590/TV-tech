@@ -129,7 +129,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <div className="px-3 py-1.5 bg-slate-100/90 border border-border/80 rounded-2xl flex items-center gap-2 shadow-2xs">
+          <div className="px-3 py-1.5 bg-muted/90 border border-border/80 rounded-2xl flex items-center gap-2 shadow-sm-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-xs font-semibold text-foreground">System Online</span>
           </div>
@@ -140,24 +140,24 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Box 1: Total Items -> /inventory?view=all */}
         <Link href="/inventory?view=all" className="group block focus:outline-none">
-          <Card className="h-full bg-white hover:bg-blue-50/40 border border-border/80 hover:border-blue-300/80 shadow-blend hover:shadow-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
+          <Card className="h-full bg-white hover:bg-primary/5 border border-border/80 hover:border-primary/25 shadow-sm-blend hover:shadow-sm-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-blue-700 transition-colors">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">
                 Total Items
               </span>
-              <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-500/20 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-2xs">
+              <div className="w-9 h-9 rounded-2xl bg-primary/5 border border-primary/20 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm-2xs">
                 <Package className="h-4 w-4" />
               </div>
             </div>
 
             <div className="mt-4 flex items-baseline justify-between">
-              <div className="text-3xl sm:text-4xl font-extrabold text-foreground font-mono group-hover:text-blue-700 transition-colors">
+              <div className="text-3xl sm:text-4xl font-extrabold text-foreground font-mono group-hover:text-primary transition-colors">
                 {totalItems.toLocaleString('en-IN')}
               </div>
-              <ArrowUpRight className="w-4 h-4 text-blue-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              <ArrowUpRight className="w-4 h-4 text-primary/70 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
 
-            <div className="mt-2 text-[11px] font-semibold text-muted-foreground group-hover:text-blue-600 flex items-center gap-1 transition-colors">
+            <div className="mt-2 text-[11px] font-semibold text-muted-foreground group-hover:text-primary flex items-center gap-1 transition-colors">
               <span>View full flat catalog</span>
               <span>→</span>
             </div>
@@ -166,12 +166,12 @@ export default async function DashboardPage() {
 
         {/* Box 2: Out of Stock -> /inventory?stock=out */}
         <Link href="/inventory?stock=out" className="group block focus:outline-none">
-          <Card className="h-full bg-white hover:bg-red-50/40 border border-border/80 hover:border-red-300/80 shadow-blend hover:shadow-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
+          <Card className="h-full bg-white hover:bg-red-50/40 border border-border/80 hover:border-red-300/80 shadow-sm-blend hover:shadow-sm-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-red-700 transition-colors">
                 Out of Stock
               </span>
-              <div className="w-9 h-9 rounded-2xl bg-red-50 border border-red-500/20 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all shadow-2xs">
+              <div className="w-9 h-9 rounded-2xl bg-red-50/80 border border-red-500/20 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all shadow-sm-2xs">
                 <AlertTriangle className="h-4 w-4" />
               </div>
             </div>
@@ -192,12 +192,12 @@ export default async function DashboardPage() {
 
         {/* Box 3: Low Stock -> /inventory?stock=low */}
         <Link href="/inventory?stock=low" className="group block focus:outline-none">
-          <Card className="h-full bg-white hover:bg-amber-50/40 border border-border/80 hover:border-amber-300/80 shadow-blend hover:shadow-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
+          <Card className="h-full bg-white hover:bg-amber-50/40 border border-border/80 hover:border-amber-300/80 shadow-sm-blend hover:shadow-sm-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-amber-700 transition-colors">
                 Low Stock Alert
               </span>
-              <div className="w-9 h-9 rounded-2xl bg-amber-50 border border-amber-500/20 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all shadow-2xs">
+              <div className="w-9 h-9 rounded-2xl bg-amber-50/80 border border-amber-500/20 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm-2xs">
                 <AlertTriangle className="h-4 w-4" />
               </div>
             </div>
@@ -218,12 +218,12 @@ export default async function DashboardPage() {
 
         {/* Box 4: Total Folders -> /inventory */}
         <Link href="/inventory" className="group block focus:outline-none">
-          <Card className="h-full bg-white hover:bg-violet-50/40 border border-border/80 hover:border-violet-300/80 shadow-blend hover:shadow-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
+          <Card className="h-full bg-white hover:bg-violet-50/40 border border-border/80 hover:border-violet-300/80 shadow-sm-blend hover:shadow-sm-xl hover:-translate-y-1 transition-all duration-200 rounded-3xl p-3.5 sm:p-5 cursor-pointer relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-violet-700 transition-colors">
                 Total Folders
               </span>
-              <div className="w-9 h-9 rounded-2xl bg-violet-50 border border-violet-500/20 text-violet-600 flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-all shadow-2xs">
+              <div className="w-9 h-9 rounded-2xl bg-violet-50 border border-violet-500/20 text-violet-600 flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-all shadow-sm-2xs">
                 <FolderOpen className="h-4 w-4" />
               </div>
             </div>
@@ -249,7 +249,7 @@ export default async function DashboardPage() {
         <Link href="/knowledge-base" className="group">
           <Button
             variant="outline"
-            className="h-11 px-5 rounded-2xl bg-white hover:bg-slate-50/90 text-foreground border border-border/80 shadow-2xs hover:shadow-md hover:border-violet-300 hover:text-violet-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
+            className="h-11 px-5 rounded-2xl bg-white hover:bg-muted/90 text-foreground border border-border/80 shadow-sm-2xs hover:shadow-sm-md hover:border-violet-300 hover:text-violet-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
           >
             <BookOpen className="mr-2.5 h-4 w-4 text-violet-500 group-hover:scale-110 transition-transform" />
             Knowledge Base
@@ -260,9 +260,9 @@ export default async function DashboardPage() {
         <Link href="/inventory" className="group">
           <Button
             variant="outline"
-            className="h-11 px-5 rounded-2xl bg-white hover:bg-slate-50/90 text-foreground border border-border/80 shadow-2xs hover:shadow-md hover:border-blue-300 hover:text-blue-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
+            className="h-11 px-5 rounded-2xl bg-white hover:bg-muted/90 text-foreground border border-border/80 shadow-sm-2xs hover:shadow-sm-md hover:border-primary/25 hover:text-primary transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
           >
-            <Package className="mr-2.5 h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform" />
+            <Package className="mr-2.5 h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
             Inventory & Items
           </Button>
         </Link>
@@ -271,7 +271,7 @@ export default async function DashboardPage() {
         <Link href="/purchase-manager" className="group">
           <Button
             variant="outline"
-            className="h-11 px-5 rounded-2xl bg-white hover:bg-slate-50/90 text-foreground border border-border/80 shadow-2xs hover:shadow-md hover:border-emerald-300 hover:text-emerald-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
+            className="h-11 px-5 rounded-2xl bg-white hover:bg-muted/90 text-foreground border border-border/80 shadow-sm-2xs hover:shadow-sm-md hover:border-emerald-300 hover:text-emerald-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
           >
             <ShoppingCart className="mr-2.5 h-4 w-4 text-emerald-500 group-hover:scale-110 transition-transform" />
             Purchase Manager
@@ -295,7 +295,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex overflow-x-auto gap-4 pb-4 snap-x">
             {topSelling.map((ts: any) => (
-              <Card key={ts.id} className="min-w-[280px] shrink-0 bg-white border border-border/80 shadow-blend snap-start hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200">
+              <Card key={ts.id} className="min-w-[280px] shrink-0 bg-white border border-border/80 shadow-sm-blend snap-start hover:shadow-sm-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200">
                 <CardHeader className="p-4">
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-base text-foreground font-medium line-clamp-1" title={ts.item.name}>{ts.item.name}</CardTitle>
@@ -326,7 +326,7 @@ export default async function DashboardPage() {
             <Activity className="h-5 w-5 text-violet-500" />
             <h3 className="text-lg font-semibold text-foreground tracking-tight">Recent Activity</h3>
           </div>
-          <Card className="bg-card border border-border shadow-blend p-0 overflow-hidden">
+          <Card className="bg-card border border-border shadow-sm-blend p-0 overflow-hidden">
             <div className="divide-y divide-border">
               {recentActivity.map((log: any) => (
                 <div key={log.id} className="p-4 flex flex-col gap-1">

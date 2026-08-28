@@ -253,28 +253,35 @@ export function ItemProductShowcase({
 
   return (
     <div className="space-y-8 pb-28 sm:pb-32 relative">
-      {/* Top Breadcrumb Navigation */}
-      <nav className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-        <Link href="/inventory" className="hover:text-primary transition-colors">Inventory</Link>
-        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+      {/* Top Breadcrumb Navigation - Touch Friendly Pill Track with Smooth Horizontal Scroll */}
+      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
+        <Link
+          href="/inventory"
+          className="px-2.5 py-1.5 rounded-xl bg-card border border-border/80 hover:bg-muted hover:text-primary active:bg-secondary text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+        >
+          Inventory
+        </Link>
         {item.folderItems[0]?.folder ? (
           <>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
             <Link
               href={`/inventory/folders/${item.folderItems[0].folder.materializedPath}`}
-              className="hover:text-primary transition-colors truncate max-w-[150px] sm:max-w-none"
+              className="px-2.5 py-1.5 rounded-xl bg-card border border-border/80 hover:bg-muted hover:text-primary active:bg-secondary text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer truncate max-w-[150px] sm:max-w-none capitalize"
             >
               {item.folderItems[0].folder.name}
             </Link>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
           </>
         ) : null}
-        <span className="text-foreground font-medium truncate">{item.name}</span>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+        <span className="px-2.5 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1 truncate max-w-[180px] sm:max-w-none">
+          {item.name}
+        </span>
       </nav>
 
       {/* ============================================================ */}
       {/* AMAZON / FLIPKART STYLE PRODUCT SHOWCASE (TOP HERO SECTION) */}
       {/* ============================================================ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start bg-slate-50/80 border border-border/80 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-blend">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start bg-muted/50 border border-border/80 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-blend">
         
         {/* LEFT COLUMN: MULTI-IMAGE / VIDEO GALLERY (5 Cols on Desktop) */}
         <div className="lg:col-span-5 space-y-4">
@@ -285,7 +292,7 @@ export function ItemProductShowcase({
                 <video
                   src={currentMedia.secureUrl || currentMedia.url}
                   controls
-                  className="w-full h-full object-contain bg-slate-950"
+                  className="w-full h-full object-contain bg-foreground"
                 />
               ) : currentMedia.mediaType === 'AUDIO' ? (
                 <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
@@ -316,7 +323,7 @@ export function ItemProductShowcase({
                 </div>
               )
             ) : (
-              <div className="flex flex-col items-center justify-center text-muted-foreground space-y-3 p-8 text-center bg-gradient-to-br from-slate-100/80 via-indigo-50/40 to-slate-100/60 w-full h-full">
+              <div className="flex flex-col items-center justify-center text-muted-foreground space-y-3 p-8 text-center bg-gradient-to-br from-muted/80 via-primary/5 to-muted/60 w-full h-full">
                 <div className="w-16 h-16 rounded-2xl bg-white/90 border border-primary/15 flex items-center justify-center shadow-sm">
                   <Package className="w-8 h-8 stroke-1 text-primary/70" />
                 </div>
@@ -326,7 +333,7 @@ export function ItemProductShowcase({
                     size="sm"
                     variant="outline"
                     onClick={() => setIsUploadDialogOpen(true)}
-                    className="text-xs border border-dashed border-border bg-white hover:bg-slate-50 text-foreground shadow-sm h-10 sm:h-8 min-h-[40px] sm:min-h-0"
+                    className="text-xs border border-dashed border-border bg-white hover:bg-muted/50 text-foreground shadow-sm h-10 sm:h-8 min-h-[40px] sm:min-h-0"
                   >
                     <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-primary" />
                     Upload Media
@@ -377,11 +384,11 @@ export function ItemProductShowcase({
                         className="w-full h-full object-cover"
                       />
                     ) : media.mediaType === 'VIDEO' ? (
-                      <div className="w-full h-full flex items-center justify-center bg-slate-100 text-violet-500">
+                      <div className="w-full h-full flex items-center justify-center bg-muted text-violet-500">
                         <Play className="w-5 h-5 fill-current" />
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-slate-100 text-primary">
+                      <div className="w-full h-full flex items-center justify-center bg-muted text-primary">
                         <Volume2 className="w-5 h-5" />
                       </div>
                     )}
@@ -401,7 +408,7 @@ export function ItemProductShowcase({
               {isAdmin && (
                 <button
                   onClick={() => setIsUploadDialogOpen(true)}
-                  className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border hover:border-blue-500 hover:bg-primary/10 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-all cursor-pointer"
+                  className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/10 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-all cursor-pointer"
                   title="Upload photos or videos"
                 >
                   <UploadCloud className="w-5 h-5" />
@@ -472,7 +479,7 @@ export function ItemProductShowcase({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditDialogOpen(true)}
-                  className="h-8 text-xs gap-1.5 border-border bg-white hover:bg-slate-50 text-foreground rounded-xl transition-all shrink-0 shadow-2xs px-2.5 font-bold cursor-pointer"
+                  className="h-8 text-xs gap-1.5 border-border bg-white hover:bg-muted/50 text-foreground rounded-xl transition-all shrink-0 shadow-2xs px-2.5 font-bold cursor-pointer"
                 >
                   <Pencil className="w-3.5 h-3.5 text-primary" />
                   <span>Edit</span>
@@ -489,12 +496,12 @@ export function ItemProductShowcase({
             {/* Quick Status Bar (Stock Pill + Storage Location + Views) */}
             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
               {/* Stock status pill */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100/90 border border-border text-xs font-semibold">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-muted border border-border text-xs font-semibold">
                 <div className={`w-2 h-2 rounded-full ${
                   item.isOutOfStock
                     ? 'bg-red-500'
                     : item.quantityMode === 'UNKNOWN'
-                    ? 'bg-blue-500'
+                    ? 'bg-primary'
                     : (item.quantity ?? 0) <= (item.stockSettings?.minimumStock || 3)
                     ? 'bg-amber-500'
                     : 'bg-emerald-500'
@@ -505,13 +512,13 @@ export function ItemProductShowcase({
               </div>
 
               {/* Location Pill */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100/90 border border-border text-xs text-muted-foreground">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-muted border border-border text-xs text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span className="text-foreground font-medium truncate max-w-[160px]">{item.location || 'Unassigned Bin'}</span>
               </div>
 
               {/* View Count */}
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100/90 border border-border text-xs text-muted-foreground ml-auto">
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-muted border border-border text-xs text-muted-foreground ml-auto">
                 <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="font-medium">{item.stockSettings?.viewCount ?? 1} views</span>
               </div>
@@ -522,7 +529,7 @@ export function ItemProductShowcase({
           {item.supplierRecords.length > 0 ? (
             <div className="space-y-2.5 pt-2 border-t border-border/60">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-xs font-black text-foreground/90 uppercase tracking-wider flex items-center gap-1.5">
                   <Hash className="w-4 h-4 text-primary shrink-0" />
                   Price Codes ({item.supplierRecords.length})
                 </span>
@@ -554,13 +561,13 @@ export function ItemProductShowcase({
                       className={`group min-h-[42px] sm:min-h-[44px] flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl transition-all duration-200 cursor-pointer ${
                         isSelected
                           ? 'bg-primary text-white border-2 border-primary shadow-md ring-4 ring-primary/20 scale-[1.03]'
-                          : 'bg-white hover:bg-blue-50/70 border-2 border-slate-200/90 hover:border-primary/50 text-slate-900 shadow-2xs hover:shadow-sm'
+                          : 'bg-white hover:bg-primary/5 border-2 border-border/90 hover:border-primary/50 text-foreground shadow-2xs hover:shadow-sm'
                       }`}
                       title={isSelected ? 'Click to deselect (hide price)' : `Click to view price for #${cleanCode}`}
                     >
                       <Tag className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-primary group-hover:scale-110 transition-transform'}`} />
                       <span className={`font-mono font-black text-sm sm:text-base tracking-widest ${
-                        isSelected ? 'text-white' : 'text-slate-900 group-hover:text-primary'
+                        isSelected ? 'text-white' : 'text-foreground group-hover:text-primary'
                       }`}>
                         #{cleanCode}
                       </span>
@@ -578,7 +585,7 @@ export function ItemProductShowcase({
             </div>
           ) : (
             <div className="pt-2 border-t border-border/60">
-              <Badge variant="outline" className="bg-slate-100 border-border text-muted-foreground text-xs font-semibold">
+              <Badge variant="outline" className="bg-muted border-border text-muted-foreground text-xs font-semibold">
                 No price codes registered
               </Badge>
             </div>
@@ -586,7 +593,7 @@ export function ItemProductShowcase({
 
           {/* Pricing Card — Only shown when a code is selected; otherwise clean guide card */}
           {activeRecord ? (
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-slate-50/90 border-2 border-emerald-300/80 shadow-sm space-y-3 animate-in fade-in-0 duration-200">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-muted/50 border-2 border-emerald-300/80 shadow-sm space-y-3 animate-in fade-in-0 duration-200">
               <div className="flex flex-wrap items-baseline justify-between gap-2.5">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight font-mono">
@@ -600,7 +607,7 @@ export function ItemProductShowcase({
                 <button
                   type="button"
                   onClick={() => setSelectedRecordId(null)}
-                  className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-border px-2.5 py-1 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+                  className="text-xs font-bold text-muted-foreground hover:text-foreground bg-white border border-border px-2.5 py-1 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer shadow-2xs"
                   title="Deselect code (hide pricing)"
                 >
                   Clear ✕
@@ -647,7 +654,7 @@ export function ItemProductShowcase({
               )}
             </div>
           ) : (
-            <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/90 border border-border border-dashed shadow-2xs flex items-center gap-3">
+            <div className="p-3 sm:p-4 rounded-2xl bg-muted/50/90 border border-border border-dashed shadow-2xs flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
                 <Tag className="w-4 h-4" />
               </div>
@@ -673,7 +680,7 @@ export function ItemProductShowcase({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsAddPriceRecordOpen(true)}
-                className="h-8 text-xs gap-1.5 border-border bg-white hover:bg-slate-50 text-foreground font-medium rounded-xl shadow-2xs px-3 cursor-pointer"
+                className="h-8 text-xs gap-1.5 border-border bg-white hover:bg-muted/50 text-foreground font-medium rounded-xl shadow-2xs px-3 cursor-pointer"
               >
                 <Tag className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span>Add Price Record</span>
@@ -683,7 +690,7 @@ export function ItemProductShowcase({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsManageFoldersOpen(true)}
-                className="h-8 text-xs gap-1.5 border-border bg-white hover:bg-slate-50 text-foreground font-medium rounded-xl shadow-2xs px-3 cursor-pointer"
+                className="h-8 text-xs gap-1.5 border-border bg-white hover:bg-muted/50 text-foreground font-medium rounded-xl shadow-2xs px-3 cursor-pointer"
               >
                 <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span>Link Folders</span>
@@ -709,7 +716,7 @@ export function ItemProductShowcase({
             <div className="flex flex-wrap gap-2">
               {item.folderItems.map((fi) => (
                 <Link key={fi.id} href={`/inventory/folders/${fi.folder.materializedPath}`}>
-                  <Badge variant="outline" className="bg-white hover:bg-slate-50 border-border text-foreground text-xs py-1 px-2.5 gap-1.5 transition-all cursor-pointer shadow-2xs flex items-center">
+                  <Badge variant="outline" className="bg-white hover:bg-muted/50 border-border text-foreground text-xs py-1 px-2.5 gap-1.5 transition-all cursor-pointer shadow-2xs flex items-center">
                     <FolderOpen className="w-3.5 h-3.5 text-primary" />
                     {fi.folder.name}
                   </Badge>
@@ -765,7 +772,7 @@ export function ItemProductShowcase({
         if (displayDefs.length === 0) return null;
 
         return (
-          <Card className="glass-card rounded-2xl border border-border/80 bg-slate-50/80 shadow-blend">
+          <Card className="glass-card rounded-2xl border border-border/80 bg-muted/50/80 shadow-blend">
             <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between">
               <CardTitle className="text-lg text-foreground flex items-center gap-2">
                 <Tag className="w-5 h-5 text-primary" />
@@ -838,7 +845,7 @@ export function ItemProductShowcase({
 
       {/* Compatible TV Models Grid */}
       {compatibleModels.length > 0 && (
-        <Card className="glass-card rounded-2xl border border-border/80 bg-slate-50/80 shadow-blend">
+        <Card className="glass-card rounded-2xl border border-border/80 bg-muted/50/80 shadow-blend">
           <CardHeader className="pb-3 border-b border-border/60">
             <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Monitor className="w-5 h-5 text-violet-500" />
@@ -872,7 +879,7 @@ export function ItemProductShowcase({
       {/* TABS: PRICE HISTORY CHART & STOCK MOVEMENT AUDIT TRAIL */}
       {/* ============================================================ */}
       <Tabs defaultValue="price" className="w-full">
-        <TabsList className="w-full grid grid-cols-2 bg-slate-100/90 p-1 sm:p-1.5 rounded-xl border border-border shadow-2xs h-auto min-h-[44px]">
+        <TabsList className="w-full grid grid-cols-2 bg-muted p-1 sm:p-1.5 rounded-xl border border-border shadow-2xs h-auto min-h-[44px]">
           <TabsTrigger
             value="price"
             className="rounded-lg font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm min-h-[40px] sm:min-h-0 text-xs sm:text-sm py-2 px-1.5 sm:px-3 flex items-center justify-center text-center"
@@ -1018,6 +1025,7 @@ export function ItemProductShowcase({
         isOutOfStock={item.isOutOfStock}
         isOpen={isStockMovementOpen}
         onOpenChange={setIsStockMovementOpen}
+        userRole={userRole}
       />
 
       {/* Admin-Only Management Dialogs */}
@@ -1165,7 +1173,7 @@ export function ItemProductShowcase({
       {/* PERMANENT FLOATING BOTTOM ACTION BAR (Stock Movement + Selected Code Price) */}
       {/* ========================================================================= */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-border/80 shadow-[0_-8px_30px_rgba(0,0,0,0.10)] transition-all duration-300 ${
+        className={`fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-foreground backdrop-blur-xl border-t border-border/80 shadow-[0_-8px_30px_rgba(0,0,0,0.10)] transition-all duration-300 ${
           isLightboxOpen ? 'hidden' : ''
         }`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
@@ -1232,7 +1240,7 @@ export function ItemProductShowcase({
           {/* Center / Right: Location Pill + Stock status badge + CTA Button */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Storage Location Pill (Compact) */}
-            <div className="hidden xs:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100/90 border border-border text-[11px] sm:text-xs font-bold text-slate-800">
+            <div className="hidden xs:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted border border-border text-[11px] sm:text-xs font-bold text-foreground/90">
               <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
               <span className="truncate max-w-[80px] sm:max-w-[120px]">
                 {item.location || 'Unassigned'}
@@ -1240,12 +1248,12 @@ export function ItemProductShowcase({
             </div>
 
             {/* Quick Stock Indicator Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 border border-border text-xs font-bold">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted border border-border text-xs font-bold">
               <div className={`w-2 h-2 rounded-full ${
                 item.isOutOfStock
                   ? 'bg-red-500'
                   : item.quantityMode === 'UNKNOWN'
-                  ? 'bg-blue-500'
+                  ? 'bg-primary'
                   : (item.quantity ?? 0) <= (item.stockSettings?.minimumStock || 3)
                   ? 'bg-amber-500'
                   : 'bg-emerald-500'

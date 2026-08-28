@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get('q') || '';
     const scope = searchParams.get('scope') || 'all'; // 'all' | 'brands' | 'models' | 'kb'
     const brandId = searchParams.get('brandId') || undefined;
-    const limit = parseInt(searchParams.get('limit') || '25', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
 
     // 1. Strict Brand-Only search (when in Knowledge Base root)
     if (scope === 'brands') {

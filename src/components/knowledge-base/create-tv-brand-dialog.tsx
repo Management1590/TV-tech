@@ -222,7 +222,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                   required
                   autoFocus
                   disabled={isPending}
-                  className="h-11 rounded-xl bg-slate-50 border-border/80 text-sm"
+                  className="h-11 rounded-xl bg-muted/50 border-border/80 text-sm"
                 />
               </div>
 
@@ -237,7 +237,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                   placeholder="e.g. Major Korean manufacturer, panel voltage guidelines, common chassis..."
                   rows={2}
                   disabled={isPending}
-                  className="rounded-xl bg-slate-50 border-border/80 text-sm"
+                  className="rounded-xl bg-muted/50 border-border/80 text-sm"
                 />
               </div>
 
@@ -276,7 +276,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                   <div>
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-border hover:border-blue-500/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 cursor-pointer bg-muted/40 hover:bg-muted/80 transition-all text-center group"
+                      className="border-2 border-dashed border-border hover:border-primary/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 cursor-pointer bg-muted/40 hover:bg-muted/80 transition-all text-center group"
                     >
                       <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mb-1 group-hover:scale-105 transition-transform">
                         <UploadCloud className="w-4 h-4" />

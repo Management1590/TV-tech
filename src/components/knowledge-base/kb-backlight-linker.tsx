@@ -330,7 +330,7 @@ export function KbBacklightLinker({
                 >
                   {/* Thumbnail Banner */}
                   {parsedThumb.url ? (
-                    <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100 border-b border-border/60 relative">
+                    <div className="aspect-[16/9] w-full overflow-hidden bg-muted border-b border-border/60 relative">
                       <img
                         src={parsedThumb.url}
                         alt={item.name}
@@ -354,7 +354,7 @@ export function KbBacklightLinker({
                       </div>
                     </div>
                   ) : (
-                    <div className="aspect-[16/9] w-full bg-gradient-to-br from-amber-50 via-yellow-50/50 to-slate-100 border-b border-border/60 flex items-center justify-center relative">
+                    <div className="aspect-[16/9] w-full bg-gradient-to-br from-amber-50 via-yellow-50/50 to-muted border-b border-border/60 flex items-center justify-center relative">
                       <Lightbulb className="w-10 h-10 text-amber-500/60" />
                       <div className="absolute top-2.5 right-2.5">
                         {item.isOutOfStock ? (
@@ -393,7 +393,7 @@ export function KbBacklightLinker({
 
                     <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap pt-1 border-t border-border/60">
                       {item.location && (
-                        <span className="flex items-center gap-1 font-semibold text-slate-700 text-[11px]">
+                        <span className="flex items-center gap-1 font-semibold text-foreground/80 text-[11px]">
                           <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {item.location}
                         </span>
                       )}
@@ -408,7 +408,7 @@ export function KbBacklightLinker({
                 </Link>
 
                 {/* Card Actions Footer */}
-                <div className="p-3.5 bg-slate-50/90 border-t border-border/60 flex items-center justify-between gap-2">
+                <div className="p-3.5 bg-muted/50 border-t border-border/60 flex items-center justify-between gap-2">
                   <Link
                     href={`/inventory/items/${item.id}`}
                     className="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-primary/5 transition-colors"
@@ -474,14 +474,14 @@ export function KbBacklightLinker({
                   }
                 }}
                 placeholder="Search by part name, short code (e.g. 0012), model, location..."
-                className="pl-10 pr-9 bg-slate-50 border-border/80 text-foreground placeholder:text-muted-foreground text-xs sm:text-sm h-10.5 rounded-2xl shadow-2xs focus-visible:ring-2 focus-visible:ring-amber-500/30"
+                className="pl-10 pr-9 bg-muted/50 border-border/80 text-foreground placeholder:text-muted-foreground text-xs sm:text-sm h-10.5 rounded-2xl shadow-2xs focus-visible:ring-2 focus-visible:ring-amber-500/30"
                 autoFocus
               />
               {query ? (
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-slate-200/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/80 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -491,7 +491,7 @@ export function KbBacklightLinker({
 
           {/* Folder Breadcrumbs when browsing categories */}
           {!query && (
-            <div className="px-6 py-2.5 bg-slate-50/80 border-b border-border/60 flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto">
+            <div className="px-6 py-2.5 bg-muted/50 border-b border-border/60 flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto">
               <button
                 type="button"
                 onClick={handleBackToRoot}
@@ -503,7 +503,7 @@ export function KbBacklightLinker({
               </button>
               {folderHistory.map((h, idx) => (
                 <React.Fragment key={h.id}>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
                   <button
                     type="button"
                     onClick={() => {
@@ -584,8 +584,8 @@ export function KbBacklightLinker({
                   </div>
 
                   {items.length === 0 ? (
-                    <div className="p-10 rounded-3xl bg-slate-50/70 border border-border/80 border-dashed text-center">
-                      <Package className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                    <div className="p-10 rounded-3xl bg-muted/50 border border-border/80 border-dashed text-center">
+                      <Package className="w-10 h-10 text-muted-foreground/70 mx-auto mb-2" />
                       <p className="text-sm font-bold text-foreground">No inventory items found</p>
                       <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
                         {query
@@ -611,7 +611,7 @@ export function KbBacklightLinker({
                           >
                             <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-3">
                               {/* Item Thumbnail */}
-                              <div className="w-12 h-12 rounded-xl bg-slate-100 border border-border/80 overflow-hidden shrink-0 flex items-center justify-center relative">
+                              <div className="w-12 h-12 rounded-xl bg-muted border border-border/80 overflow-hidden shrink-0 flex items-center justify-center relative">
                                 {parsedThumb.url ? (
                                   <img
                                     src={parsedThumb.url}
@@ -623,7 +623,7 @@ export function KbBacklightLinker({
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <Package className="w-5 h-5 text-slate-400" />
+                                  <Package className="w-5 h-5 text-muted-foreground/70" />
                                 )}
                               </div>
 

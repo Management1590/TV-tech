@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         {
           folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
           resource_type: resourceType,
+          format: mediaType === MediaType.AUDIO ? 'mp3' : undefined,
           timeout: 300000, // 5 minutes timeout for large files
         },
         (error, result) => {

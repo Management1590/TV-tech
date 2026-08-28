@@ -255,7 +255,7 @@ export function UniversalItemFilter({
   return (
     <div className="space-y-2.5 w-full">
       {/* Top Filter & Sort Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50/90 border border-border shadow-blend">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-muted/90 border border-border shadow-blend">
         {/* Quick Keyword search in the bar (live debounced search as you type) */}
         <div className="relative flex-1 sm:max-w-md w-full order-1 sm:order-2">
           {isPending || searchVal !== (searchParams.get('q') || '') ? (
@@ -268,7 +268,7 @@ export function UniversalItemFilter({
             placeholder={folderName ? `Search in ${folderName}...` : "Search items, shortcodes, notes..."}
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 sm:py-2.5 bg-white border border-border/90 text-foreground text-xs sm:text-sm rounded-xl placeholder:text-muted-foreground outline-none shadow-xs focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+            className="w-full pl-9 pr-8 py-2 sm:py-2.5 bg-card border border-border/90 text-foreground text-xs sm:text-sm rounded-xl placeholder:text-muted-foreground outline-none shadow-xs focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
           />
           {searchVal && (
             <button
@@ -298,7 +298,7 @@ export function UniversalItemFilter({
                 className={
                   activeChips.length > 0
                     ? 'bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 font-semibold h-9 rounded-xl shadow-md shadow-primary/20 flex-1 sm:flex-initial'
-                    : 'bg-white border-border hover:bg-slate-100/80 text-foreground gap-1.5 h-9 rounded-xl shadow-xs flex-1 sm:flex-initial'
+                    : 'bg-card border-border hover:bg-muted/80 text-foreground gap-1.5 h-9 rounded-xl shadow-xs flex-1 sm:flex-initial'
                 }
               >
                 <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
@@ -336,7 +336,7 @@ export function UniversalItemFilter({
                     placeholder={folderName ? `Search in ${folderName}, #4332...` : "Search by part name, #4332, or description..."}
                     value={searchVal}
                     onChange={(e) => setSearchVal(e.target.value)}
-                    className="h-9 text-xs bg-slate-50 border-border text-foreground placeholder:text-muted-foreground rounded-xl focus-visible:bg-white"
+                    className="h-9 text-xs bg-muted/50 border-border text-foreground placeholder:text-muted-foreground rounded-xl focus-visible:bg-white"
                   />
                 </div>
 
@@ -511,7 +511,7 @@ export function UniversalItemFilter({
           {/* Smart Sort Dropdown */}
           <div className="flex-1 sm:flex-initial">
             <Select value={sortVal} onValueChange={handleSortChange}>
-              <SelectTrigger className="h-9 w-full sm:w-[180px] text-xs bg-white border-border text-foreground rounded-xl shadow-xs hover:bg-slate-50 focus:ring-primary">
+              <SelectTrigger className="h-9 w-full sm:w-[180px] text-xs bg-card border-border text-foreground rounded-xl shadow-xs hover:bg-muted/50 focus:ring-primary">
                 <div className="flex items-center gap-1.5 truncate">
                   <ArrowUpDown className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="truncate">

@@ -271,7 +271,7 @@ export function SetBrandThumbnailDialog({
               />
               <label
                 htmlFor="brand-thumbnail-upload"
-                className="flex flex-col items-center justify-center p-3 sm:p-5 border-2 border-dashed border-border hover:border-blue-500/50 rounded-2xl cursor-pointer bg-muted/40 hover:bg-muted/80 transition-all text-center group"
+                className="flex flex-col items-center justify-center p-3 sm:p-5 border-2 border-dashed border-border hover:border-primary/50 rounded-2xl cursor-pointer bg-muted/40 hover:bg-muted/80 transition-all text-center group"
               >
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mb-1 group-hover:scale-105 transition-transform">
                   <UploadCloud className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -447,11 +447,11 @@ export function SetBrandThumbnailDialog({
             {/* Positioning & Zoom Controls (Visible when image is loaded) */}
             {previewUrl && (
               <div className="space-y-2 pt-2 border-t border-border/60">
-                <div className="flex items-center justify-between text-xs text-foreground">
+                <div className="hidden sm:flex items-center justify-between text-xs text-foreground">
                   <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
                     <ZoomIn className="w-3.5 h-3.5 text-primary" /> Zoom Level: {scale.toFixed(1)}x
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground font-mono">
                     Pan: X: {position.x}px, Y: {position.y}px
                   </span>
                 </div>

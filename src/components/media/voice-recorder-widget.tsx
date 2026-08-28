@@ -202,45 +202,24 @@ export function VoiceRecorderWidget({
     toast.info('Voice recording discarded');
   };
 
-  // Pointer Down (Mouse or Touch) -> Start Hold Detection
-  const handlePointerDown = () => {
+  // Pointer / Click Handler -> Start recording cleanly
+  const handleStartClick = () => {
     if (isRecording || disabled || isUploading) return;
-    pointerDownTimeRef.current = Date.now();
-    isHoldingRef.current = true;
     startRecording();
-  };
-
-  // Pointer Up -> If held for >500ms, finish on release (WhatsApp hold-to-talk). If quick tap, lock in recording mode!
-  const handlePointerUp = () => {
-    if (!isRecording || isLocked) return;
-
-    const holdDuration = Date.now() - pointerDownTimeRef.current;
-    if (holdDuration > 600) {
-      // User held and released -> finish recording
-      isHoldingRef.current = false;
-      stopAndUpload();
-    } else {
-      // User tapped quickly -> lock in hands-free recording mode
-      setIsLocked(true);
-      isHoldingRef.current = false;
-    }
   };
 
   return (
     <div className="flex items-center gap-2">
       {!isRecording && !isUploading ? (
         /* ========================================================================= */
-        /* IDLE STATE: WHATSAPP-STYLE DIRECT RECORD BUTTON                           */
+        /* IDLE STATE: TAP TO RECORD BUTTON                                          */
         /* ========================================================================= */
         <button
           type="button"
-          onMouseDown={handlePointerDown}
-          onMouseUp={handlePointerUp}
-          onTouchStart={handlePointerDown}
-          onTouchEnd={handlePointerUp}
+          onClick={handleStartClick}
           disabled={disabled}
           className="h-10 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2.5 cursor-pointer transition-all shadow-md shadow-violet-500/20 hover:shadow-lg active:scale-95 border border-white/20 select-none group"
-          title="Tap to start recording or Hold to talk"
+          title="Tap to record voice note"
         >
           <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Mic className="w-3.5 h-3.5 text-white" />

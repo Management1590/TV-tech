@@ -30,6 +30,7 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
   const clipId = useId().replace(/:/g, '');
   const modelCount = brand._count?.models ?? brand.modelCount ?? 0;
   const parsedThumb = parseThumbnailUrl(brand.logoUrl);
+  const cleanName = brand.name.replace(/_\d{10,}$/, '');
 
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [isPressing, setIsPressing] = React.useState(false);
@@ -137,7 +138,7 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
         >
           {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK */}
           <div
-            className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-slate-100/90 overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
+            className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted/90 overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
             style={{
               clipPath: `url(#brand-folder-clip-${clipId})`,
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
@@ -145,7 +146,7 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
           >
             {/* Background Artwork or Rich Tinted Brand Gradient Canvas */}
             {parsedThumb.url ? (
-              <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-200/90 flex items-center justify-center">
+              <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted flex items-center justify-center">
                 <img
                   src={parsedThumb.url}
                   alt={brand.name}
@@ -159,7 +160,7 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
               </div>
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-100/85 via-indigo-100/60 to-slate-200/90 flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-indigo-100/60 to-muted/90 flex items-center justify-center overflow-hidden">
                 {/* Soft radial primary ambient glow */}
                 <div className="absolute w-48 h-48 rounded-full bg-primary/15 blur-3xl group-hover:bg-primary/25 transition-all duration-500 pointer-events-none" />
                 {/* Geometric pattern */}
@@ -175,7 +176,7 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
                     <Tv className="w-5 h-5 sm:w-8 sm:h-8 text-primary" />
                   </div>
                   {brand.description && (
-                    <p className="text-[10px] sm:text-xs text-slate-600 mt-1 sm:mt-2.5 line-clamp-1 max-w-[130px] sm:max-w-[200px] font-semibold">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2.5 line-clamp-1 max-w-[130px] sm:max-w-[200px] font-semibold">
                       {brand.description}
                     </p>
                   )}
@@ -194,13 +195,14 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
               </Badge>
             </div>
 
-            {/* 3. FROSTED GLASS FOOTER BAR */}
-            <div className="relative z-10 px-2.5 py-2 sm:px-4 sm:py-3 bg-white/95 backdrop-blur-md border-t border-border/80 transition-colors flex flex-col justify-center shadow-sm">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-bold text-foreground text-xs sm:text-base tracking-tight truncate group-hover:text-primary transition-colors">
-                  {brand.name}
-                </h3>
-              </div>
+            {/* 3. BOTTOM BAR (Folder Name Centered - matching Inventory folder-card) */}
+            <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-4 py-2 sm:py-3 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
+              <h3
+                className="text-xs sm:text-base font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate leading-tight w-full text-center"
+                title={cleanName}
+              >
+                {cleanName}
+              </h3>
             </div>
           </div>
 

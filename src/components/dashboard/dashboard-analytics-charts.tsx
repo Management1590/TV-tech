@@ -218,7 +218,7 @@ export function DashboardAnalyticsCharts({
 
   if (!isMounted) {
     return (
-      <div className="h-80 w-full rounded-3xl bg-slate-100/80 animate-pulse border border-border/80 flex items-center justify-center">
+      <div className="h-80 w-full rounded-3xl bg-muted/80 animate-pulse border border-border/80 flex items-center justify-center">
         <span className="text-xs text-muted-foreground font-medium">Loading Interactive Financial Engine...</span>
       </div>
     );
@@ -243,7 +243,7 @@ export function DashboardAnalyticsCharts({
         </div>
 
         {/* Time Period Filter Pills matching user specifications */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100/90 border border-border/80 rounded-xl overflow-x-auto max-w-full shrink-0">
+        <div className="flex items-center gap-1 p-1 bg-muted border border-border/80 rounded-xl overflow-x-auto max-w-full shrink-0">
           {(
             [
               { label: 'Today', value: 'today' },
@@ -280,7 +280,7 @@ export function DashboardAnalyticsCharts({
         <div className="flex flex-col gap-3">
           {/* Scrollable TabsList on mobile */}
           <div className="overflow-x-auto pb-1 max-w-full -mx-1 px-1">
-            <TabsList className="bg-slate-100/90 border border-border/80 p-1 rounded-2xl h-10 w-max flex flex-nowrap shrink-0">
+            <TabsList className="bg-muted border border-border/80 p-1 rounded-2xl h-10 w-max flex flex-nowrap shrink-0">
               <TabsTrigger
                 value="profit"
                 className="text-[11px] sm:text-xs font-bold px-3 sm:px-4 rounded-xl data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm cursor-pointer gap-1.5 whitespace-nowrap"
@@ -310,11 +310,11 @@ export function DashboardAnalyticsCharts({
                 onClick={() => setShowRevenue(!showRevenue)}
                 className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
                   showRevenue
-                    ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
-                    : 'bg-slate-50 text-muted-foreground border-border/60 opacity-60'
+                    ? 'bg-primary/5 text-primary border-primary/25 shadow-2xs'
+                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
                 }`}
               >
-                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                 Total Revenue
               </button>
 
@@ -324,7 +324,7 @@ export function DashboardAnalyticsCharts({
                 className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
                   showProfit
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
-                    : 'bg-slate-50 text-muted-foreground border-border/60 opacity-60'
+                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
@@ -337,7 +337,7 @@ export function DashboardAnalyticsCharts({
                 className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
                   showInventoryCost
                     ? 'bg-violet-50 text-violet-700 border-violet-300 shadow-2xs'
-                    : 'bg-slate-50 text-muted-foreground border-border/60 opacity-60'
+                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0" />
@@ -354,11 +354,11 @@ export function DashboardAnalyticsCharts({
                 onClick={() => setShowInflow(!showInflow)}
                 className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
                   showInflow
-                    ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
-                    : 'bg-slate-50 text-muted-foreground border-border/60 opacity-60'
+                    ? 'bg-primary/5 text-primary border-primary/25 shadow-2xs'
+                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
                 }`}
               >
-                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                 Units Purchased (In)
               </button>
 
@@ -368,7 +368,7 @@ export function DashboardAnalyticsCharts({
                 className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
                   showOutflow
                     ? 'bg-amber-50 text-amber-700 border-amber-300 shadow-2xs'
-                    : 'bg-slate-50 text-muted-foreground border-border/60 opacity-60'
+                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
@@ -381,7 +381,7 @@ export function DashboardAnalyticsCharts({
                 className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border transition-all cursor-pointer ${
                   showTotalUnits
                     ? 'bg-violet-50 text-violet-700 border-violet-300 shadow-2xs'
-                    : 'bg-slate-50 text-muted-foreground border-border/60 opacity-60'
+                    : 'bg-muted/50 text-muted-foreground border-border/60 opacity-60'
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0" />
@@ -398,19 +398,19 @@ export function DashboardAnalyticsCharts({
           {/* Summary Metric Strip matching User Specifications */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {/* Box 1: Total Revenue (Whole inventory sales in selected period: Cost + Profit) */}
-            <div className="p-2.5 sm:p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex flex-col justify-between overflow-hidden">
+            <div className="p-2.5 sm:p-3.5 bg-primary/5 border border-primary/20 rounded-2xl flex flex-col justify-between overflow-hidden">
               <div className="flex flex-wrap items-baseline justify-between gap-x-1">
-                <span className="text-[10px] sm:text-[11px] font-bold text-blue-900 uppercase tracking-wider truncate">
+                <span className="text-[10px] sm:text-[11px] font-bold text-primary uppercase tracking-wider truncate">
                   Total Revenue
                 </span>
-                <span className="text-[9px] sm:text-[10px] text-blue-700 font-semibold shrink-0">
+                <span className="text-[9px] sm:text-[10px] text-primary font-semibold shrink-0">
                   {periodStats.unitsSold} sold
                 </span>
               </div>
-              <div className="text-[13px] xs:text-sm sm:text-xl font-extrabold text-blue-700 font-mono mt-1 truncate tracking-tight">
+              <div className="text-[13px] xs:text-sm sm:text-xl font-extrabold text-primary font-mono mt-1 truncate tracking-tight">
                 {formatMoney(periodStats.totalRevenue.toString())}
               </div>
-              <p className="text-[9px] sm:text-[10px] text-blue-800/80 mt-0.5 font-medium truncate">
+              <p className="text-[9px] sm:text-[10px] text-primary/80 mt-0.5 font-medium truncate">
                 Sales done (Cost + Profit)
               </p>
             </div>
@@ -452,7 +452,7 @@ export function DashboardAnalyticsCharts({
             </div>
 
             {/* Box 4: Total Retail Valuation */}
-            <div className="p-2.5 sm:p-3.5 bg-slate-50/90 border border-border/80 rounded-2xl flex flex-col justify-between overflow-hidden">
+            <div className="p-2.5 sm:p-3.5 bg-muted/50/90 border border-border/80 rounded-2xl flex flex-col justify-between overflow-hidden">
               <div className="flex flex-wrap items-baseline justify-between gap-x-1">
                 <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
                   Retail Value
@@ -572,14 +572,14 @@ export function DashboardAnalyticsCharts({
         <TabsContent value="inventory" className="space-y-4 sm:space-y-5 mt-0">
           {/* Summary Metric Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <div className="p-2.5 sm:p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex flex-col justify-between overflow-hidden">
-              <span className="text-[10px] sm:text-[11px] font-bold text-blue-900 uppercase tracking-wider truncate">
+            <div className="p-2.5 sm:p-3.5 bg-primary/5 border border-primary/20 rounded-2xl flex flex-col justify-between overflow-hidden">
+              <span className="text-[10px] sm:text-[11px] font-bold text-primary uppercase tracking-wider truncate">
                 Purchased (In)
               </span>
-              <div className="text-[13px] xs:text-sm sm:text-xl font-extrabold text-blue-700 font-mono mt-1 truncate tracking-tight">
+              <div className="text-[13px] xs:text-sm sm:text-xl font-extrabold text-primary font-mono mt-1 truncate tracking-tight">
                 +{periodStats.unitsPurchased} Units
               </div>
-              <p className="text-[9px] sm:text-[10px] text-blue-800/80 mt-0.5 font-medium truncate">
+              <p className="text-[9px] sm:text-[10px] text-primary/80 mt-0.5 font-medium truncate">
                 Incoming inventory
               </p>
             </div>
@@ -608,7 +608,7 @@ export function DashboardAnalyticsCharts({
               </p>
             </div>
 
-            <div className="p-2.5 sm:p-3.5 bg-slate-50/90 border border-border/80 rounded-2xl flex flex-col justify-between overflow-hidden">
+            <div className="p-2.5 sm:p-3.5 bg-muted/50/90 border border-border/80 rounded-2xl flex flex-col justify-between overflow-hidden">
               <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
                 Catalog Items
               </span>

@@ -43,14 +43,14 @@ export function DeleteWarningDialog({
           </div>
 
           <div className="space-y-1 text-center sm:text-left">
-            <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            <DialogTitle className="text-lg sm:text-xl font-black text-foreground tracking-tight">
               {title}
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               {description || (
                 <>
                   Are you sure you want to permanently delete{' '}
-                  <strong className="text-slate-900 font-bold">
+                  <strong className="text-foreground font-bold">
                     {itemName ? `"${itemName}"` : `this ${itemType}`}
                   </strong>
                   ? This action cannot be undone.

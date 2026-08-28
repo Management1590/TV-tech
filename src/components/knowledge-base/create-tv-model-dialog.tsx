@@ -149,7 +149,7 @@ export function CreateTvModelDialog({
                     Brand Category *
                   </Label>
                   <Select value={brandId} onValueChange={(v) => v && setBrandId(v)}>
-                    <SelectTrigger id="brand-select" className="h-11 rounded-2xl bg-slate-50 border-border/80 text-sm">
+                    <SelectTrigger id="brand-select" className="h-11 rounded-2xl bg-muted/50 border-border/80 text-sm">
                       <SelectValue placeholder="Select brand..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl bg-white border border-border shadow-xl">
@@ -183,7 +183,7 @@ export function CreateTvModelDialog({
                   required
                   autoFocus
                   disabled={isPending}
-                  className="h-12 rounded-2xl bg-slate-50/90 hover:bg-white focus:bg-white border-border/80 text-sm sm:text-base font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="h-12 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm sm:text-base font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
                 />
                 <p className="text-[11px] text-muted-foreground">
                   Type the full model code. The first 2 digits automatically calculate the TV screen size.
@@ -208,7 +208,7 @@ export function CreateTvModelDialog({
                     }}
                     placeholder="e.g. 55"
                     disabled={isPending}
-                    className="h-11 rounded-2xl bg-slate-50/90 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
+                    className="h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
                   />
                   <div className="absolute right-3.5 text-xs font-bold text-muted-foreground pointer-events-none">
                     Inches (&quot;)

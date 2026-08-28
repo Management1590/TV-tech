@@ -130,7 +130,7 @@ export default async function SearchPage({
       </div>
 
       {!query && (
-        <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50/80 border border-border/80 rounded-3xl p-8 shadow-blend">
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-muted/50 border border-border/80 rounded-3xl p-8 shadow-blend">
           <div className="w-16 h-16 rounded-2xl bg-white border border-primary/20 flex items-center justify-center mb-4 shadow-sm">
             <SearchIcon className="h-8 w-8 text-primary" />
           </div>
@@ -142,7 +142,7 @@ export default async function SearchPage({
       )}
 
       {query && results.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50/80 border border-border/80 rounded-3xl p-8 shadow-blend">
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-muted/50 border border-border/80 rounded-3xl p-8 shadow-blend">
           <div className="w-16 h-16 rounded-2xl bg-white border border-border flex items-center justify-center mb-4 shadow-sm">
             <SearchIcon className="h-8 w-8 text-muted-foreground/60" />
           </div>
@@ -165,14 +165,14 @@ export default async function SearchPage({
             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Icon className="h-4 w-4 text-primary" />
               {groupLabels[type] ?? type}
-              <Badge variant="secondary" className="text-[10px] bg-slate-100 text-foreground border border-border">{items.length}</Badge>
+              <Badge variant="secondary" className="text-[10px] bg-muted text-foreground border border-border">{items.length}</Badge>
             </h2>
             <div className="space-y-2.5">
               {items.map((result) => (
                 <Link key={result.id} href={result.linkUrl || getLink(result.entityId)} className="block group">
                   <Card className="glass-card p-4 bg-white border border-border/80 hover:border-primary/40 hover:shadow-lg transition-all duration-200 cursor-pointer group-hover:-translate-y-0.5 shadow-2xs">
                     <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100/90 border border-border/80 flex items-center justify-center shrink-0 group-hover:bg-primary/10 group-hover:border-primary/20 transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-muted border border-border/80 flex items-center justify-center shrink-0 group-hover:bg-primary/10 group-hover:border-primary/20 transition-colors">
                         <Icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -186,7 +186,7 @@ export default async function SearchPage({
                           <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
                             <span className="text-[10px] text-muted-foreground font-medium mr-1">Located in:</span>
                             {result.folders.map(folder => (
-                              <Badge key={folder} variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-100 text-foreground border border-border/80">{folder}</Badge>
+                              <Badge key={folder} variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted text-foreground border border-border/80">{folder}</Badge>
                             ))}
                           </div>
                         )}

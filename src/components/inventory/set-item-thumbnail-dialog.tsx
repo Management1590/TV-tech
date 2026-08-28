@@ -341,7 +341,7 @@ export function SetItemThumbnailDialog({
 
           {/* Mode 1: Existing Item Media Selector */}
           {mode === 'media' && imageMediaList.length > 0 && (
-            <div className="space-y-2 p-3 bg-slate-50/90 border border-border rounded-xl">
+            <div className="space-y-2 p-3 bg-muted/50 border border-border rounded-xl">
               <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
                 <span>Select from existing uploaded photos:</span>
                 <span className="text-[10px] text-muted-foreground font-normal">
@@ -393,7 +393,7 @@ export function SetItemThumbnailDialog({
               />
               <label
                 htmlFor="item-thumbnail-upload"
-                className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-border hover:border-primary/50 rounded-2xl cursor-pointer bg-slate-50/60 hover:bg-slate-50 transition-all text-center group"
+                className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-border hover:border-primary/50 rounded-2xl cursor-pointer bg-muted/50 hover:bg-muted/50 transition-all text-center group"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
                   <UploadCloud className="w-5 h-5" />
@@ -425,7 +425,7 @@ export function SetItemThumbnailDialog({
           {/* ========================================================================= */}
           {/* LIVE ITEM CARD PREVIEW & FULL IMAGE POSITIONING STUDIO                    */}
           {/* ========================================================================= */}
-          <div className="space-y-3 p-4 rounded-2xl bg-slate-50/80 border border-border">
+          <div className="space-y-3 p-4 rounded-2xl bg-muted/50 border border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-primary" />
@@ -456,7 +456,7 @@ export function SetItemThumbnailDialog({
             {/* Item Card Live Preview Container */}
             <div className="flex justify-center py-1">
               <div className="w-full max-w-[340px] select-none">
-                <div className="glass-card overflow-hidden rounded-2xl border border-border/90 bg-slate-50/70 shadow-lg flex flex-col justify-between">
+                <div className="glass-card overflow-hidden rounded-2xl border border-border/90 bg-muted/50 shadow-lg flex flex-col justify-between">
                   {/* 1. SEAMLESS TOP THUMBNAIL (Full Uncropped Image Canvas) */}
                   <div
                     ref={previewContainerRef}
@@ -470,7 +470,7 @@ export function SetItemThumbnailDialog({
                     style={{
                       cursor: previewUrl ? (isDragging ? 'grabbing' : 'grab') : 'default',
                     }}
-                    className="relative aspect-[16/10] w-full overflow-hidden bg-slate-200/80 border-b border-border/70 rounded-t-2xl flex items-center justify-center group select-none"
+                    className="relative aspect-[16/10] w-full overflow-hidden bg-muted/80 border-b border-border/70 rounded-t-2xl flex items-center justify-center group select-none"
                   >
                     {previewUrl ? (
                       <>
@@ -488,7 +488,7 @@ export function SetItemThumbnailDialog({
                       </>
                     ) : (
                       /* Default Icon canvas when no thumbnail */
-                      <div className="aspect-[16/10] w-full bg-gradient-to-br from-indigo-50/90 via-blue-50/60 to-slate-100/90 flex items-center justify-center">
+                      <div className="aspect-[16/10] w-full bg-gradient-to-br from-indigo-50/90 via-blue-50/60 to-muted flex items-center justify-center">
                         <div className="w-12 h-12 rounded-xl bg-white/90 border border-primary/20 flex items-center justify-center shadow-sm">
                           <Package className="h-6 w-6 text-primary" />
                         </div>
@@ -519,7 +519,7 @@ export function SetItemThumbnailDialog({
 
                   {/* 3. CARD FOOTER */}
                   {folderName && (
-                    <div className="px-3.5 py-2 bg-slate-100/90 border-t border-border/80 text-[10px] text-muted-foreground font-semibold rounded-b-2xl">
+                    <div className="px-3.5 py-2 bg-muted border-t border-border/80 text-[10px] text-muted-foreground font-semibold rounded-b-2xl">
                       Category: {folderName}
                     </div>
                   )}
@@ -530,7 +530,7 @@ export function SetItemThumbnailDialog({
             {/* Positioning & Zoom Controls (Visible when image is loaded) */}
             {previewUrl && (
               <div className="space-y-2 pt-2 border-t border-border/60">
-                <div className="flex items-center justify-between text-xs text-foreground">
+                <div className="hidden sm:flex items-center justify-between text-xs text-foreground">
                   <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
                     <ZoomIn className="w-3.5 h-3.5 text-primary" /> Zoom: {scale.toFixed(2)}x
                   </span>

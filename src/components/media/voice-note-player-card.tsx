@@ -12,6 +12,7 @@ import {
   Music,
   ChevronLeft,
   ChevronRight,
+  GripVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,11 +25,14 @@ interface VoiceNotePlayerCardProps {
   publicId?: string | null;
   index?: number;
   isEditMode?: boolean;
-  canMoveLeft?: boolean;
-  canMoveRight?: boolean;
-  onMove?: (direction: 'left' | 'right') => void;
   onDelete?: (id: string, publicId?: string | null) => void;
   isAdmin?: boolean;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  isFloating?: boolean;
+  isSourceSlot?: boolean;
+  isTargetSlot?: boolean;
+  deltaX?: number;
+  deltaY?: number;
 }
 
 export function VoiceNotePlayerCard({
@@ -39,11 +43,14 @@ export function VoiceNotePlayerCard({
   publicId,
   index = 0,
   isEditMode = false,
-  canMoveLeft = false,
-  canMoveRight = false,
-  onMove,
   onDelete,
   isAdmin = false,
+  onPointerDown,
+  isFloating = false,
+  isSourceSlot = false,
+  isTargetSlot = false,
+  deltaX = 0,
+  deltaY = 0,
 }: VoiceNotePlayerCardProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -122,9 +129,24 @@ export function VoiceNotePlayerCard({
 
   return (
     <div
-      className={`p-3.5 sm:p-4 rounded-2xl bg-white border transition-all duration-200 flex flex-col gap-2.5 ${
-        isEditMode
-          ? 'border-violet-400 ring-2 ring-violet-400/25 shadow-sm'
+      onPointerDown={onPointerDown}
+      data-reorder-index={index}
+      style={{
+        transform: isFloating
+          ? `translate3d(${deltaX}px, ${deltaY}px, 0) scale(1.04) rotate(1deg)`
+          : undefined,
+        zIndex: isFloating ? 9999 : isTargetSlot && !isSourceSlot ? 30 : undefined,
+        transition: isFloating ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+      }}
+      className={`p-3.5 sm:p-4 rounded-2xl bg-white border flex flex-col gap-2.5 select-none ${
+        isFloating
+          ? 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] ring-4 ring-violet-500 ring-offset-2 opacity-95 pointer-events-none'
+          : isSourceSlot && !isFloating
+          ? 'opacity-25 border-dashed border-2 border-violet-500 scale-95'
+          : isTargetSlot && !isSourceSlot
+          ? 'border-violet-600 ring-4 ring-violet-500/40 bg-violet-50/40 scale-[1.02] shadow-xl'
+          : isEditMode
+          ? 'border-violet-400 ring-2 ring-violet-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
           : 'border-border/80 shadow-2xs hover:shadow-md'
       }`}
     >
@@ -141,6 +163,12 @@ export function VoiceNotePlayerCard({
       <div className="flex items-center justify-between gap-3">
         {/* Play Button + Info */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
+          {isEditMode && (
+            <div className="text-violet-400 hover:text-violet-600 cursor-grab active:cursor-grabbing shrink-0 pr-0.5">
+              <GripVertical className="w-4 h-4" />
+            </div>
+          )}
+
           <button
             type="button"
             onClick={togglePlay}
@@ -183,7 +211,7 @@ export function VoiceNotePlayerCard({
             target="_blank"
             rel="noopener noreferrer"
             download={filename || 'voice_note'}
-            className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="Download Audio"
           >
             <Download className="w-3.5 h-3.5" />
@@ -214,38 +242,9 @@ export function VoiceNotePlayerCard({
           step="0.1"
           value={progress}
           onChange={handleSeek}
-          className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-600 hover:h-2 transition-all"
+          className="w-full h-1.5 bg-muted/80 rounded-lg appearance-none cursor-pointer accent-violet-600 hover:h-2 transition-all"
         />
       </div>
-
-      {/* Edit Mode Reorder Buttons (Move Left & Move Right) */}
-      {isEditMode && onMove && (
-        <div className="flex items-center justify-between pt-1 border-t border-violet-100">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={!canMoveLeft}
-            onClick={() => onMove('left')}
-            className="h-7 px-2.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-900 text-[11px] font-bold gap-1 disabled:opacity-30 cursor-pointer"
-            title="Move earlier in list"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" /> Move Left
-          </Button>
-
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={!canMoveRight}
-            onClick={() => onMove('right')}
-            className="h-7 px-2.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-900 text-[11px] font-bold gap-1 disabled:opacity-30 cursor-pointer"
-            title="Move later in list"
-          >
-            Move Right <ChevronRight className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

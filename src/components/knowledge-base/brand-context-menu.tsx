@@ -154,7 +154,7 @@ export function BrandContextMenu({
               e.preventDefault();
               e.stopPropagation();
             }}
-            className="h-7 w-7 inline-flex items-center justify-center rounded-xl bg-white/40 hover:bg-white text-slate-700 hover:text-primary border border-white/60 hover:border-white shadow-2xs hover:shadow-md backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer z-20 group/menu"
+            className="h-7 w-7 inline-flex items-center justify-center rounded-xl bg-white/40 hover:bg-white text-foreground/80 hover:text-primary border border-white/60 hover:border-white shadow-2xs hover:shadow-md backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer z-20 group/menu"
           >
             <MoreVertical className="h-3.5 w-3.5 transition-transform group-hover/menu:scale-110" />
           </DropdownMenuTrigger>
@@ -166,15 +166,15 @@ export function BrandContextMenu({
           >
             <DropdownMenuItem
               onClick={() => setIsRenameOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-slate-100"
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted"
             >
-              <Pencil className="w-3.5 h-3.5 text-blue-600" />
+              <Pencil className="w-3.5 h-3.5 text-primary" />
               <span>Rename Brand</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem
               onClick={() => setIsDescriptionOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-slate-100"
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted"
             >
               <FileText className="w-3.5 h-3.5 text-indigo-600" />
               <span>Edit Description</span>
@@ -182,7 +182,7 @@ export function BrandContextMenu({
 
             <DropdownMenuItem
               onClick={() => setIsThumbnailOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-slate-100"
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted"
             >
               <ImagePlus className="w-3.5 h-3.5 text-emerald-600" />
               <span>Change Logo / Thumbnail</span>
@@ -281,14 +281,14 @@ export function BrandContextMenu({
                 <div className="relative w-full h-full flex flex-col">
                   {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK */}
                   <div
-                    className="relative w-full h-full bg-slate-100/95 overflow-hidden flex flex-col justify-end shadow-2xl"
+                    className="relative w-full h-full bg-muted overflow-hidden flex flex-col justify-end shadow-2xl"
                     style={{
                       clipPath: `url(#preview-brand-folder-clip-${previewClipId})`,
                     }}
                   >
                     {/* Background Artwork or Rich Tinted Brand Gradient Canvas */}
                     {parsedThumb.url ? (
-                      <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-200/90 flex items-center justify-center">
+                      <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center">
                         <img
                           src={parsedThumb.url}
                           alt={brandName}
@@ -302,7 +302,7 @@ export function BrandContextMenu({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent pointer-events-none" />
                       </div>
                     ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-100/90 via-indigo-100/70 to-slate-200/90 flex items-center justify-center overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-100/90 via-indigo-100/70 to-muted/80 flex items-center justify-center overflow-hidden">
                         {/* Soft radial primary ambient glow */}
                         <div className="absolute w-36 h-36 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
                         {/* Geometric pattern */}
@@ -318,7 +318,7 @@ export function BrandContextMenu({
                             <Tv className="w-6 h-6 text-primary" />
                           </div>
                           {currentDescription && (
-                            <p className="text-[9px] text-slate-600 line-clamp-1 max-w-[130px] font-semibold">
+                            <p className="text-[9px] text-muted-foreground line-clamp-1 max-w-[130px] font-semibold">
                               {currentDescription}
                             </p>
                           )}
@@ -381,7 +381,7 @@ export function BrandContextMenu({
                 className="relative z-10 w-full max-w-sm flex flex-col gap-2 pointer-events-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl p-2.5 space-y-1">
+                <div className="bg-white rounded-3xl border border-border shadow-2xl p-2.5 space-y-1">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -390,14 +390,14 @@ export function BrandContextMenu({
                       setMobileOpen(false);
                       setIsRenameOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                       <Pencil className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Rename Brand</div>
-                      <div className="text-[11px] font-normal text-slate-500 truncate">Change manufacturer name</div>
+                      <div className="leading-tight text-foreground font-bold">Rename Brand</div>
+                      <div className="text-[11px] font-normal text-muted-foreground truncate">Change manufacturer name</div>
                     </div>
                   </button>
 
@@ -409,14 +409,14 @@ export function BrandContextMenu({
                       setMobileOpen(false);
                       setIsDescriptionOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
                     <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
                       <FileText className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Edit Description</div>
-                      <div className="text-[11px] font-normal text-slate-500 truncate">Update brand overview</div>
+                      <div className="leading-tight text-foreground font-bold">Edit Description</div>
+                      <div className="text-[11px] font-normal text-muted-foreground truncate">Update brand overview</div>
                     </div>
                   </button>
 
@@ -428,18 +428,18 @@ export function BrandContextMenu({
                       setMobileOpen(false);
                       setIsThumbnailOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
                     <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
                       <ImagePlus className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Change Logo / Thumbnail</div>
-                      <div className="text-[11px] font-normal text-slate-500 truncate">Upload brand logo artwork</div>
+                      <div className="leading-tight text-foreground font-bold">Change Logo / Thumbnail</div>
+                      <div className="text-[11px] font-normal text-muted-foreground truncate">Upload brand logo artwork</div>
                     </div>
                   </button>
 
-                  <div className="border-t border-slate-100 my-1 pt-1">
+                  <div className="border-t border-border/60 my-1 pt-1">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -469,7 +469,7 @@ export function BrandContextMenu({
                     e.stopPropagation();
                     setMobileOpen(false);
                   }}
-                  className="w-full py-3.5 bg-white text-slate-800 font-extrabold text-sm rounded-2xl border border-slate-200 shadow-lg active:bg-slate-100 active:scale-[0.98] transition-all text-center cursor-pointer"
+                  className="w-full py-3.5 bg-white text-foreground/90 font-extrabold text-sm rounded-2xl border border-border shadow-lg active:bg-muted active:scale-[0.98] transition-all text-center cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -485,7 +485,7 @@ export function BrandContextMenu({
         <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-blue-600" />
+              <Pencil className="w-5 h-5 text-primary" />
               Rename Brand
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
@@ -500,7 +500,7 @@ export function BrandContextMenu({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 required
-                className="h-11 rounded-xl bg-slate-50 border-border/80 text-sm"
+                className="h-11 rounded-xl bg-muted/50 border-border/80 text-sm"
                 autoFocus
               />
             </div>
@@ -517,7 +517,7 @@ export function BrandContextMenu({
               <Button
                 type="submit"
                 disabled={isPending || !newName.trim() || newName.trim() === brandName}
-                className="rounded-xl text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-2"
+                className="rounded-xl text-xs bg-primary hover:bg-primary/90 text-white font-semibold gap-2"
               >
                 {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Save Changes
@@ -548,7 +548,7 @@ export function BrandContextMenu({
                 onChange={(e) => setNewDescription(e.target.value)}
                 placeholder="e.g. Major Korean manufacturer, panel voltage conventions, common chassis..."
                 rows={4}
-                className="rounded-xl bg-slate-50 border-border/80 text-sm"
+                className="rounded-xl bg-muted/50 border-border/80 text-sm"
                 autoFocus
               />
             </div>

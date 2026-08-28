@@ -53,6 +53,7 @@ interface StockMovementDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   trigger?: React.ReactNode;
+  userRole?: string;
 }
 
 type Mode = 'SOLD' | 'PURCHASE';
@@ -194,14 +195,17 @@ export function StockMovementDialog({
   itemId,
   itemName,
   currentQuantity,
-  quantityMode = 'NUMERIC',
+  quantityMode = 'UNKNOWN',
   isOutOfStock = false,
   isOpen,
   onOpenChange,
   trigger,
+  userRole = 'STAFF',
 }: StockMovementDialogProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  const isAdmin = userRole === 'ADMIN';
 
   // Workflow View Management
   const [view, setView] = useState<ViewState>('FORM');
@@ -324,6 +328,12 @@ export function StockMovementDialog({
       return;
     }
 
+    if (!isAdmin && mode === 'PURCHASE') {
+      toast.error('Permission denied. Purchase mode is disabled in Staff mode.');
+      setMode('SOLD');
+      return;
+    }
+
     if (!isUnlimited && isSold && quantity > currentQty) {
       toast.error(`Cannot sell ${quantity} units when only ${currentQty} are available.`);
       return;
@@ -337,6 +347,11 @@ export function StockMovementDialog({
 
   // Step 2: Final Commit Stock Movement
   const handleConfirmMovement = () => {
+    if (!isAdmin && !isSold) {
+      toast.error('Permission denied. Only Admins can record purchases.');
+      return;
+    }
+
     startTransition(async () => {
       const res = await recordStockMovementAction({
         itemId,
@@ -429,7 +444,7 @@ export function StockMovementDialog({
       >
         <DialogContent
           showCloseButton={false}
-          className="w-[calc(100%-1.5rem)] max-w-[440px] sm:max-w-[460px] bg-white border border-slate-200/90 text-foreground p-0 overflow-hidden shadow-2xl rounded-3xl"
+          className="w-[calc(100%-1.5rem)] max-w-[440px] sm:max-w-[460px] bg-white border border-border text-foreground p-0 overflow-hidden shadow-2xl rounded-3xl"
         >
           <AnimatePresence mode="wait">
             {/* ========================================================================= */}
@@ -485,17 +500,17 @@ export function StockMovementDialog({
                 </div>
 
                 {/* Rolling Quantity Counter Display */}
-                <div className="w-full bg-slate-50 border border-border/80 rounded-2xl p-5 shadow-inner flex items-center justify-around">
+                <div className="w-full bg-muted/50 border border-border/80 rounded-2xl p-5 shadow-inner flex items-center justify-around">
                   <div className="text-center">
                     <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
                       Previous State
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold font-mono text-slate-700">
+                    <p className="text-xl sm:text-2xl font-bold font-mono text-foreground/80">
                       {animationData.prev}
                     </p>
                   </div>
 
-                  <div className="text-slate-400 font-bold text-xl">➔</div>
+                  <div className="text-muted-foreground/70 font-bold text-xl">➔</div>
 
                   <div className="text-center">
                     <p
@@ -529,7 +544,7 @@ export function StockMovementDialog({
                     onOpenChange(false);
                     router.refresh();
                   }}
-                  className="w-full h-11 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                  className="w-full h-11 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" /> Done & Return
                 </Button>
@@ -553,7 +568,7 @@ export function StockMovementDialog({
                     type="button"
                     onClick={() => setView('FORM')}
                     disabled={isPending}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
@@ -609,7 +624,7 @@ export function StockMovementDialog({
                   <div className="grid grid-cols-3 gap-2 text-center pt-2">
                     <div className="p-2.5 rounded-xl bg-white/80 border border-border/80">
                       <p className="text-[10px] uppercase font-bold text-muted-foreground">Current</p>
-                      <p className="text-sm sm:text-base font-black font-mono text-slate-800">
+                      <p className="text-sm sm:text-base font-black font-mono text-foreground/90">
                         {isUnlimited ? (isOutOfStock ? '0 (OOS)' : '∞ (Stock)') : currentQty}
                       </p>
                     </div>
@@ -631,7 +646,7 @@ export function StockMovementDialog({
                       className={`p-2.5 rounded-xl border ${
                         !isUnlimited && calculatedNext === 0
                           ? 'bg-red-600 text-white border-red-700'
-                          : 'bg-white/80 border-border/80 text-slate-900'
+                          : 'bg-white/80 border-border/80 text-foreground'
                       }`}
                     >
                       <p
@@ -685,17 +700,17 @@ export function StockMovementDialog({
                           onClick={() => setTargetQuantityMode('UNKNOWN')}
                           className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                             targetQuantityMode === 'UNKNOWN'
-                              ? 'bg-blue-50/90 border-blue-500 shadow-xs ring-2 ring-blue-500/20'
-                              : 'bg-slate-50 hover:bg-slate-100/80 border-border/80 text-muted-foreground'
+                              ? 'bg-primary/5 border-primary shadow-xs ring-2 ring-primary/20'
+                              : 'bg-muted/50 hover:bg-muted/80 border-border/80 text-muted-foreground'
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                              <Sparkles className="w-3.5 h-3.5 text-primary" />
                               Keep as Unlimited (∞)
                             </span>
                             {targetQuantityMode === 'UNKNOWN' && (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
@@ -710,7 +725,7 @@ export function StockMovementDialog({
                           className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                             targetQuantityMode === 'NUMERIC'
                               ? 'bg-emerald-50/90 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20'
-                              : 'bg-slate-50 hover:bg-slate-100/80 border-border/80 text-muted-foreground'
+                              : 'bg-muted/50 hover:bg-muted/80 border-border/80 text-muted-foreground'
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -787,7 +802,7 @@ export function StockMovementDialog({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isPending}
-                    className="h-10 text-xs rounded-xl bg-slate-50 border-border"
+                    className="h-10 text-xs rounded-xl bg-muted/50 border-border"
                   />
                 </div>
 
@@ -798,7 +813,7 @@ export function StockMovementDialog({
                     variant="outline"
                     onClick={() => setView('FORM')}
                     disabled={isPending}
-                    className="flex-1 h-11 rounded-2xl text-xs font-bold border-border bg-white hover:bg-slate-50 text-slate-700 cursor-pointer"
+                    className="flex-1 h-11 rounded-2xl text-xs font-bold border-border bg-white hover:bg-muted/50 text-foreground/80 cursor-pointer"
                   >
                     ← Edit Details
                   </Button>
@@ -845,7 +860,7 @@ export function StockMovementDialog({
                     type="button"
                     onClick={() => setView('FORM')}
                     disabled={isPending}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
@@ -924,52 +939,73 @@ export function StockMovementDialog({
                   <button
                     type="button"
                     onClick={() => onOpenChange(false)}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
                     title="Close"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* DUAL MODE SELECTOR: SOLD (Red) vs PURCHASE (Green) */}
-                <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl sm:rounded-2xl border border-border/80">
-                  {/* SOLD Button (Default) */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('SOLD');
-                      if (!isUnlimited && quantity > currentQty && currentQty > 0) {
-                        setQuantity(currentQty);
-                      }
-                    }}
-                    className={`flex items-center justify-center gap-1.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                      isSold
-                        ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-sm shadow-red-600/30'
-                        : 'text-slate-600 hover:text-red-600 hover:bg-white/60'
-                    }`}
-                  >
-                    <TrendingDown className="w-3.5 h-3.5" />
-                    Item Sold (−)
-                  </button>
+                {/* DUAL MODE SELECTOR: SOLD (Red) vs PURCHASE (Green) - Admin Only Toggle */}
+                {isAdmin ? (
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted rounded-xl sm:rounded-2xl border border-border/80">
+                    {/* SOLD Button (Default) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('SOLD');
+                        if (!isUnlimited && quantity > currentQty && currentQty > 0) {
+                          setQuantity(currentQty);
+                        }
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                        isSold
+                          ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-sm shadow-red-600/30'
+                          : 'text-muted-foreground hover:text-red-600 hover:bg-white/60'
+                      }`}
+                    >
+                      <TrendingDown className="w-3.5 h-3.5" />
+                      Item Sold (−)
+                    </button>
 
-                  {/* PURCHASE Button */}
-                  <button
-                    type="button"
-                    onClick={() => setMode('PURCHASE')}
-                    className={`flex items-center justify-center gap-1.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                      !isSold
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm shadow-emerald-600/30'
-                        : 'text-slate-600 hover:text-emerald-600 hover:bg-white/60'
-                    }`}
-                  >
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    Purchase (+)
-                  </button>
-                </div>
+                    {/* PURCHASE Button */}
+                    <button
+                      type="button"
+                      onClick={() => setMode('PURCHASE')}
+                      className={`flex items-center justify-center gap-1.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                        !isSold
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm shadow-emerald-600/30'
+                          : 'text-muted-foreground hover:text-emerald-600 hover:bg-white/60'
+                      }`}
+                    >
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      Purchase (+)
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-2.5 sm:p-3 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200/90 rounded-xl sm:rounded-2xl shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <TrendingDown className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-red-950 uppercase tracking-wider">
+                          Item Sold (−) Mode Active
+                        </p>
+                        <p className="text-[10px] text-red-700 font-medium">
+                          Staff mode records customer sales & stock deductions
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] bg-white border-red-300 text-red-700 font-extrabold px-2 py-0.5 shrink-0">
+                      Staff
+                    </Badge>
+                  </div>
+                )}
 
                 {/* Current Stock Banner */}
-                <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-slate-50 border border-border/80">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold">
+                <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-muted/50 border border-border/80">
+                  <div className="flex items-center gap-1.5 text-xs text-foreground/80 font-semibold">
                     <Package className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span>Current Inventory:</span>
                   </div>
@@ -991,8 +1027,8 @@ export function StockMovementDialog({
                   </div>
                 </div>
 
-                {/* QUICK REFILL SLIDE TO CONFIRM FOR UNLIMITED STOCK ITEMS IN PURCHASE MODE */}
-                {isUnlimited && !isSold && (
+                {/* QUICK REFILL SLIDE TO CONFIRM FOR UNLIMITED STOCK ITEMS IN PURCHASE MODE (Admin Only) */}
+                {isAdmin && isUnlimited && !isSold && (
                   <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-50/80 border border-emerald-200/90 space-y-2 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
@@ -1043,7 +1079,7 @@ export function StockMovementDialog({
                       variant="outline"
                       onClick={() => handleQuantityChange(quantity - 1)}
                       disabled={isPending || quantity <= 1}
-                      className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl border-border bg-white hover:bg-slate-50 text-foreground text-base font-bold shrink-0 shadow-2xs cursor-pointer"
+                      className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl border-border bg-white hover:bg-muted/50 text-foreground text-base font-bold shrink-0 shadow-2xs cursor-pointer"
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
@@ -1056,7 +1092,7 @@ export function StockMovementDialog({
                         value={quantity}
                         onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
                         disabled={isPending}
-                        className={`h-10 sm:h-11 text-center text-lg sm:text-xl font-black font-mono rounded-xl sm:rounded-2xl bg-slate-50 border-border text-foreground focus-visible:ring-2 ${
+                        className={`h-10 sm:h-11 text-center text-lg sm:text-xl font-black font-mono rounded-xl sm:rounded-2xl bg-muted/50 border-border text-foreground focus-visible:ring-2 ${
                           isSold
                             ? 'focus-visible:ring-red-500 border-red-200'
                             : 'focus-visible:ring-emerald-500 border-emerald-200'
@@ -1074,7 +1110,7 @@ export function StockMovementDialog({
                       variant="outline"
                       onClick={() => handleQuantityChange(quantity + 1)}
                       disabled={isPending || (!isUnlimited && isSold && quantity >= currentQty)}
-                      className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl border-border bg-white hover:bg-slate-50 text-foreground text-base font-bold shrink-0 shadow-2xs cursor-pointer disabled:opacity-40"
+                      className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl border-border bg-white hover:bg-muted/50 text-foreground text-base font-bold shrink-0 shadow-2xs cursor-pointer disabled:opacity-40"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -1101,8 +1137,8 @@ export function StockMovementDialog({
                                 ? 'bg-red-600 border-red-600 text-white shadow-2xs'
                                 : 'bg-emerald-600 border-emerald-600 text-white shadow-2xs'
                               : isDisabled
-                              ? 'opacity-30 bg-slate-100 border-border text-slate-400 cursor-not-allowed'
-                              : 'bg-white border-border/80 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
+                              ? 'opacity-30 bg-muted border-border text-muted-foreground/70 cursor-not-allowed'
+                              : 'bg-white border-border/80 text-foreground/80 hover:bg-muted/50 hover:border-primary/50'
                           }`}
                         >
                           +{step}
@@ -1135,7 +1171,7 @@ export function StockMovementDialog({
                       : 'bg-emerald-50/70 border-emerald-200/90 text-emerald-950'
                   }`}
                 >
-                  <span className="font-medium text-slate-600">Stock Preview:</span>
+                  <span className="font-medium text-muted-foreground">Stock Preview:</span>
                   <span className="font-mono font-bold text-xs sm:text-sm">
                     {isUnlimited ? (
                       <span>

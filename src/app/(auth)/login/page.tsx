@@ -3,6 +3,7 @@
 import React, { Suspense, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle, Sparkles, Tv } from 'lucide-react';
+import { AppLogo } from '@/components/shared/app-logo';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,10 +57,10 @@ function LoginForm() {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-300">
-        <Card className="border border-border/80 shadow-2xl bg-white/95 backdrop-blur-xl rounded-3xl overflow-hidden shadow-blend">
+        <Card className="border border-border/80 shadow-sm-2xl bg-white/95 backdrop-blur-xl rounded-3xl overflow-hidden shadow-sm-blend">
           <CardHeader className="space-y-3 pb-6 pt-8 text-center border-b border-border/60 bg-gradient-to-b from-slate-50/90 to-white">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 ring-4 ring-primary/10">
-              <Tv className="w-7 h-7 text-primary-foreground" />
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-white border border-border shadow-md flex items-center justify-center p-2.5">
+              <AppLogo className="w-9 h-9" />
             </div>
             <div className="space-y-1">
               <CardTitle className="text-2xl font-black tracking-tight text-foreground">
@@ -75,7 +76,7 @@ function LoginForm() {
             <form onSubmit={handleLogin} className="space-y-4">
               {error && (
                 <div className="animate-in fade-in duration-200">
-                  <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700 py-2.5 rounded-xl">
+                  <Alert variant="destructive" className="bg-red-50/80 border-red-200 text-red-700 py-2.5 rounded-xl">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-xs font-semibold">{error}</AlertDescription>
                   </Alert>
@@ -94,7 +95,7 @@ function LoginForm() {
                     placeholder="name@modernelectronics.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-11 bg-slate-50/70 border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary rounded-xl text-sm"
+                    className="pl-10 h-11 bg-muted/70 border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary rounded-xl text-sm"
                     required
                     disabled={isPending}
                   />
@@ -115,7 +116,7 @@ function LoginForm() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-11 bg-slate-50/70 border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary rounded-xl text-sm"
+                    className="pl-10 h-11 bg-muted/70 border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary rounded-xl text-sm"
                     required
                     disabled={isPending}
                   />
@@ -124,7 +125,7 @@ function LoginForm() {
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/15 transition-all font-bold text-sm rounded-xl cursor-pointer mt-2"
+                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm-lg shadow-sm-primary/15 transition-all font-bold text-sm rounded-xl cursor-pointer mt-2"
                 disabled={isPending}
               >
                 {isPending ? (
@@ -139,7 +140,7 @@ function LoginForm() {
             </form>
           </CardContent>
 
-          <CardFooter className="flex flex-col space-y-2.5 border-t border-border/60 bg-slate-50/60 p-4 text-xs text-muted-foreground">
+          <CardFooter className="flex flex-col space-y-2.5 border-t border-border/60 bg-muted/60 p-4 text-xs text-muted-foreground">
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span>Password Protected • Enterprise Access Control</span>

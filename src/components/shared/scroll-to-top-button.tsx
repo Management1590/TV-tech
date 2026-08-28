@@ -64,7 +64,7 @@ export function ScrollToTopButton() {
             cx="22"
             cy="22"
             r={radius}
-            className="stroke-slate-200/60"
+            className="stroke-border"
             strokeWidth="2.5"
             fill="transparent"
           />
@@ -86,7 +86,7 @@ export function ScrollToTopButton() {
         <ArrowUp className="w-5 h-5 text-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-y-0.5" />
 
         {/* Tooltip on Hover */}
-        <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900/90 backdrop-blur-md text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+        <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-foreground/90 backdrop-blur-md text-background text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
           Back to Top ({Math.round(scrollProgress)}%)
         </div>
       </button>

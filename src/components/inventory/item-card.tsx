@@ -148,11 +148,11 @@ export function ItemCard({
             }
           }}
         >
-          <div className="glass-card overflow-hidden h-full rounded-2xl border border-border/90 bg-slate-50/70 hover:border-primary/40 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between shadow-blend">
+          <div className="glass-card overflow-hidden h-full rounded-2xl border border-border/90 bg-muted/50 hover:border-primary/40 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between shadow-blend">
             <div>
               {/* Seamless Thumbnail Image / Tinted Placeholder */}
               {parsedThumb.url ? (
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-200/80 border-b border-border/70 rounded-t-2xl flex items-center justify-center">
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted/80 border-b border-border/70 rounded-t-2xl flex items-center justify-center">
                   <img
                     src={parsedThumb.url}
                     alt={item.name}
@@ -166,7 +166,7 @@ export function ItemCard({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               ) : (
-                <div className="aspect-[16/10] w-full bg-gradient-to-br from-indigo-50/90 via-blue-50/60 to-slate-100/90 flex items-center justify-center border-b border-border/70 rounded-t-2xl">
+                <div className="aspect-[16/10] w-full bg-gradient-to-br from-primary/10 via-primary/5 to-muted/90 flex items-center justify-center border-b border-border/70 rounded-t-2xl">
                   <div className="w-12 h-12 rounded-xl bg-white/90 border border-primary/20 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
                     <Package className="h-6 w-6 text-primary" />
                   </div>
@@ -184,7 +184,7 @@ export function ItemCard({
                       OOS
                     </Badge>
                   ) : item.quantityMode === 'UNKNOWN' ? (
-                    <Badge variant="secondary" className="shrink-0 text-[10px] bg-slate-100 text-foreground border border-border/80 font-bold">
+                    <Badge variant="secondary" className="shrink-0 text-[10px] bg-muted text-foreground border border-border/80 font-bold">
                       ∞
                     </Badge>
                   ) : (

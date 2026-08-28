@@ -149,7 +149,7 @@ export function LinkExistingItemDialog({
           <Button
             size="sm"
             variant="outline"
-            className="group h-10 px-4 rounded-xl font-semibold text-xs sm:text-sm bg-white hover:bg-slate-100/90 text-foreground border border-border/90 hover:border-primary/40 hover:text-primary shadow-sm transition-all duration-200 active:scale-95 cursor-pointer gap-2 shrink-0"
+            className="group h-10 px-4 rounded-xl font-semibold text-xs sm:text-sm bg-white hover:bg-muted text-foreground border border-border/90 hover:border-primary/40 hover:text-primary shadow-sm transition-all duration-200 active:scale-95 cursor-pointer gap-2 shrink-0"
           >
             <Link2 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             <span>Link Existing Item</span>
@@ -195,7 +195,7 @@ export function LinkExistingItemDialog({
             </button>
             {folderHistory.map((h, idx) => (
               <React.Fragment key={h.id}>
-                <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+                <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
                 <button
                   onClick={() => {
                     const newHist = folderHistory.slice(0, idx + 1);
@@ -243,7 +243,7 @@ export function LinkExistingItemDialog({
                       <button
                         key={sf.id}
                         onClick={() => handleEnterFolder(sf)}
-                        className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/60 border border-border/60 hover:border-blue-500/50 hover:bg-primary/5 transition-all text-left group"
+                        className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/60 border border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
                       >
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shrink-0">
                           <FolderOpen className="w-4 h-4" />
@@ -274,7 +274,7 @@ export function LinkExistingItemDialog({
 
                 {items.length === 0 ? (
                   <div className="p-8 rounded-2xl bg-muted/30 border border-border text-center">
-                    <Package className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+                    <Package className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
                     <p className="text-sm font-medium text-foreground">No items found</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {query ? `No items matched "${query}"` : 'This category does not contain items.'}
@@ -292,7 +292,7 @@ export function LinkExistingItemDialog({
                           key={item.id}
                           className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                             isAlreadyLinked
-                              ? 'bg-blue-950/20 border-blue-900/40 text-foreground'
+                              ? 'bg-primary/5 border-primary/20 text-foreground'
                               : 'bg-muted/60 border-border hover:border-border'
                           }`}
                         >
@@ -306,7 +306,7 @@ export function LinkExistingItemDialog({
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <Package className="w-5 h-5 text-slate-600" />
+                                <Package className="w-5 h-5 text-muted-foreground" />
                               )}
                             </div>
 
@@ -354,7 +354,7 @@ export function LinkExistingItemDialog({
                                 size="sm"
                                 onClick={() => handleLinkItem(item)}
                                 disabled={isPending || isLinking}
-                                className="bg-primary hover:bg-primary text-foreground text-xs h-8 px-3 rounded-lg gap-1.5 shadow-md shadow-blue-600/20"
+                                className="bg-primary hover:bg-primary text-foreground text-xs h-8 px-3 rounded-lg gap-1.5 shadow-md shadow-primary/20"
                               >
                                 {isLinking ? (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

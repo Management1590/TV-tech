@@ -128,7 +128,7 @@ export function ModelContextMenu({
             e.preventDefault();
             e.stopPropagation();
           }}
-          className="h-8 w-8 inline-flex items-center justify-center rounded-xl bg-white/80 hover:bg-white text-slate-700 hover:text-primary border border-border/80 hover:border-primary/40 shadow-2xs hover:shadow-md backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer z-20 group/btn"
+          className="h-8 w-8 inline-flex items-center justify-center rounded-xl bg-white/80 hover:bg-white text-foreground/80 hover:text-primary border border-border/80 hover:border-primary/40 shadow-2xs hover:shadow-md backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer z-20 group/btn"
         >
           <MoreVertical className="h-4 w-4 transition-transform group-hover/btn:scale-110" />
         </DropdownMenuTrigger>
@@ -140,9 +140,9 @@ export function ModelContextMenu({
         >
           <DropdownMenuItem
             onClick={() => setIsRenameOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-slate-100"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted"
           >
-            <Pencil className="w-3.5 h-3.5 text-blue-600" />
+            <Pencil className="w-3.5 h-3.5 text-primary" />
             <span>Rename Model</span>
           </DropdownMenuItem>
 
@@ -167,7 +167,7 @@ export function ModelContextMenu({
           <form onSubmit={handleRename} className="space-y-4">
             <DialogHeader className="space-y-1 pb-3 border-b border-border/60">
               <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600/15 to-indigo-600/15 border border-blue-600/25 flex items-center justify-center text-blue-600 shadow-sm">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600/15 to-indigo-600/15 border border-primary/25 flex items-center justify-center text-primary shadow-sm">
                   <Pencil className="w-4.5 h-4.5" />
                 </div>
                 <span>Rename TV Model</span>
@@ -198,7 +198,7 @@ export function ModelContextMenu({
                   required
                   autoFocus
                   disabled={isPending}
-                  className="h-11 rounded-2xl bg-slate-50/90 hover:bg-white focus:bg-white border-border/80 text-sm font-bold tracking-wide"
+                  className="h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm font-bold tracking-wide"
                 />
               </div>
 
@@ -220,7 +220,7 @@ export function ModelContextMenu({
                     }}
                     placeholder="e.g. 55"
                     disabled={isPending}
-                    className="h-11 rounded-2xl bg-slate-50/90 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16"
+                    className="h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16"
                   />
                   <div className="absolute right-3.5 text-xs font-bold text-muted-foreground pointer-events-none">
                     Inches (&quot;)
@@ -283,7 +283,7 @@ export function ModelContextMenu({
             </div>
 
             {/* Model Summary Badge */}
-            <div className="p-3 bg-slate-50 border border-border/80 rounded-2xl flex items-center justify-between text-xs">
+            <div className="p-3 bg-muted/50 border border-border/80 rounded-2xl flex items-center justify-between text-xs">
               <div className="flex items-center gap-2.5">
                 <Monitor className="w-4 h-4 text-primary" />
                 <span className="font-bold text-foreground">{modelNumber}</span>

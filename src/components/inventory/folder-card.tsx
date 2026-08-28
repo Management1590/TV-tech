@@ -137,7 +137,7 @@ export function FolderCard({ folder, linkHref, userRole = 'STAFF' }: FolderCardP
         >
           {/* 1. CLIPPED FOLDER BODY & FULL CONTINUOUS ARTWORK */}
           <div
-            className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-slate-100/90 overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
+            className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
             style={{
               clipPath: `url(#folder-clip-${clipId})`,
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
@@ -145,7 +145,7 @@ export function FolderCard({ folder, linkHref, userRole = 'STAFF' }: FolderCardP
           >
             {/* Background Artwork or Clean Tinted Gradient Canvas */}
             {parsedThumb.url ? (
-              <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-200/90 flex items-center justify-center">
+              <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center">
                 <img
                   src={parsedThumb.url}
                   alt={folder.name}
@@ -176,7 +176,7 @@ export function FolderCard({ folder, linkHref, userRole = 'STAFF' }: FolderCardP
                     <Folder className="w-5 h-5 sm:w-8 sm:h-8 text-primary" />
                   </div>
                   {folder.description && (
-                    <p className="text-[10px] sm:text-xs text-slate-600 mt-1 sm:mt-2.5 line-clamp-1 max-w-[130px] sm:max-w-[200px] font-semibold">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2.5 line-clamp-1 max-w-[130px] sm:max-w-[200px] font-semibold">
                       {folder.description}
                     </p>
                   )}

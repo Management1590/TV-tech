@@ -99,44 +99,45 @@ export function KbBrandViewContainer({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* ========================================================================= */}
       {/* 1. ULTRA-PREMIUM KNOWLEDGE BASE HEADER BANNER                             */}
       {/* ========================================================================= */}
-      <div className="relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-xl border border-border/80 p-5 sm:p-7 shadow-blend">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white border border-border/80 p-4 sm:p-7 shadow-sm hover:shadow-md transition-shadow">
         {/* Soft Background Neon Glow Elements */}
-        <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-primary/8 blur-3xl pointer-events-none" />
-        <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-blue-500/8 blur-3xl pointer-events-none" />
+        <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-5">
           {/* Title & Description */}
-          <div className="space-y-1.5 max-w-xl">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/30 flex items-center justify-center text-primary shadow-sm shrink-0">
-                <Tv className="w-6 h-6" />
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/30 flex items-center justify-center text-primary shadow-2xs shrink-0">
+              <Tv className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate">
+                  TV Knowledge Base
+                </h1>
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 text-primary border-primary/20 text-[10px] sm:text-[11px] font-bold py-0.5 px-2"
+                >
+                  Root
+                </Badge>
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-                    TV Knowledge Base & Brand Registry
-                  </h1>
-                  <Badge
-                    variant="outline"
-                    className="bg-primary/10 text-primary border-primary/20 text-[11px] font-bold py-0.5 px-2"
-                  >
-                    Directory: Root
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Select a manufacturer brand to explore TV model repair schematics, backlights, and diagnostic logs.
-                </p>
-              </div>
+              <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
+                Select a manufacturer brand to explore TV model repair schematics, backlights, and diagnostic logs.
+              </p>
+              <p className="sm:hidden text-xs text-muted-foreground mt-0.5 font-medium">
+                {sortedBrands.length} Brands Available
+              </p>
             </div>
           </div>
 
           {/* Upper Actions: Brand Counter Badge + Premium Add Brand Button */}
-          <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
-            <div className="flex items-center px-3.5 h-10 rounded-2xl bg-slate-100/90 border border-border/80 text-xs font-bold text-slate-700 shadow-2xs">
+          <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto shrink-0 justify-between sm:justify-end">
+            <div className="hidden sm:flex items-center px-3.5 h-10 rounded-2xl bg-muted/90 border border-border/80 text-xs font-bold text-foreground/80 shadow-2xs">
               {sortedBrands.length} {sortedBrands.length === 1 ? 'Brand' : 'Brands'}
             </div>
 
@@ -146,11 +147,9 @@ export function KbBrandViewContainer({
                 trigger={
                   <Button
                     type="button"
-                    className="h-10 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all flex items-center gap-2 border border-white/20 cursor-pointer group shrink-0"
+                    className="h-9 sm:h-10 px-3.5 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer group w-full sm:w-auto"
                   >
-                    <div className="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center group-hover:rotate-90 transition-transform duration-300">
-                      <Plus className="w-3.5 h-3.5 text-white" />
-                    </div>
+                    <Plus className="w-3.5 h-3.5 text-white" />
                     <span>Add Brand</span>
                   </Button>
                 }
@@ -163,43 +162,38 @@ export function KbBrandViewContainer({
       {/* ========================================================================= */}
       {/* 2. ULTRA-PREMIUM FILTER BAR (Most Opened / Name A-Z)                       */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+        <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-foreground/80">
           <SlidersHorizontal className="w-4 h-4 text-primary" />
-          <span>Sort & Filter Brands:</span>
+          <span>Sort & Filter:</span>
         </div>
 
         {/* Segmented Filter Control */}
-        <div className="inline-flex items-center p-1 bg-white/90 backdrop-blur-md border border-border/80 rounded-2xl shadow-2xs">
+        <div className="grid grid-cols-2 sm:inline-flex items-center p-1 bg-white border border-border/80 rounded-xl sm:rounded-2xl shadow-xs w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setSortBy('most-opened')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               sortBy === 'most-opened'
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-sm shadow-blue-500/20'
-                : 'text-muted-foreground hover:text-foreground hover:bg-slate-50'
+                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
           >
             <Flame className={`w-3.5 h-3.5 ${sortBy === 'most-opened' ? 'text-amber-300' : 'text-amber-500'}`} />
-            <span>Open Many Times</span>
-            {sortBy === 'most-opened' && (
-              <span className="ml-0.5 text-[10px] bg-white/20 px-1.5 py-0.2 rounded-md font-extrabold">
-                Default
-              </span>
-            )}
+            <span>Most Opened</span>
           </button>
 
           <button
             type="button"
             onClick={() => setSortBy('name')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               sortBy === 'name'
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-sm shadow-blue-500/20'
-                : 'text-muted-foreground hover:text-foreground hover:bg-slate-50'
+                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
           >
             <ArrowDownAZ className="w-3.5 h-3.5" />
-            <span>By Name (A - Z)</span>
+            <span>Name (A - Z)</span>
           </button>
         </div>
       </div>

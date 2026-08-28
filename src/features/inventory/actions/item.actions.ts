@@ -471,6 +471,10 @@ export async function recordStockMovementAction(data: {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: 'Authentication required.' };
 
+  if (data.movementType === 'PURCHASE' && user.role !== 'ADMIN') {
+    return { success: false, error: 'Permission denied. Only Admins can record purchases.' };
+  }
+
   try {
     const item = await prisma.item.findUnique({
       where: { id: data.itemId },
@@ -759,6 +763,10 @@ export async function markItemSoldOutAction(itemId: string, notes?: string) {
 export async function refillUnlimitedItemAction(itemId: string, quantity: number = 1, notes?: string) {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: 'Authentication required.' };
+
+  if (user.role !== 'ADMIN') {
+    return { success: false, error: 'Permission denied. Only Admins can refill or restock items.' };
+  }
 
   try {
     const item = await prisma.item.findUnique({

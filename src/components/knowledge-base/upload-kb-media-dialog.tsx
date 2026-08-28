@@ -273,15 +273,15 @@ export function UploadKbMediaDialog({
       <DialogContent className="sm:max-w-xl rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-white/98 backdrop-blur-xl text-foreground">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-sm">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-600/10 border border-primary/25 flex items-center justify-center text-primary shadow-sm">
               <UploadCloud className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+              <DialogTitle className="text-lg sm:text-xl font-black text-foreground tracking-tight">
                 Upload Media Files
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Add photos and video clips to <span className="font-bold text-slate-800">{folderName}</span> ({modelName})
+                Add photos and video clips to <span className="font-bold text-foreground/90">{folderName}</span> ({modelName})
               </DialogDescription>
             </div>
           </div>
@@ -289,18 +289,18 @@ export function UploadKbMediaDialog({
 
         <div className="space-y-4 py-2">
           {/* Mode Switch Tabs */}
-          <div className="flex gap-1.5 p-1 bg-slate-100/90 border border-border/70 rounded-2xl">
+          <div className="flex gap-1.5 p-1 bg-muted border border-border/70 rounded-2xl">
             <button
               type="button"
               onClick={() => setMode('upload')}
               disabled={isUploading}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 mode === 'upload'
-                  ? 'bg-white text-blue-700 shadow-sm border border-border/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  ? 'bg-white text-primary shadow-sm border border-border/60'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/50'
               }`}
             >
-              <UploadCloud className="w-4 h-4 text-blue-600" />
+              <UploadCloud className="w-4 h-4 text-primary" />
               <span>Upload Photos & Videos</span>
             </button>
             <button
@@ -309,11 +309,11 @@ export function UploadKbMediaDialog({
               disabled={isUploading}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 mode === 'url'
-                  ? 'bg-white text-blue-700 shadow-sm border border-border/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  ? 'bg-white text-primary shadow-sm border border-border/60'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/50'
               }`}
             >
-              <LinkIcon className="w-4 h-4 text-blue-600" />
+              <LinkIcon className="w-4 h-4 text-primary" />
               <span>Image Web Link / URL</span>
             </button>
           </div>
@@ -329,21 +329,21 @@ export function UploadKbMediaDialog({
                 onClick={() => !isUploading && fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-3xl p-6 sm:p-7 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
                   isDragging
-                    ? 'border-blue-500 bg-blue-50/80 scale-[0.99]'
-                    : 'border-slate-300 hover:border-blue-500/70 bg-slate-50/60 hover:bg-blue-50/40'
+                    ? 'border-primary bg-primary/5 scale-[0.99]'
+                    : 'border-border hover:border-primary/70 bg-muted/50 hover:bg-primary/5'
                 }`}
               >
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-center text-primary shadow-sm">
                   <ImageIcon className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">
+                  <p className="text-sm font-bold text-foreground/90">
                     Click to browse or drag & drop files here
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Select single or multiple photos (JPG, PNG, WebP) and videos (MP4, MOV, WebM)
                   </p>
-                  <Badge variant="outline" className="mt-2 text-[10px] bg-blue-50 border-blue-200 text-blue-700 font-bold">
+                  <Badge variant="outline" className="mt-2 text-[10px] bg-primary/5 border-primary/20 text-primary font-bold">
                     HD & 4K Resolution Supported • No Size Restriction
                   </Badge>
                 </div>
@@ -360,8 +360,8 @@ export function UploadKbMediaDialog({
 
               {/* Selected Files Preview List */}
               {selectedFiles.length > 0 && (
-                <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border">
+                  <div className="flex items-center justify-between text-xs font-bold text-foreground/80 px-1">
                     <span>Selected Files ({selectedFiles.length})</span>
                     {!isUploading && (
                       <button
@@ -378,11 +378,11 @@ export function UploadKbMediaDialog({
                     {selectedFiles.map((item) => (
                       <div
                         key={item.id}
-                        className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 flex items-center gap-2.5 shadow-2xs group relative"
+                        className="bg-muted/50 border border-border rounded-2xl p-2.5 flex items-center gap-2.5 shadow-2xs group relative"
                       >
                         {/* Thumbnail / Icon */}
                         {item.previewUrl ? (
-                          <div className="w-11 h-11 rounded-xl overflow-hidden bg-white border border-slate-200 shrink-0">
+                          <div className="w-11 h-11 rounded-xl overflow-hidden bg-white border border-border shrink-0">
                             <img src={item.previewUrl} alt="Preview" className="w-full h-full object-cover" />
                           </div>
                         ) : (
@@ -392,7 +392,7 @@ export function UploadKbMediaDialog({
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-slate-800 truncate" title={item.file.name}>
+                          <p className="text-xs font-bold text-foreground/90 truncate" title={item.file.name}>
                             {item.file.name}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
@@ -411,7 +411,7 @@ export function UploadKbMediaDialog({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveFile(item.id)}
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg shrink-0 cursor-pointer"
+                            className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-red-600 hover:bg-red-50 rounded-lg shrink-0 cursor-pointer"
                             title="Remove file"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -429,7 +429,7 @@ export function UploadKbMediaDialog({
           {mode === 'url' && (
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800">Image Web Address (URL)</Label>
+                <Label className="text-xs font-bold text-foreground/90">Image Web Address (URL)</Label>
                 <Input
                   type="url"
                   placeholder="https://example.com/schematic-board.jpg"
@@ -439,12 +439,12 @@ export function UploadKbMediaDialog({
                     setUrlPreview(e.target.value.trim() ? e.target.value.trim() : null);
                   }}
                   disabled={isUploading}
-                  className="bg-white border-border text-foreground h-11 text-xs focus-visible:ring-blue-500 rounded-2xl"
+                  className="bg-white border-border text-foreground h-11 text-xs focus-visible:ring-primary rounded-2xl"
                 />
               </div>
 
               {urlPreview && (
-                <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center">
+                <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-muted/50 border border-border flex items-center justify-center">
                   <img
                     src={urlPreview}
                     alt="URL Preview"
@@ -461,15 +461,15 @@ export function UploadKbMediaDialog({
 
           {/* Premium Light-Themed Upload Progress Bar & Status */}
           {isUploading && (
-            <div className="space-y-2.5 p-4 bg-blue-50/80 border border-blue-200/90 rounded-2xl animate-in fade-in duration-200">
+            <div className="space-y-2.5 p-4 bg-primary/5 border border-primary/20 rounded-2xl animate-in fade-in duration-200">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-blue-900 flex items-center gap-1.5 truncate max-w-[320px]">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 shrink-0" />
+                <span className="font-bold text-primary/90 flex items-center gap-1.5 truncate max-w-[320px]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
                   <span>{uploadStatusText}</span>
                 </span>
-                <span className="font-mono text-blue-700 font-extrabold text-sm">{uploadProgress}%</span>
+                <span className="font-mono text-primary font-extrabold text-sm">{uploadProgress}%</span>
               </div>
-              <Progress value={uploadProgress} className="h-2.5 bg-blue-100" />
+              <Progress value={uploadProgress} className="h-2.5 bg-primary/8" />
             </div>
           )}
         </div>
@@ -518,3 +518,4 @@ export function UploadKbMediaDialog({
     </Dialog>
   );
 }
+

@@ -151,7 +151,7 @@ export function ItemContextMenu({
               e.stopPropagation();
               e.preventDefault();
             }}
-            className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-700 hover:text-primary bg-white/95 hover:bg-white border border-border/80 hover:border-primary/40 shadow-xs hover:shadow-md backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none cursor-pointer"
+            className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground/80 hover:text-primary bg-white/95 hover:bg-white border border-border/80 hover:border-primary/40 shadow-xs hover:shadow-md backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none cursor-pointer"
             title="Item options"
           >
             {isPending ? (
@@ -293,10 +293,10 @@ export function ItemContextMenu({
                 className="relative z-10 w-full max-w-[260px] my-auto py-1 pointer-events-auto filter drop-shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="glass-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col justify-between">
+                <div className="glass-card overflow-hidden rounded-2xl border border-border bg-white shadow-2xl flex flex-col justify-between">
                   {/* Thumbnail Image / Placeholder */}
                   {parsedThumb.url ? (
-                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-200/90 border-b border-border/70 flex items-center justify-center">
+                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted/80 border-b border-border/70 flex items-center justify-center">
                       <img
                         src={parsedThumb.url}
                         alt={itemName}
@@ -308,7 +308,7 @@ export function ItemContextMenu({
                       />
                     </div>
                   ) : (
-                    <div className="aspect-[16/10] w-full bg-gradient-to-br from-indigo-50/90 via-blue-50/60 to-slate-100/90 flex items-center justify-center border-b border-border/70">
+                    <div className="aspect-[16/10] w-full bg-gradient-to-br from-indigo-50/90 via-blue-50/60 to-muted flex items-center justify-center border-b border-border/70">
                       <div className="w-11 h-11 rounded-xl bg-white/90 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
                         <Package className="h-5 w-5 text-primary" />
                       </div>
@@ -326,7 +326,7 @@ export function ItemContextMenu({
                           OOS
                         </Badge>
                       ) : previewData?.quantityMode === 'UNKNOWN' ? (
-                        <Badge variant="secondary" className="shrink-0 text-[9px] bg-slate-100 text-foreground border border-border/80 font-bold">
+                        <Badge variant="secondary" className="shrink-0 text-[9px] bg-muted text-foreground border border-border/80 font-bold">
                           ∞
                         </Badge>
                       ) : (
@@ -388,7 +388,7 @@ export function ItemContextMenu({
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Actions Box */}
-                <div className="bg-white rounded-3xl p-2 border border-slate-200 shadow-2xl flex flex-col gap-1">
+                <div className="bg-white rounded-3xl p-2 border border-border shadow-2xl flex flex-col gap-1">
                   {/* Action 1: Open Item Details */}
                   <button
                     type="button"
@@ -398,14 +398,14 @@ export function ItemContextMenu({
                       setMobileOpen(false);
                       router.push(`/inventory/items/${itemId}`);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                       <ExternalLink className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Open Item Details</div>
-                      <div className="text-[11px] font-normal text-slate-500">View specs, stock, history</div>
+                      <div className="leading-tight text-foreground font-bold">Open Item Details</div>
+                      <div className="text-[11px] font-normal text-muted-foreground">View specs, stock, history</div>
                     </div>
                   </button>
 
@@ -418,14 +418,14 @@ export function ItemContextMenu({
                       setMobileOpen(false);
                       setIsThumbnailDialogOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
                     <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 border border-purple-200 flex items-center justify-center shrink-0">
                       <ImagePlus className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Adjust Thumbnail</div>
-                      <div className="text-[11px] font-normal text-slate-500">Upload or position cover image</div>
+                      <div className="leading-tight text-foreground font-bold">Adjust Thumbnail</div>
+                      <div className="text-[11px] font-normal text-muted-foreground">Upload or position cover image</div>
                     </div>
                   </button>
 
@@ -438,20 +438,20 @@ export function ItemContextMenu({
                       setMobileOpen(false);
                       setIsManageFoldersOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
                     <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
                       <FolderPlus className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Manage Folder Links</div>
-                      <div className="text-[11px] font-normal text-slate-500">Link item to multiple categories</div>
+                      <div className="leading-tight text-foreground font-bold">Manage Folder Links</div>
+                      <div className="text-[11px] font-normal text-muted-foreground">Link item to multiple categories</div>
                     </div>
                   </button>
 
                   {/* Action 4: Remove from Folder (if folderId present) */}
                   {folderId && (
-                    <div className="border-t border-slate-100 my-0.5 pt-0.5">
+                    <div className="border-t border-border/60 my-0.5 pt-0.5">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -474,7 +474,7 @@ export function ItemContextMenu({
                   )}
 
                   {/* Action 5: Delete Permanently */}
-                  <div className="border-t border-slate-100 my-0.5 pt-0.5">
+                  <div className="border-t border-border/60 my-0.5 pt-0.5">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -504,7 +504,7 @@ export function ItemContextMenu({
                     e.stopPropagation();
                     setMobileOpen(false);
                   }}
-                  className="w-full py-3.5 bg-white text-slate-800 font-extrabold text-sm rounded-2xl border border-slate-200 shadow-lg active:bg-slate-100 active:scale-[0.98] transition-all text-center cursor-pointer"
+                  className="w-full py-3.5 bg-white text-foreground/90 font-extrabold text-sm rounded-2xl border border-border shadow-lg active:bg-muted active:scale-[0.98] transition-all text-center cursor-pointer"
                 >
                   Cancel
                 </button>

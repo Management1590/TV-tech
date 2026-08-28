@@ -24,7 +24,7 @@ export default function AnalyticsLoading() {
       {/* Chart Skeleton */}
       <Card className="bg-white border border-border/80 shadow-blend rounded-3xl p-6 space-y-4">
         <Skeleton className="h-6 w-48 rounded-lg" />
-        <div className="h-72 w-full bg-slate-50 rounded-2xl border border-dashed border-border/80 flex items-center justify-center">
+        <div className="h-72 w-full bg-muted/50 rounded-2xl border border-dashed border-border/80 flex items-center justify-center">
           <Skeleton className="h-4 w-36 rounded" />
         </div>
       </Card>

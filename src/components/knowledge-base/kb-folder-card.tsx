@@ -52,9 +52,9 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
         badgeStyle: 'bg-indigo-100 text-indigo-900 border-indigo-300 font-bold',
       }
     : {
-        bgCanvas: 'bg-gradient-to-br from-blue-100/95 via-sky-50/90 to-slate-200/80',
-        glowColor: 'bg-blue-500/20',
-        iconBg: 'bg-white/95 border-blue-300/80 text-primary shadow-md shadow-blue-500/10',
+        bgCanvas: 'bg-gradient-to-br from-primary/10 via-sky-50/90 to-muted/80',
+        glowColor: 'bg-primary/20',
+        iconBg: 'bg-white/95 border-primary/25 text-primary shadow-md shadow-primary/10',
         strokeColor: 'rgba(59, 130, 246, 0.40)',
         badgeStyle: 'bg-primary/10 text-primary border-primary/30 font-bold',
       };
@@ -76,7 +76,7 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
       >
         {/* Curved Folder Body */}
         <div
-          className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-slate-100/90 overflow-hidden transition-all duration-300 flex flex-col justify-end group-hover:shadow-2xl group-hover:-translate-y-1.5"
+          className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted/90 overflow-hidden transition-all duration-300 flex flex-col justify-end group-hover:shadow-2xl group-hover:-translate-y-1.5"
           style={{
             clipPath: `url(#kb-folder-clip-${clipId})`,
             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
@@ -114,8 +114,8 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
             </div>
           </div>
 
-          {/* Folder Content Overlay Container (Bottom) */}
-          <div className="relative z-10 p-2 sm:p-4 bg-white/95 backdrop-blur-md border-t border-border/80 transition-colors flex flex-col gap-1 sm:gap-2 shadow-sm">
+          {/* Folder Content Overlay Container (Bottom Bar - exactly matching Inventory folder-card) */}
+          <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-3.5 py-1.5 sm:py-2.5 bg-white/95 backdrop-blur-md border-t border-border/80 transition-colors flex flex-col gap-0.5 sm:gap-1 shadow-sm">
             <div className="flex items-center justify-between gap-1 sm:gap-2">
               <h3 className="font-bold text-foreground text-xs sm:text-base tracking-tight truncate group-hover:text-primary transition-colors">
                 {folder.name}
@@ -135,13 +135,13 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
               )}
             </div>
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5 sm:pt-1 border-t border-border/40">
-              <span className="flex items-center gap-1 font-semibold text-[10px] sm:text-[11px] text-slate-600 truncate">
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5 border-t border-border/40">
+              <span className="flex items-center gap-1 font-semibold text-[10px] sm:text-[11px] text-muted-foreground truncate">
                 {isBacklight ? (
                   <span className="truncate">Spare Parts</span>
                 ) : (
                   <span className="flex items-center gap-1 sm:gap-1.5">
-                    <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600" />
+                    <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                     <Mic className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-600" />
                     <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" />
                   </span>

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="topBlue" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#1D4ED8"/>
+      <stop offset="40%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="bottomBlue" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="60%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#93C5FD"/>
+    </linearGradient>
+    <filter id="iconShadow" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#1E3A8A" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="#FFFFFF"/>
+  <rect width="512" height="512" rx="115" fill="none" stroke="rgba(0,0,0,0.04)" stroke-width="2"/>
+  <g transform="translate(64, 64) scale(0.75)" filter="url(#iconShadow)">
+    <clipPath id="folderClipApp">
+      <path d="
+        M 112 60
+        L 190 60
+        C 224 60, 240 76, 256 108
+        C 268 132, 284 142, 316 142
+        L 404 142
+        C 436 142, 456 162, 456 194
+        L 456 392
+        C 456 424, 436 444, 404 444
+        L 108 444
+        C 76 444, 56 424, 56 392
+        L 56 116
+        C 56 84, 76 60, 112 60
+        Z
+      "/>
+    </clipPath>
+    <g clip-path="url(#folderClipApp)">
+      <rect x="0" y="0" width="512" height="512" fill="url(#bottomBlue)" />
+      <path d="
+        M 0 0
+        L 512 0
+        L 512 216
+        L 310 292
+        C 275 306, 237 306, 202 292
+        L 0 216
+        Z
+      " fill="url(#topBlue)" />
+      <path d="
+        M 0 208
+        L 202 284
+        C 237 298, 275 298, 310 284
+        L 512 208
+        L 512 226
+        L 310 302
+        C 275 316, 237 316, 202 302
+        L 0 226
+        Z
+      " fill="#FFFFFF" opacity="0.96" />
+    </g>
+  </g>
+</svg>

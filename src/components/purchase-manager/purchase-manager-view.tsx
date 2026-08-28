@@ -119,7 +119,7 @@ export function PurchaseManagerView({
         {/* Create List Trigger */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger>
-            <Button className="h-10 px-4 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 gap-2 cursor-pointer">
+            <Button className="h-10 px-4 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm-md shadow-sm-primary/20 gap-2 cursor-pointer">
               <Plus className="h-4 w-4" /> New Purchase List
             </Button>
           </DialogTrigger>
@@ -197,8 +197,8 @@ export function PurchaseManagerView({
           onClick={() => setActiveTab('OUT_OF_STOCK')}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-4 ${
             activeTab === 'OUT_OF_STOCK'
-              ? 'bg-red-50/90 border-red-500 shadow-md ring-2 ring-red-500/20'
-              : 'bg-card hover:bg-red-50/40 border-border/80 shadow-2xs'
+              ? 'bg-red-50/90 border-red-500 shadow-sm-md ring-2 ring-red-500/20'
+              : 'bg-card hover:bg-red-50/40 border-border/80 shadow-sm-2xs'
           }`}
         >
           <div className="w-12 h-12 rounded-xl bg-red-100/80 text-red-600 flex items-center justify-center shrink-0">
@@ -206,7 +206,7 @@ export function PurchaseManagerView({
           </div>
           <div>
             <p className="text-2xl font-black text-red-600">{oosItems.length}</p>
-            <p className="text-xs font-bold text-slate-700">Out of Stock Items</p>
+            <p className="text-xs font-bold text-foreground/80">Out of Stock Items</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">Click to view items needing restock</p>
           </div>
         </button>
@@ -217,8 +217,8 @@ export function PurchaseManagerView({
           onClick={() => setActiveTab('LOW_STOCK')}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-4 ${
             activeTab === 'LOW_STOCK'
-              ? 'bg-amber-50/90 border-amber-500 shadow-md ring-2 ring-amber-500/20'
-              : 'bg-card hover:bg-amber-50/40 border-border/80 shadow-2xs'
+              ? 'bg-amber-50/90 border-amber-500 shadow-sm-md ring-2 ring-amber-500/20'
+              : 'bg-card hover:bg-amber-50/40 border-border/80 shadow-sm-2xs'
           }`}
         >
           <div className="w-12 h-12 rounded-xl bg-amber-100/80 text-amber-600 flex items-center justify-center shrink-0">
@@ -226,7 +226,7 @@ export function PurchaseManagerView({
           </div>
           <div>
             <p className="text-2xl font-black text-amber-600">{lowStockItems.length}</p>
-            <p className="text-xs font-bold text-slate-700">Low Stock Items (≤ 1 Unit)</p>
+            <p className="text-xs font-bold text-foreground/80">Low Stock Items (≤ 1 Unit)</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">Click to view low inventory parts</p>
           </div>
         </button>
@@ -237,16 +237,16 @@ export function PurchaseManagerView({
           onClick={() => setActiveTab('ACTIVE_LISTS')}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-4 ${
             activeTab === 'ACTIVE_LISTS'
-              ? 'bg-blue-50/90 border-blue-500 shadow-md ring-2 ring-blue-500/20'
-              : 'bg-card hover:bg-blue-50/40 border-border/80 shadow-2xs'
+              ? 'bg-primary/5 border-primary shadow-sm-md ring-2 ring-primary/20'
+              : 'bg-card hover:bg-primary/5 border-border/80 shadow-sm-2xs'
           }`}
         >
-          <div className="w-12 h-12 rounded-xl bg-blue-100/80 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-primary/8 text-primary flex items-center justify-center shrink-0">
             <ShoppingBag className="h-6 w-6" />
           </div>
           <div>
             <p className="text-2xl font-black text-primary">{lists.length}</p>
-            <p className="text-xs font-bold text-slate-700">Active Purchase Lists</p>
+            <p className="text-xs font-bold text-foreground/80">Active Purchase Lists</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">Click to view and print orders</p>
           </div>
         </button>
@@ -278,7 +278,7 @@ export function PurchaseManagerView({
           </div>
 
           {oosItems.length === 0 ? (
-            <Card className="p-8 text-center bg-emerald-50/40 border-emerald-200">
+            <Card className="p-8 text-center bg-emerald-50/40 border-emerald-200/80">
               <p className="text-sm font-bold text-emerald-800">
                 🎉 No out of stock items! All products are currently active.
               </p>
@@ -325,7 +325,7 @@ export function PurchaseManagerView({
           </div>
 
           {lowStockItems.length === 0 ? (
-            <Card className="p-8 text-center bg-emerald-50/40 border-emerald-200">
+            <Card className="p-8 text-center bg-emerald-50/40 border-emerald-200/80">
               <p className="text-sm font-bold text-emerald-800">
                 🎉 No low stock items! Stock levels are healthy.
               </p>
@@ -493,15 +493,18 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
     window.open(`/api/purchase-manager/${list.id}/print`, '_blank');
   };
 
+  const rawTitle = list.title || 'Purchase List';
+  const cleanListTitle = rawTitle.replace(/_\d{10,}$/, '');
+
   return (
-    <Card className="rounded-3xl border border-border/80 shadow-md bg-card overflow-hidden">
+    <Card className="rounded-3xl border border-border/80 shadow-sm-md bg-card overflow-hidden">
       {/* Header Bar */}
-      <CardHeader className="bg-slate-50/80 border-b border-border/80 p-4 sm:p-5">
+      <CardHeader className="bg-muted/80 border-b border-border/80 p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1 min-w-0">
-            <div className="flex items-center gap-2.5">
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-black text-foreground truncate">
-                {list.title}
+                {cleanListTitle}
               </h2>
               <Badge
                 variant="secondary"
@@ -524,29 +527,30 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
             </div>
           </div>
 
-          {/* Action Buttons: Print PDF & Delete */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Action Buttons: Print PDF & Prominent Delete Button */}
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={handlePrintPdf}
-              className="h-9 px-3 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 border-border text-foreground shadow-2xs gap-1.5 cursor-pointer flex-1 sm:flex-initial"
+              className="h-9 px-3 rounded-xl text-xs font-bold bg-white hover:bg-muted/50 border-border text-foreground shadow-sm-2xs gap-1.5 cursor-pointer flex-1 sm:flex-initial justify-center"
             >
               <Printer className="w-3.5 h-3.5 text-primary shrink-0" />
-              Print / Export PDF
+              <span>Print PDF</span>
             </Button>
 
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={handleDeleteList}
               disabled={isPending}
-              className="h-9 w-9 p-0 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer shrink-0"
+              className="h-9 px-3 rounded-xl text-xs font-bold bg-red-50/80 hover:bg-red-100 border-red-200 text-red-600 hover:text-red-700 shadow-sm-2xs gap-1.5 cursor-pointer shrink-0"
               title="Delete Purchase List"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
             </Button>
           </div>
         </div>
@@ -556,7 +560,7 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
         {/* ========================================================================= */}
         {/* DIRECT ITEM ENTRY ROW (Item Name, Description, Quantity)                 */}
         {/* ========================================================================= */}
-        <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/90 border border-border/80 space-y-3">
+        <div className="p-3 sm:p-4 rounded-2xl bg-muted/90 border border-border/80 space-y-3">
           <span className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5 text-primary" />
             Add Required Item / Spare Part:
@@ -578,7 +582,7 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
 
               {/* Autocomplete Dropdown with 4-Digit Code */}
               {showDropdown && filteredCatalog.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white border border-border rounded-xl shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white border border-border rounded-xl shadow-sm-lg overflow-hidden max-h-48 overflow-y-auto">
                   {filteredCatalog.map((catItem) => {
                     const code = catItem.supplierRecords?.[0]?.shortCode;
                     return (
@@ -586,7 +590,7 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
                         key={catItem.id}
                         type="button"
                         onClick={() => handleSelectCatalogItem(catItem)}
-                        className="w-full p-2 text-left hover:bg-slate-50 border-b border-border/50 text-xs flex items-center justify-between cursor-pointer"
+                        className="w-full p-2 text-left hover:bg-muted/50 border-b border-border/50 text-xs flex items-center justify-between cursor-pointer"
                       >
                         <div className="flex items-center gap-1.5 truncate">
                           {code && (
@@ -631,7 +635,7 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="h-9 w-9 p-0 rounded-lg bg-white shrink-0"
+                  className="h-9 w-9 p-0 rounded-lg bg-white shrink-0 cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </Button>
@@ -647,7 +651,7 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(quantity + 1)}
-                  className="h-9 w-9 p-0 rounded-lg bg-white shrink-0"
+                  className="h-9 w-9 p-0 rounded-lg bg-white shrink-0 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </Button>
@@ -668,68 +672,136 @@ function PurchaseListCard({ list, catalogItems }: PurchaseListCardProps) {
         </div>
 
         {/* ========================================================================= */}
-        {/* LIST OF REQUIRED ITEMS TABLE (Shows 4-Digit Code in Website View)         */}
+        {/* LIST OF REQUIRED ITEMS (Desktop Table + Mobile All-In-One Cards)          */}
         {/* ========================================================================= */}
         {list.items && list.items.length > 0 ? (
-          <div className="rounded-2xl border border-border/80 overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[500px] text-xs text-left">
-                <thead className="bg-slate-100/80 text-foreground font-extrabold uppercase text-[10px] tracking-wider border-b border-border/80">
-                  <tr>
-                    <th className="p-3 w-12 text-center">#</th>
-                    <th className="p-3">Required Item / Spare Part</th>
-                    <th className="p-3">Specifications / Description</th>
-                    <th className="p-3 w-28 text-center">Quantity</th>
-                    <th className="p-3 w-16 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60 bg-white">
-                  {list.items.map((it: any, idx: number) => {
-                    const code = it.item?.supplierRecords?.[0]?.shortCode;
-                    return (
-                      <tr key={it.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="p-3 text-center font-mono font-bold text-muted-foreground">
-                          {idx + 1}
-                        </td>
-                        <td className="p-3 font-bold text-foreground">
-                          <div className="flex items-center gap-2">
-                            {code && (
-                              <span className="font-mono text-primary font-black bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-[11px] shrink-0">
-                                #{code}
-                              </span>
-                            )}
-                            <span className="truncate">{it.itemName || it.item?.name || 'Unnamed Item'}</span>
-                          </div>
-                        </td>
-                        <td className="p-3 text-muted-foreground">
-                          {it.description || it.notes || '—'}
-                        </td>
-                        <td className="p-3 text-center font-mono font-black text-foreground">
-                          <span className="bg-slate-100 px-2.5 py-1 rounded-md">
-                            {it.quantity} Units
+          <div>
+            {/* ── 1. MOBILE ALL-IN-ONE LUXURY ITEM CARDS (md:hidden) ── */}
+            <div className="md:hidden space-y-2.5">
+              {list.items.map((it: any, idx: number) => {
+                const code = it.item?.supplierRecords?.[0]?.shortCode;
+                const rawName = it.itemName || it.item?.name || 'Unnamed Item';
+                const cleanItemName = rawName.replace(/_\d{10,}$/, '');
+
+                return (
+                  <div
+                    key={it.id}
+                    className="p-3.5 rounded-2xl bg-white border border-border/80 shadow-sm-xs space-y-2.5 transition-all hover:border-primary/40"
+                  >
+                    {/* Header Row: Index + Code + Item Name + Delete */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="font-mono text-[11px] font-extrabold text-muted-foreground/70 shrink-0">
+                          #{idx + 1}
+                        </span>
+                        {code && (
+                          <span className="font-mono text-primary font-black bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-[10px] shrink-0">
+                            #{code}
                           </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteItem(it.id, it.itemName || it.item?.name)}
-                            className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-lg cursor-pointer inline-flex items-center justify-center"
-                            title="Remove item"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        )}
+                        <h4 className="font-black text-xs text-foreground truncate leading-tight">
+                          {cleanItemName}
+                        </h4>
+                      </div>
+
+                      {/* Delete Action Button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteItem(it.id, cleanItemName)}
+                        className="h-7 w-7 p-0 text-red-500 hover:bg-red-50/80 hover:text-red-700 rounded-lg cursor-pointer shrink-0 -mt-1 -mr-1"
+                        title="Remove item"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Middle Section: Specifications & Notes (if any) */}
+                    {(it.description || it.notes) && (
+                      <div className="p-2 rounded-xl bg-muted/90 border border-border/60 text-muted-foreground text-[11px] font-medium leading-relaxed">
+                        {it.description || it.notes}
+                      </div>
+                    )}
+
+                    {/* Footer Row: Quantity Pill */}
+                    <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
+                      <span className="text-[11px] font-bold text-muted-foreground">
+                        Required Quantity:
+                      </span>
+                      <span className="bg-primary/10 text-primary border border-primary/25 font-mono font-black text-xs px-2.5 py-0.5 rounded-lg shadow-sm-2xs">
+                        {it.quantity} {it.quantity === 1 ? 'Unit' : 'Units'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── 2. DESKTOP FULL DATA TABLE (hidden md:block) ── */}
+            <div className="hidden md:block rounded-2xl border border-border/80 overflow-hidden shadow-sm-2xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted/80 text-foreground font-extrabold uppercase text-[10px] tracking-wider border-b border-border/80">
+                    <tr>
+                      <th className="p-3 w-12 text-center">#</th>
+                      <th className="p-3">Required Item / Spare Part</th>
+                      <th className="p-3">Specifications / Description</th>
+                      <th className="p-3 w-28 text-center">Quantity</th>
+                      <th className="p-3 w-16 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60 bg-white">
+                    {list.items.map((it: any, idx: number) => {
+                      const code = it.item?.supplierRecords?.[0]?.shortCode;
+                      const rawName = it.itemName || it.item?.name || 'Unnamed Item';
+                      const cleanItemName = rawName.replace(/_\d{10,}$/, '');
+
+                      return (
+                        <tr key={it.id} className="hover:bg-muted/80 transition-colors">
+                          <td className="p-3 text-center font-mono font-bold text-muted-foreground">
+                            {idx + 1}
+                          </td>
+                          <td className="p-3 font-bold text-foreground">
+                            <div className="flex items-center gap-2">
+                              {code && (
+                                <span className="font-mono text-primary font-black bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-[11px] shrink-0">
+                                  #{code}
+                                </span>
+                              )}
+                              <span className="truncate">{cleanItemName}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-muted-foreground">
+                            {it.description || it.notes || '—'}
+                          </td>
+                          <td className="p-3 text-center font-mono font-black text-foreground">
+                            <span className="bg-muted px-2.5 py-1 rounded-md">
+                              {it.quantity} Units
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteItem(it.id, cleanItemName)}
+                              className="h-8 w-8 p-0 text-red-500 hover:bg-red-50/80 hover:text-red-700 rounded-lg cursor-pointer inline-flex items-center justify-center"
+                              title="Remove item"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="p-6 text-center rounded-2xl bg-slate-50 border border-dashed border-border/80">
+          <div className="p-6 text-center rounded-2xl bg-muted/50 border border-dashed border-border/80">
             <p className="text-xs text-muted-foreground font-medium">
               No items added to this list yet. Enter an item name above or add from AI Suggestions.
             </p>
@@ -759,6 +831,8 @@ function QuickAddCard({
   const [isPending, startTransition] = useTransition();
 
   const code = item.supplierRecords?.[0]?.shortCode;
+  const cleanItemName = (item.name || '').replace(/_\d{10,}$/, '');
+  const selectedList = lists.find((l) => l.id === selectedListId) || lists[0];
 
   const handleAdd = () => {
     if (!selectedListId) {
@@ -770,13 +844,13 @@ function QuickAddCard({
       const res = await addItemToPurchaseListAction({
         purchaseListId: selectedListId,
         itemId: item.id,
-        itemName: item.name,
+        itemName: cleanItemName,
         description: undefined, // Keep description clean, no location!
         quantity,
       });
 
       if (res.success) {
-        toast.success(`Added "${item.name}" (Qty: ${quantity}) to list!`);
+        toast.success(`Added "${cleanItemName}" (Qty: ${quantity}) to ${selectedList?.title || 'list'}!`);
         onAddSuccess();
       } else {
         toast.error(res.error || 'Failed to add item.');
@@ -785,24 +859,24 @@ function QuickAddCard({
   };
 
   return (
-    <Card className="p-4 rounded-2xl border border-border/80 shadow-2xs bg-card flex flex-col justify-between gap-3">
+    <Card className="p-3.5 sm:p-4 rounded-2xl border border-border/80 shadow-sm-xs hover:border-primary/40 transition-all bg-card flex flex-col justify-between gap-3">
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             {code && (
               <span className="font-mono text-primary font-black bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-[10px] shrink-0">
                 #{code}
               </span>
             )}
-            <h4 className="text-xs font-bold text-foreground">{item.name}</h4>
+            <h4 className="text-xs font-black text-foreground truncate">{cleanItemName}</h4>
           </div>
-          <div className="flex items-center gap-2 mt-1.5">
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <Badge
               variant="outline"
               className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                 isOos
-                  ? 'bg-red-50 text-red-700 border-red-300'
-                  : 'bg-amber-50 text-amber-700 border-amber-300'
+                  ? 'bg-red-50/80 text-red-700 border-red-300'
+                  : 'bg-amber-50/80 text-amber-700 border-amber-300'
               }`}
             >
               {isOos ? '0 In Stock (Out of Stock)' : `${item.quantity ?? 1} Unit In Stock`}
@@ -817,13 +891,20 @@ function QuickAddCard({
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-border/60">
-        <Select value={selectedListId} onValueChange={(val: string | null) => { if (val) setSelectedListId(val); }}>
-          <SelectTrigger className="h-9 sm:h-8 text-xs bg-white border-border rounded-xl flex-1">
-            <SelectValue placeholder="Select List..." />
+        <Select
+          value={selectedListId}
+          onValueChange={(val: string | null) => {
+            if (val) setSelectedListId(val);
+          }}
+        >
+          <SelectTrigger className="h-9 sm:h-8 text-xs bg-white border-border rounded-xl flex-1 cursor-pointer font-medium">
+            <SelectValue placeholder="Select List...">
+              {selectedList ? selectedList.title : 'Select List...'}
+            </SelectValue>
           </SelectTrigger>
-          <SelectContent className="bg-background border-border text-xs">
+          <SelectContent className="bg-white border-border text-xs z-50">
             {lists.map((l) => (
-              <SelectItem key={l.id} value={l.id}>
+              <SelectItem key={l.id} value={l.id} className="cursor-pointer font-medium text-xs">
                 {l.title}
               </SelectItem>
             ))}
@@ -842,7 +923,7 @@ function QuickAddCard({
             size="sm"
             onClick={handleAdd}
             disabled={isPending || !selectedListId}
-            className="h-9 sm:h-8 px-4 sm:px-3 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1 cursor-pointer flex-1 sm:flex-initial justify-center"
+            className="h-9 sm:h-8 px-4 sm:px-3 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1 cursor-pointer flex-1 sm:flex-initial justify-center shadow-sm-xs"
           >
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
             Add
@@ -852,3 +933,4 @@ function QuickAddCard({
     </Card>
   );
 }
+

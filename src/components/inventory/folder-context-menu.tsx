@@ -133,7 +133,7 @@ export function FolderContextMenu({
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label="Folder actions"
-            className="h-7 w-7 inline-flex items-center justify-center rounded-xl bg-white/40 hover:bg-white text-slate-700 hover:text-primary border border-white/60 hover:border-white shadow-2xs hover:shadow-md backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer z-20 group/menu"
+            className="h-7 w-7 inline-flex items-center justify-center rounded-xl bg-white/40 hover:bg-white text-foreground/80 hover:text-primary border border-white/60 hover:border-white shadow-2xs hover:shadow-md backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer z-20 group/menu"
           >
             <MoreVertical className="h-3.5 w-3.5 transition-transform group-hover/menu:scale-110" />
           </DropdownMenuTrigger>
@@ -142,7 +142,7 @@ export function FolderContextMenu({
               onClick={() => setIsRenameOpen(true)}
               className="cursor-pointer hover:bg-muted focus:bg-muted font-medium text-xs rounded-xl"
             >
-              <Pencil className="mr-2 h-4 w-4 text-blue-600" />
+              <Pencil className="mr-2 h-4 w-4 text-primary" />
               Rename Folder
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -257,14 +257,14 @@ export function FolderContextMenu({
                 <div className="relative w-full h-full flex flex-col">
                   {/* 1. CLIPPED FOLDER BODY & FULL CONTINUOUS ARTWORK */}
                   <div
-                    className="relative w-full h-full bg-slate-100/95 overflow-hidden flex flex-col justify-end shadow-2xl"
+                    className="relative w-full h-full bg-muted overflow-hidden flex flex-col justify-end shadow-2xl"
                     style={{
                       clipPath: `url(#preview-folder-clip-${previewClipId})`,
                     }}
                   >
                     {/* Background Artwork or Clean Tinted Gradient Canvas */}
                     {parsedThumb.url ? (
-                      <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-200/90 flex items-center justify-center">
+                      <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center">
                         <img
                           src={parsedThumb.url}
                           alt={folderName}
@@ -278,7 +278,7 @@ export function FolderContextMenu({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent pointer-events-none" />
                       </div>
                     ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/90 via-blue-100/70 to-slate-200/90 flex items-center justify-center overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/90 via-blue-100/70 to-muted/80 flex items-center justify-center overflow-hidden">
                         {/* Soft radial glow */}
                         <div className="absolute w-36 h-36 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
                         {/* Subtle dot pattern */}
@@ -295,7 +295,7 @@ export function FolderContextMenu({
                             <Folder className="w-6 h-6 text-primary" />
                           </div>
                           {currentDescription && (
-                            <p className="text-[9px] text-slate-600 line-clamp-1 max-w-[130px] font-semibold">
+                            <p className="text-[9px] text-muted-foreground line-clamp-1 max-w-[130px] font-semibold">
                               {currentDescription}
                             </p>
                           )}
@@ -358,7 +358,7 @@ export function FolderContextMenu({
                 className="relative z-10 w-full max-w-sm flex flex-col gap-2 pointer-events-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl p-2.5 space-y-1">
+                <div className="bg-white rounded-3xl border border-border shadow-2xl p-2.5 space-y-1">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -367,14 +367,14 @@ export function FolderContextMenu({
                       setMobileOpen(false);
                       setIsRenameOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                       <Pencil className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Rename Folder</div>
-                      <div className="text-[11px] font-normal text-slate-500 truncate">Change folder title</div>
+                      <div className="leading-tight text-foreground font-bold">Rename Folder</div>
+                      <div className="text-[11px] font-normal text-muted-foreground truncate">Change folder title</div>
                     </div>
                   </button>
 
@@ -386,14 +386,14 @@ export function FolderContextMenu({
                       setMobileOpen(false);
                       setIsDescriptionOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
                     <div className="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-200 flex items-center justify-center shrink-0">
                       <FileText className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Edit Description</div>
-                      <div className="text-[11px] font-normal text-slate-500 truncate">Update notes & specifications</div>
+                      <div className="leading-tight text-foreground font-bold">Edit Description</div>
+                      <div className="text-[11px] font-normal text-muted-foreground truncate">Update notes & specifications</div>
                     </div>
                   </button>
 
@@ -405,14 +405,14 @@ export function FolderContextMenu({
                       setMobileOpen(false);
                       setIsThumbnailOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
                     <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 border border-violet-200 flex items-center justify-center shrink-0">
                       <ImagePlus className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Set / Change Thumbnail</div>
-                      <div className="text-[11px] font-normal text-slate-500 truncate">Upload cover photo or diagram</div>
+                      <div className="leading-tight text-foreground font-bold">Set / Change Thumbnail</div>
+                      <div className="text-[11px] font-normal text-muted-foreground truncate">Upload cover photo or diagram</div>
                     </div>
                   </button>
 
@@ -424,18 +424,18 @@ export function FolderContextMenu({
                       setMobileOpen(false);
                       setIsMoveOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                   >
                     <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shrink-0">
                       <FolderInput className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-slate-900 font-bold">Move Folder</div>
-                      <div className="text-[11px] font-normal text-slate-500 truncate">Relocate in directory tree</div>
+                      <div className="leading-tight text-foreground font-bold">Move Folder</div>
+                      <div className="text-[11px] font-normal text-muted-foreground truncate">Relocate in directory tree</div>
                     </div>
                   </button>
 
-                  <div className="border-t border-slate-100 my-1 pt-1">
+                  <div className="border-t border-border/60 my-1 pt-1">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -465,7 +465,7 @@ export function FolderContextMenu({
                     e.stopPropagation();
                     setMobileOpen(false);
                   }}
-                  className="w-full py-3.5 bg-white text-slate-800 font-extrabold text-sm rounded-2xl border border-slate-200 shadow-lg active:bg-slate-100 active:scale-[0.98] transition-all text-center cursor-pointer"
+                  className="w-full py-3.5 bg-white text-foreground/90 font-extrabold text-sm rounded-2xl border border-border shadow-lg active:bg-muted active:scale-[0.98] transition-all text-center cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -481,7 +481,7 @@ export function FolderContextMenu({
         <DialogContent className="bg-card border-border text-foreground sm:max-w-md p-4 sm:p-6 rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-              <Pencil className="w-4 h-4 text-blue-600" /> Rename Folder
+              <Pencil className="w-4 h-4 text-primary" /> Rename Folder
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">Enter a new name for this folder.</DialogDescription>
           </DialogHeader>
@@ -498,7 +498,7 @@ export function FolderContextMenu({
             <Button variant="outline" onClick={() => setIsRenameOpen(false)} disabled={isPending} className="h-10 text-xs rounded-xl">
               Cancel
             </Button>
-            <Button onClick={handleRename} disabled={isPending || !newName.trim()} className="h-10 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl">
+            <Button onClick={handleRename} disabled={isPending || !newName.trim()} className="h-10 text-xs bg-primary hover:bg-primary/90 text-white font-bold rounded-xl">
               Save Name
             </Button>
           </DialogFooter>

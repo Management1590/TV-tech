@@ -26,28 +26,28 @@ export function BrandFolderCardSkeleton() {
       <FolderSilhouetteClip clipId={clipId} />
 
       <div
-        className="relative w-full min-h-[190px] sm:min-h-[220px] bg-slate-100/90 overflow-hidden flex flex-col justify-end p-4 border border-slate-200/80 rounded-3xl"
+        className="relative w-full min-h-[190px] sm:min-h-[220px] bg-muted overflow-hidden flex flex-col justify-end p-4 border border-border rounded-3xl"
         style={{
           clipPath: `url(#folder-skeleton-clip-${clipId})`,
         }}
       >
         {/* Shimmer background */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-slate-200/80 via-slate-100/70 to-slate-200/60 animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-muted/80 via-muted to-muted/80 animate-pulse" />
 
         {/* Center Icon Skeleton */}
         <div className="relative z-10 flex items-center justify-center pb-12">
-          <div className="w-14 h-14 rounded-2xl bg-white/70 shadow-sm border border-slate-200/80 flex items-center justify-center">
-            <div className="w-7 h-7 rounded-xl bg-slate-300/80" />
+          <div className="w-14 h-14 rounded-2xl bg-white/70 shadow-sm border border-border flex items-center justify-center">
+            <div className="w-7 h-7 rounded-xl bg-muted/70" />
           </div>
         </div>
 
         {/* Bottom Bar Info Skeleton */}
-        <div className="relative z-10 space-y-2 bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div className="relative z-10 space-y-2 bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <Skeleton className="h-4 w-28 rounded-lg bg-slate-300/80" />
-            <Skeleton className="h-4 w-12 rounded-full bg-slate-200" />
+            <Skeleton className="h-4 w-28 rounded-lg bg-muted/70" />
+            <Skeleton className="h-4 w-12 rounded-full bg-muted/80" />
           </div>
-          <Skeleton className="h-3 w-36 rounded-md bg-slate-200/90" />
+          <Skeleton className="h-3 w-36 rounded-md bg-muted/80" />
         </div>
       </div>
     </div>
@@ -57,30 +57,30 @@ export function BrandFolderCardSkeleton() {
 // 2. Model List Row Skeleton
 export function ModelRowSkeleton() {
   return (
-    <div className="flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50 border-b border-border/70 animate-pulse">
+    <div className="flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-muted/50 border-b border-border/70 animate-pulse">
       <div className="flex items-center gap-4 min-w-0 flex-1">
         {/* Left Monitor Icon Silhouette */}
-        <div className="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-          <div className="w-5 h-5 rounded-lg bg-slate-300/80" />
+        <div className="w-11 h-11 rounded-2xl bg-muted border border-border flex items-center justify-center shrink-0">
+          <div className="w-5 h-5 rounded-lg bg-muted/70" />
         </div>
 
         <div className="space-y-2 flex-1 min-w-0 max-w-md">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-4 w-36 sm:w-48 rounded-lg bg-slate-300/80" />
-            <Skeleton className="h-4 w-12 rounded-full bg-slate-200" />
-            <Skeleton className="h-4 w-14 rounded-full bg-slate-200" />
+            <Skeleton className="h-4 w-36 sm:w-48 rounded-lg bg-muted/70" />
+            <Skeleton className="h-4 w-12 rounded-full bg-muted/80" />
+            <Skeleton className="h-4 w-14 rounded-full bg-muted/80" />
           </div>
           <div className="flex items-center gap-3">
-            <Skeleton className="h-3 w-24 rounded-md bg-slate-200" />
-            <Skeleton className="h-3 w-40 rounded-md bg-slate-200" />
+            <Skeleton className="h-3 w-24 rounded-md bg-muted/80" />
+            <Skeleton className="h-3 w-40 rounded-md bg-muted/80" />
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-3 shrink-0 ml-4">
-        <Skeleton className="h-7 w-20 rounded-xl bg-slate-200 hidden sm:block" />
-        <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
-          <div className="w-3.5 h-3.5 rounded bg-slate-300" />
+        <Skeleton className="h-7 w-20 rounded-xl bg-muted/80 hidden sm:block" />
+        <div className="w-8 h-8 rounded-xl bg-muted border border-border flex items-center justify-center">
+          <div className="w-3.5 h-3.5 rounded bg-muted/70" />
         </div>
       </div>
     </div>
@@ -114,13 +114,13 @@ export function SearchDropdownRowSkeleton() {
   return (
     <div className="flex items-center justify-between px-3.5 py-2.5 bg-white border-b border-border/60 animate-pulse">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 shrink-0" />
+        <div className="w-7 h-7 rounded-lg bg-muted border border-border shrink-0" />
         <div className="space-y-1">
-          <Skeleton className="h-3.5 w-28 rounded bg-slate-300/80" />
-          <Skeleton className="h-2.5 w-20 rounded bg-slate-200" />
+          <Skeleton className="h-3.5 w-28 rounded bg-muted/70" />
+          <Skeleton className="h-2.5 w-20 rounded bg-muted/80" />
         </div>
       </div>
-      <Skeleton className="h-4 w-14 rounded-full bg-slate-200" />
+      <Skeleton className="h-4 w-14 rounded-full bg-muted/80" />
     </div>
   );
 }
@@ -133,24 +133,24 @@ export function FolderContentSkeleton() {
       <Card className="bg-white border border-border/80 shadow-blend rounded-3xl p-5 sm:p-7 space-y-6">
         <div className="flex items-center justify-between border-b border-border/70 pb-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center">
-              <div className="w-5 h-5 rounded-lg bg-blue-300" />
+            <div className="w-11 h-11 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-center">
+              <div className="w-5 h-5 rounded-lg bg-primary/25" />
             </div>
             <div className="space-y-1.5">
-              <Skeleton className="h-5 w-44 rounded-lg bg-slate-300/80" />
-              <Skeleton className="h-3 w-64 rounded bg-slate-200" />
+              <Skeleton className="h-5 w-44 rounded-lg bg-muted/70" />
+              <Skeleton className="h-3 w-64 rounded bg-muted/80" />
             </div>
           </div>
-          <Skeleton className="h-10 w-36 rounded-2xl bg-slate-200" />
+          <Skeleton className="h-10 w-36 rounded-2xl bg-muted/80" />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-video rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden relative"
+              className="aspect-video rounded-2xl bg-muted border border-border overflow-hidden relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-tr from-slate-200/80 to-slate-100/50 animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-muted/80 to-muted animate-pulse" />
             </div>
           ))}
         </div>
@@ -164,21 +164,21 @@ export function FolderContentSkeleton() {
               <div className="w-5 h-5 rounded-lg bg-violet-300" />
             </div>
             <div className="space-y-1.5">
-              <Skeleton className="h-5 w-48 rounded-lg bg-slate-300/80" />
-              <Skeleton className="h-3 w-60 rounded bg-slate-200" />
+              <Skeleton className="h-5 w-48 rounded-lg bg-muted/70" />
+              <Skeleton className="h-3 w-60 rounded bg-muted/80" />
             </div>
           </div>
-          <Skeleton className="h-10 w-40 rounded-2xl bg-slate-200" />
+          <Skeleton className="h-10 w-40 rounded-2xl bg-muted/80" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <div key={i} className="p-4 rounded-2xl bg-muted/50 border border-border space-y-3">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-4 w-32 rounded bg-slate-300" />
-                <Skeleton className="h-3 w-16 rounded bg-slate-200" />
+                <Skeleton className="h-4 w-32 rounded bg-muted/70" />
+                <Skeleton className="h-3 w-16 rounded bg-muted/80" />
               </div>
-              <Skeleton className="h-8 w-full rounded-xl bg-slate-200" />
+              <Skeleton className="h-8 w-full rounded-xl bg-muted/80" />
             </div>
           ))}
         </div>
@@ -192,24 +192,24 @@ export function FolderContentSkeleton() {
               <div className="w-5 h-5 rounded-lg bg-emerald-300" />
             </div>
             <div className="space-y-1.5">
-              <Skeleton className="h-5 w-52 rounded-lg bg-slate-300/80" />
-              <Skeleton className="h-3 w-72 rounded bg-slate-200" />
+              <Skeleton className="h-5 w-52 rounded-lg bg-muted/70" />
+              <Skeleton className="h-3 w-72 rounded bg-muted/80" />
             </div>
           </div>
-          <Skeleton className="h-10 w-36 rounded-2xl bg-slate-200" />
+          <Skeleton className="h-10 w-36 rounded-2xl bg-muted/80" />
         </div>
 
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200 space-y-3">
+            <div key={i} className="p-5 sm:p-6 rounded-3xl bg-white border border-border space-y-3">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-64 rounded-lg bg-slate-300/80" />
-                <Skeleton className="h-7 w-16 rounded-xl bg-slate-200" />
+                <Skeleton className="h-5 w-64 rounded-lg bg-muted/70" />
+                <Skeleton className="h-7 w-16 rounded-xl bg-muted/80" />
               </div>
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <Skeleton className="h-3.5 w-full rounded bg-slate-200" />
-                <Skeleton className="h-3.5 w-4/5 rounded bg-slate-200" />
-                <Skeleton className="h-3.5 w-2/3 rounded bg-slate-200" />
+              <div className="space-y-2 pt-2 border-t border-border/60">
+                <Skeleton className="h-3.5 w-full rounded bg-muted/80" />
+                <Skeleton className="h-3.5 w-4/5 rounded bg-muted/80" />
+                <Skeleton className="h-3.5 w-2/3 rounded bg-muted/80" />
               </div>
             </div>
           ))}

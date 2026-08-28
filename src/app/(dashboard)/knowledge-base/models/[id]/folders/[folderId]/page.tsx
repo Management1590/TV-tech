@@ -68,7 +68,9 @@ export default async function KbFolderDetailPage({
   if (!folder || folder.modelId !== modelId) return notFound();
 
   const isBacklight = folder.name.toLowerCase() === 'backlight';
-  const modelFullName = `${folder.model.brand.name} ${folder.model.modelNumber}`;
+  const cleanBrandName = folder.model.brand.name.replace(/_\d{10,}$/, '');
+  const cleanModelNumber = folder.model.modelNumber.replace(/_\d{10,}$/, '');
+  const modelFullName = `${cleanBrandName} ${cleanModelNumber}`;
 
   // Fetch model compatible backlight items from entity relationships
   const modelEntity = await prisma.entity.findUnique({
@@ -118,59 +120,64 @@ export default async function KbFolderDetailPage({
   }));
 
   return (
-    <div className="space-y-6 p-2 sm:p-4">
-      {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-        <Link href="/knowledge-base" className="hover:text-primary transition-colors font-medium">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4 max-w-7xl mx-auto">
+      {/* Sleek Breadcrumb & Back Navigation - Touch-Friendly Pill Track with Smooth Horizontal Scroll */}
+      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
+        <Link
+          href="/knowledge-base"
+          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+        >
           Knowledge Base
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         <Link
           href={`/knowledge-base/brands/${folder.model.brand.id}`}
-          className="hover:text-primary transition-colors font-medium"
+          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
         >
-          {folder.model.brand.name}
+          {cleanBrandName}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         <Link
           href={`/knowledge-base/models/${folder.model.id}`}
-          className="hover:text-primary transition-colors font-medium"
+          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer truncate max-w-[140px] sm:max-w-none"
         >
-          {folder.model.modelNumber}
+          {cleanModelNumber}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-bold">{folder.name}</span>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+        <span className="px-2.5 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1">
+          {folder.name}
+        </span>
       </nav>
 
-      {/* Folder Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border border-border/80 rounded-3xl shadow-blend">
-        <div className="flex items-center gap-4">
+      {/* Folder Header: Clean & Balanced Mobile-First Card */}
+      <div className="p-4 sm:p-6 bg-white border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3.5 sm:gap-4">
           <div
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${
+            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${
               isBacklight
-                ? 'bg-amber-500/15 border border-amber-300 text-amber-600'
+                ? 'bg-amber-500/15 border border-amber-300/80 text-amber-600'
                 : 'bg-primary/15 border border-primary/20 text-primary'
             }`}
           >
-            {isBacklight ? <Lightbulb className="w-7 h-7" /> : <FolderOpen className="w-7 h-7" />}
+            {isBacklight ? <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6" /> : <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6" />}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate">
                 {folder.name}
               </h1>
               {isBacklight ? (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 text-xs font-bold">
-                  Backlight Inventory Linker
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] sm:text-xs font-bold py-0.5 px-2">
+                  Backlight Linker
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[10px] sm:text-xs font-bold py-0.5 px-2">
                   Photo • Audio • Text
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {modelFullName} • {isBacklight ? 'Dedicated Backlight Inventory Association' : 'Multimedia Troubleshooting & Repair Knowledge'}
+            <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
+              {modelFullName} • {isBacklight ? 'Backlight Inventory Linker' : 'Troubleshooting & Repair Knowledge'}
             </p>
           </div>
         </div>

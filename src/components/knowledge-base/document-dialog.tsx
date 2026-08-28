@@ -75,7 +75,7 @@ export function DocumentDialog({
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+              <DialogTitle className="text-lg sm:text-xl font-black text-foreground tracking-tight">
                 {isEditMode ? 'Edit Document Note' : 'Create New Document'}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -90,7 +90,7 @@ export function DocumentDialog({
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {/* Document Heading Input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+            <label className="text-xs font-bold text-foreground/90 flex items-center justify-between">
               <span>Heading / Title <span className="text-red-500">*</span></span>
               <span className="text-[10px] text-muted-foreground font-normal">Bolder & Standout</span>
             </label>
@@ -106,7 +106,7 @@ export function DocumentDialog({
 
           {/* Document Description Textarea */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+            <label className="text-xs font-bold text-foreground/90 flex items-center justify-between">
               <span>Description & Technical Details</span>
               <span className="text-[10px] text-muted-foreground font-normal">Readable Body</span>
             </label>

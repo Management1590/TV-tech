@@ -116,7 +116,7 @@ export function ManageItemFoldersDialog({
                     key={folder.id}
                     className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
                       folder.isLinked
-                        ? 'bg-blue-950/30 border-primary/30 text-foreground'
+                        ? 'bg-primary/8 border-primary/30 text-foreground'
                         : 'bg-muted/40 border-border/60 text-foreground hover:border-border'
                     }`}
                     style={{ marginLeft: `${Math.min(folder.depth * 12, 48)}px` }}

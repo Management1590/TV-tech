@@ -303,7 +303,7 @@ export function CreateFolderDialog({ parentId, trigger }: CreateFolderDialogProp
                   />
                   <label
                     htmlFor="create-folder-upload"
-                    className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-border hover:border-blue-500/50 rounded-2xl cursor-pointer bg-muted/40 hover:bg-muted/80 transition-all text-center group"
+                    className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-border hover:border-primary/50 rounded-2xl cursor-pointer bg-muted/40 hover:bg-muted/80 transition-all text-center group"
                   >
                     <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
                       <UploadCloud className="w-5 h-5" />
@@ -416,7 +416,7 @@ export function CreateFolderDialog({ parentId, trigger }: CreateFolderDialogProp
                         </div>
                       ) : (
                         /* Default Icon canvas when no thumbnail */
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/40 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-primary/5 flex items-center justify-center">
                           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
                             <Folder className="w-7 h-7" />
                           </div>

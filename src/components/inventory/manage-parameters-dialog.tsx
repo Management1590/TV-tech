@@ -188,7 +188,7 @@ export function ManageParametersDialog({
         <Button
           size="sm"
           variant="outline"
-          className="gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm bg-white hover:bg-slate-100/90 border border-border/90 text-foreground hover:border-primary/40 hover:text-primary shadow-xs transition-all duration-200 active:scale-95 cursor-pointer shrink-0"
+          className="gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm bg-white hover:bg-muted border border-border/90 text-foreground hover:border-primary/40 hover:text-primary shadow-xs transition-all duration-200 active:scale-95 cursor-pointer shrink-0"
         >
           {isMainInventory ? (
             <Globe className="h-4 w-4 text-primary shrink-0" />
@@ -408,7 +408,7 @@ export function ManageParametersDialog({
                     checked={isRequired}
                     onChange={(e) => setIsRequired(e.target.checked)}
                     disabled={isPending}
-                    className="w-4 h-4 rounded border-border bg-muted text-blue-600 focus:ring-primary"
+                    className="w-4 h-4 rounded border-border bg-muted text-primary focus:ring-primary"
                   />
                   Required field
                 </label>

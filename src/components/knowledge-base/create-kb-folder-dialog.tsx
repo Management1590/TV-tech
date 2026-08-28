@@ -77,7 +77,7 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
               required
-              className="h-11 rounded-xl bg-slate-50 border-border/80 text-sm"
+              className="h-11 rounded-xl bg-muted/50 border-border/80 text-sm"
               autoFocus
             />
           </div>

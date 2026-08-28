@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronLeft,
   ChevronRight,
@@ -62,7 +63,7 @@ export function UniversalMediaPlayerModal({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
-  // Video Player state
+  // Video Player state & Rotation
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -71,6 +72,7 @@ export function UniversalMediaPlayerModal({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [videoRotation, setVideoRotation] = useState(0);
 
   // Fullscreen state
   const modalContainerRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,28 @@ export function UniversalMediaPlayerModal({
   // Bottom filmstrip ref for auto-scrolling active thumbnail into view
   const activeThumbnailRef = useRef<HTMLButtonElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
+
+  // Mounted check for createPortal (SSR safety)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Gesture tracking refs for mobile images
+  const scaleRef = useRef<number>(1);
+  const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isGesturingRef = useRef<boolean>(false);
+  const lastTapTimeRef = useRef<number>(0);
+  const lastTapPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialPinchDistRef = useRef<number | null>(null);
+  const initialPinchScaleRef = useRef<number>(1);
+  const initialPinchCenterRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialPositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const singleTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const singleTouchPosStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  scaleRef.current = zoom;
+  positionRef.current = pan;
 
   // Listen to fullscreen changes across browser
   useEffect(() => {
@@ -109,6 +133,10 @@ export function UniversalMediaPlayerModal({
     setPan({ x: 0, y: 0 });
     setIsPlaying(false);
     setVideoProgress(0);
+    setVideoRotation(0);
+    scaleRef.current = 1;
+    positionRef.current = { x: 0, y: 0 };
+    isGesturingRef.current = false;
   }, []);
 
   // Handle active item change
@@ -289,26 +317,173 @@ export function UniversalMediaPlayerModal({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (!isOpen || !currentItem) return null;
+  const handleRotateVideo = () => {
+    setVideoRotation((prev) => (prev + 90) % 360);
+  };
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  // Touch gesture listeners on mobile for images (Pinch to Zoom, Double Tap, Swipe to Navigate/Dismiss)
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !imageContainerRef.current || currentItem?.mediaType === 'VIDEO') return;
+    const el = imageContainerRef.current;
+
+    const getDistance = (t1: Touch, t2: Touch) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    const getCenter = (t1: Touch, t2: Touch) => ({
+      x: (t1.clientX + t2.clientX) / 2,
+      y: (t1.clientY + t2.clientY) / 2,
+    });
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        isGesturingRef.current = true;
+        initialPinchDistRef.current = getDistance(e.touches[0], e.touches[1]);
+        initialPinchScaleRef.current = scaleRef.current;
+        initialPinchCenterRef.current = getCenter(e.touches[0], e.touches[1]);
+        initialPositionRef.current = { ...positionRef.current };
+        singleTouchStartRef.current = null;
+      } else if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const now = Date.now();
+        const timeSinceLastTap = now - lastTapTimeRef.current;
+        const distFromLastTap = Math.hypot(
+          touch.clientX - lastTapPosRef.current.x,
+          touch.clientY - lastTapPosRef.current.y
+        );
+
+        if (timeSinceLastTap < 300 && distFromLastTap < 35) {
+          e.preventDefault();
+          if (scaleRef.current > 1) {
+            setZoom(1);
+            setPan({ x: 0, y: 0 });
+            scaleRef.current = 1;
+            positionRef.current = { x: 0, y: 0 };
+          } else {
+            const targetScale = 2.5;
+            setZoom(targetScale);
+            scaleRef.current = targetScale;
+          }
+          lastTapTimeRef.current = 0;
+          return;
+        }
+
+        lastTapTimeRef.current = now;
+        lastTapPosRef.current = { x: touch.clientX, y: touch.clientY };
+
+        singleTouchStartRef.current = {
+          x: touch.clientX,
+          y: touch.clientY,
+          time: now,
+        };
+        singleTouchPosStartRef.current = { ...positionRef.current };
+        isGesturingRef.current = true;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialPinchDistRef.current !== null) {
+        e.preventDefault();
+        const currentDist = getDistance(e.touches[0], e.touches[1]);
+        const scaleRatio = currentDist / initialPinchDistRef.current;
+        const nextScale = Math.min(Math.max(initialPinchScaleRef.current * scaleRatio, 0.9), 5);
+        scaleRef.current = nextScale;
+        setZoom(nextScale);
+      } else if (e.touches.length === 1 && singleTouchStartRef.current) {
+        const touch = e.touches[0];
+        const dx = touch.clientX - singleTouchStartRef.current.x;
+        const dy = touch.clientY - singleTouchStartRef.current.y;
+
+        if (scaleRef.current > 1) {
+          e.preventDefault();
+          const nextPos = {
+            x: singleTouchPosStartRef.current.x + dx,
+            y: singleTouchPosStartRef.current.y + dy,
+          };
+          positionRef.current = nextPos;
+          setPan(nextPos);
+        }
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0 && singleTouchStartRef.current) {
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - singleTouchStartRef.current.x;
+        const dy = touch.clientY - singleTouchStartRef.current.y;
+
+        if (scaleRef.current <= 1.05) {
+          // Swipe down to dismiss
+          if (dy > 120 && Math.abs(dx) < 80) {
+            onClose();
+          } else if (dx < -60 && Math.abs(dy) < 60) {
+            handleNext();
+          } else if (dx > 60 && Math.abs(dy) < 60) {
+            handlePrev();
+          }
+        }
+      }
+
+      if (e.touches.length === 0) {
+        initialPinchDistRef.current = null;
+        singleTouchStartRef.current = null;
+        isGesturingRef.current = false;
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isOpen, currentItem?.mediaType, onClose, handleNext, handlePrev]);
+
+  if (!isOpen || !currentItem || !mounted) return null;
 
   const currentMediaUrl = currentItem.secureUrl || currentItem.url;
   const isVideo = currentItem.mediaType === 'VIDEO';
 
-  return (
+  const modalContent = (
     <div
       ref={modalContainerRef}
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col h-screen w-screen select-none animate-in fade-in duration-200 overflow-hidden"
+      className="fixed inset-0 z-[99999] bg-black flex flex-col h-screen w-screen min-h-[100dvh] select-none animate-in fade-in duration-200 overflow-hidden"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
       {/* ========================================================================= */}
-      {/* 1. TOP FLOATING CONTROL BAR (Frosted Glass Header Capsule)                */}
+      {/* 1. MOBILE MINIMAL FLOATING CLOSE BUTTON (Clutterless Top Right)           */}
       {/* ========================================================================= */}
-      <div className="relative z-30 shrink-0 flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 text-white border-b border-white/10 bg-black/40 backdrop-blur-md">
+      <button
+        type="button"
+        onClick={onClose}
+        className="sm:hidden absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-xl active:scale-90 transition-transform cursor-pointer"
+        title="Close Viewer"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* ========================================================================= */}
+      {/* 2. DESKTOP TOP FLOATING CONTROL BAR (Frosted Glass Capsule)                */}
+      {/* ========================================================================= */}
+      <div className="relative z-30 shrink-0 hidden sm:flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 text-white border-b border-white/10 bg-black/40 backdrop-blur-md">
         {/* Left: Media Title & Counter Badge */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0">
-            {isVideo ? <Film className="w-4 h-4 text-blue-400" /> : <ImageIcon className="w-4 h-4 text-emerald-400" />}
+            {isVideo ? <Film className="w-4 h-4 text-primary/80" /> : <ImageIcon className="w-4 h-4 text-emerald-400" />}
           </div>
           <div className="min-w-0">
             <h4 className="text-xs sm:text-sm font-bold truncate max-w-[200px] sm:max-w-md text-white tracking-tight">
@@ -409,18 +584,18 @@ export function UniversalMediaPlayerModal({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. MAIN STAGE: EXPANSIVE FULL-SIZE VIDEO PLAYER & ZOOM CANVAS             */}
+      {/* 3. MAIN STAGE: EXPANSIVE FULL-SIZE VIDEO PLAYER & ZOOM CANVAS             */}
       {/* ========================================================================= */}
       <div
-        className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden px-2 py-2 sm:px-6 sm:py-3"
+        className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden p-0 sm:px-6 sm:py-3"
         onWheel={handleWheel}
       >
-        {/* Left Navigation Arrow */}
+        {/* Left Navigation Arrow (Desktop only) */}
         {items.length > 1 && (
           <button
             type="button"
             onClick={handlePrev}
-            className="absolute left-2 sm:left-6 z-30 p-3 sm:p-4 rounded-3xl bg-white/10 hover:bg-white/25 border border-white/20 text-white backdrop-blur-xl shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer group"
+            className="hidden sm:flex absolute left-2 sm:left-6 z-30 p-3 sm:p-4 rounded-3xl bg-white/10 hover:bg-white/25 border border-white/20 text-white backdrop-blur-xl shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer group items-center justify-center"
             title="Previous (Left Arrow)"
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 group-hover:-translate-x-0.5 transition-transform" />
@@ -429,7 +604,8 @@ export function UniversalMediaPlayerModal({
 
         {/* Media Canvas */}
         <div
-          className="relative w-full h-full flex items-center justify-center"
+          ref={imageContainerRef}
+          className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none"
           onMouseDown={handleMouseDown}
           onDoubleClick={handleDoubleClick}
           style={{
@@ -440,7 +616,7 @@ export function UniversalMediaPlayerModal({
             /* Expansive Full-Stage Video Player Container */
             <div
               ref={videoContainerRef}
-              className="relative w-full max-w-5xl h-full flex flex-col items-center justify-center rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/15 group/video"
+              className="relative w-full sm:max-w-5xl h-full flex flex-col items-center justify-center sm:rounded-3xl overflow-hidden shadow-2xl bg-black sm:border sm:border-white/15 group/video"
             >
               <video
                 ref={videoRef}
@@ -449,7 +625,13 @@ export function UniversalMediaPlayerModal({
                 onClick={togglePlay}
                 onTimeUpdate={handleVideoTimeUpdate}
                 onEnded={() => setIsPlaying(false)}
-                className="w-full h-full object-contain cursor-pointer pb-14"
+                style={{
+                  transform: videoRotation ? `rotate(${videoRotation}deg)` : undefined,
+                  maxWidth: videoRotation % 180 !== 0 ? '90vh' : '100%',
+                  maxHeight: videoRotation % 180 !== 0 ? '90vw' : '100%',
+                  transition: 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
+                }}
+                className="w-full h-full object-contain cursor-pointer pb-16 sm:pb-14"
               />
 
               {/* Big Center Play Overlay (when paused) */}
@@ -464,7 +646,7 @@ export function UniversalMediaPlayerModal({
                 </button>
               )}
 
-              {/* Native-feeling floating video controls */}
+              {/* Sleek Floating Video Controls with Rotate Option */}
               <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/90 to-transparent px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col gap-2 transition-opacity z-20">
                 {/* Progress Bar Scrubber */}
                 <input
@@ -479,7 +661,7 @@ export function UniversalMediaPlayerModal({
 
                 <div className="flex items-center justify-between text-white text-xs flex-wrap gap-2">
                   {/* Left Controls: Play/Pause, Volume, Time */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <button
                       type="button"
                       onClick={togglePlay}
@@ -498,14 +680,25 @@ export function UniversalMediaPlayerModal({
                       {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                     </button>
 
-                    <span className="font-mono text-xs font-semibold text-white/90">
+                    <span className="font-mono text-[11px] sm:text-xs font-semibold text-white/90">
                       {formatTime(currentTime)} / {formatTime(duration)}
                     </span>
                   </div>
 
-                  {/* Right Controls: Speed Selector + Switch to Full Screen button */}
-                  <div className="flex items-center gap-2">
-                    {/* Playback speed selector */}
+                  {/* Right Controls: Rotate Video Button + Speed Selector + Fullscreen */}
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    {/* Rotate Video Button */}
+                    <button
+                      type="button"
+                      onClick={handleRotateVideo}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer"
+                      title="Rotate Video 90°"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">{videoRotation ? `${videoRotation}°` : 'Rotate'}</span>
+                    </button>
+
+                    {/* Playback speed selector (Desktop) */}
                     <select
                       value={playbackRate}
                       onChange={(e) => {
@@ -513,17 +706,17 @@ export function UniversalMediaPlayerModal({
                         setPlaybackRate(rate);
                         if (videoRef.current) videoRef.current.playbackRate = rate;
                       }}
-                      className="bg-white/15 border border-white/20 text-white rounded-xl text-xs px-2.5 py-1 font-bold outline-none cursor-pointer hover:bg-white/25 transition-colors"
+                      className="hidden sm:inline-block bg-white/15 border border-white/20 text-white rounded-xl text-xs px-2.5 py-1 font-bold outline-none cursor-pointer hover:bg-white/25 transition-colors"
                       title="Playback Speed"
                     >
-                      <option value="0.5" className="bg-slate-900">0.5x</option>
-                      <option value="1" className="bg-slate-900">1.0x (Normal)</option>
-                      <option value="1.25" className="bg-slate-900">1.25x</option>
-                      <option value="1.5" className="bg-slate-900">1.5x</option>
-                      <option value="2" className="bg-slate-900">2.0x</option>
+                      <option value="0.5" className="bg-foreground">0.5x</option>
+                      <option value="1" className="bg-foreground">1.0x</option>
+                      <option value="1.25" className="bg-foreground">1.25x</option>
+                      <option value="1.5" className="bg-foreground">1.5x</option>
+                      <option value="2" className="bg-foreground">2.0x</option>
                     </select>
 
-                    {/* Prominent "Switch to Full Screen" Button */}
+                    {/* Switch to Full Screen / Mobile Native Player */}
                     <button
                       type="button"
                       onClick={toggleFullscreen}
@@ -533,12 +726,12 @@ export function UniversalMediaPlayerModal({
                       {isFullscreen ? (
                         <>
                           <Minimize2 className="w-3.5 h-3.5" />
-                          <span>Exit Full Screen</span>
+                          <span className="hidden sm:inline">Exit Fullscreen</span>
                         </>
                       ) : (
                         <>
                           <Maximize2 className="w-3.5 h-3.5" />
-                          <span>Switch to Full Screen</span>
+                          <span>Fullscreen</span>
                         </>
                       )}
                     </button>
@@ -551,22 +744,22 @@ export function UniversalMediaPlayerModal({
               src={currentMediaUrl}
               alt={currentItem.filename || 'Photo'}
               style={{
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
+                transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom}) rotate(${rotation}deg)`,
                 transformOrigin: 'center center',
-                transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0, 0, 1)',
+                transition: isDragging || isGesturingRef.current ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0, 0, 1)',
               }}
               draggable={false}
-              className="max-h-full max-w-full object-contain rounded-2xl shadow-2xl pointer-events-auto select-none"
+              className="max-h-full max-w-full object-contain sm:rounded-2xl shadow-2xl pointer-events-auto select-none"
             />
           )}
         </div>
 
-        {/* Right Navigation Arrow */}
+        {/* Right Navigation Arrow (Desktop only) */}
         {items.length > 1 && (
           <button
             type="button"
             onClick={handleNext}
-            className="absolute right-2 sm:right-6 z-30 p-3 sm:p-4 rounded-3xl bg-white/10 hover:bg-white/25 border border-white/20 text-white backdrop-blur-xl shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer group"
+            className="hidden sm:flex absolute right-2 sm:right-6 z-30 p-3 sm:p-4 rounded-3xl bg-white/10 hover:bg-white/25 border border-white/20 text-white backdrop-blur-xl shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer group items-center justify-center"
             title="Next (Right Arrow)"
           >
             <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-0.5 transition-transform" />
@@ -575,9 +768,9 @@ export function UniversalMediaPlayerModal({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. BOTTOM THUMBNAIL FILMSTRIP (Smooth scrolling quick-jump gallery)       */}
+      {/* 4. BOTTOM THUMBNAIL FILMSTRIP (Desktop only)                              */}
       {/* ========================================================================= */}
-      <div className="relative z-30 shrink-0 px-4 py-2.5 bg-black/90 backdrop-blur-xl border-t border-white/10 flex flex-col items-center gap-1.5">
+      <div className="relative z-30 shrink-0 hidden sm:flex px-4 py-2.5 bg-black/90 backdrop-blur-xl border-t border-white/10 flex-col items-center gap-1.5">
         <div
           ref={filmstripRef}
           className="flex items-center gap-2 max-w-full overflow-x-auto py-0.5 px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
@@ -599,8 +792,8 @@ export function UniversalMediaPlayerModal({
                 }`}
               >
                 {isItemVideo ? (
-                  <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                    <Film className="w-4 h-4 text-blue-400" />
+                  <div className="w-full h-full bg-foreground flex items-center justify-center">
+                    <Film className="w-4 h-4 text-primary/80" />
                   </div>
                 ) : (
                   <img
@@ -622,4 +815,7 @@ export function UniversalMediaPlayerModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
+

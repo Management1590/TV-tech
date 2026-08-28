@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Tag } from 'lucide-react';
+import { ChevronRight, Tag, FolderOpen } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Badge } from '@/components/ui/badge';
 import { CreateFolderDialog } from '@/components/inventory/create-folder-dialog';
@@ -162,69 +162,97 @@ export default async function NestedFolderViewPage(props: {
   const hasItems = folder.folderItems.length > 0;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Breadcrumb & Navigation Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 sm:pb-4">
-        <div>
-          <nav className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-0.5 max-w-full">
-            {userRole === 'ADMIN' && (
-              <>
-                <Link href="/" className="hover:text-foreground transition-colors shrink-0">
-                  Dashboard
-                </Link>
-                <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/60" />
-              </>
-            )}
-            <Link href="/inventory" className="hover:text-foreground transition-colors shrink-0">
-              Inventory
+    <div className="space-y-4 sm:space-y-5">
+      {/* Breadcrumbs Navigation - Touch-Friendly Pill Track with Smooth Horizontal Scroll */}
+      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
+        {userRole === 'ADMIN' && (
+          <>
+            <Link
+              href="/"
+              className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+            >
+              Dashboard
             </Link>
-            {breadcrumbs.map((bc) => (
-              <React.Fragment key={bc.id}>
-                <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+          </>
+        )}
+        <Link
+          href="/inventory"
+          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+        >
+          Inventory
+        </Link>
+        {breadcrumbs.map((bc, idx) => {
+          const isLast = idx === breadcrumbs.length - 1;
+          const href = `/inventory/folders/${[...pathSegments.slice(0, pathSegments.indexOf(bc.id) + 1)].join('/')}`;
+
+          return (
+            <React.Fragment key={bc.id}>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+              {isLast ? (
+                <span className="px-2.5 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1">
+                  {bc.name}
+                </span>
+              ) : (
                 <Link
-                  href={`/inventory/folders/${[...pathSegments.slice(0, pathSegments.indexOf(bc.id) + 1)].join('/')}`}
-                  className="hover:text-foreground transition-colors shrink-0 capitalize"
+                  href={href}
+                  className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer capitalize"
                 >
                   {bc.name}
                 </Link>
-              </React.Fragment>
-            ))}
-          </nav>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </nav>
 
-          <div className="flex items-center gap-2.5 mt-0.5 sm:mt-1">
-            <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">{folder.name}</h1>
-            <Badge
-              variant="secondary"
-              className="bg-primary/10 text-primary border-primary/20 px-2 py-0.5 text-[11px] sm:text-xs font-semibold rounded-full shrink-0"
-            >
-              {hasItems ? `${folder.folderItems.length} Items` : `${folder.children.length} Subfolders`}
-            </Badge>
+      {/* Folder Header: Clean & Balanced Mobile-First Card Matching Knowledge Base */}
+      <div className="p-4 sm:p-5 bg-white border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+            <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-primary/15 border border-primary/20 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+              <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate">
+                  {folder.name}
+                </h1>
+                <Badge
+                  variant="secondary"
+                  className="bg-primary/10 text-primary border-primary/20 px-2 py-0.5 text-[10px] sm:text-xs font-bold rounded-full shrink-0"
+                >
+                  {hasItems ? `${folder.folderItems.length} Items` : `${folder.children.length} Subfolders`}
+                </Badge>
+              </div>
+              {folder.description && (
+                <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">{folder.description}</p>
+              )}
+            </div>
           </div>
-          {folder.description && (
-            <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">{folder.description}</p>
+
+          {/* Quick Actions (Admin Only) */}
+          {userRole === 'ADMIN' && (
+            <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+              <CreateFolderDialog parentId={folder.id} />
+              <CreateItemDialog folderId={folder.id} parameterDefinitions={allParams} />
+              <LinkExistingItemDialog folderId={folder.id} folderName={folder.name} />
+              <ManageParametersDialog
+                folderId={folder.id}
+                folderName={folder.name}
+                existingParameters={folder.parameterDefinitions}
+              />
+            </div>
           )}
         </div>
-
-        {/* Top Right: Manage Parameters & Quick Actions */}
-        {userRole === 'ADMIN' && (
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <CreateFolderDialog parentId={folder.id} />
-            <CreateItemDialog folderId={folder.id} parameterDefinitions={allParams} />
-            <LinkExistingItemDialog folderId={folder.id} folderName={folder.name} />
-            <ManageParametersDialog
-              folderId={folder.id}
-              folderName={folder.name}
-              existingParameters={folder.parameterDefinitions}
-            />
-          </div>
-        )}
       </div>
 
       {/* Inherited Parameter Specs Bar: Only visible to ADMIN (Hidden for Staff) */}
       {userRole === 'ADMIN' && allParams.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           {allParams.map((param) => (
-            <Badge key={param.id} variant="outline" className="shrink-0 text-[11px] sm:text-xs gap-1.5 bg-slate-50 border-border/80 text-foreground py-0.5 px-2 rounded-lg shadow-2xs">
+            <Badge key={param.id} variant="outline" className="shrink-0 text-[11px] sm:text-xs gap-1.5 bg-muted/50 border-border/80 text-foreground py-0.5 px-2 rounded-lg shadow-2xs">
               <Tag className="h-2.5 w-2.5 text-primary" />
               <span className="font-semibold">{param.name}</span>
               <span className="text-muted-foreground font-normal">({param.folder.name})</span>

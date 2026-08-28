@@ -61,7 +61,7 @@ export function AutoSuggestPanel({ purchaseLists }: AutoSuggestPanelProps) {
   };
 
   return (
-    <Card className="rounded-3xl border border-border/80 bg-card shadow-2xs mb-6">
+    <Card className="rounded-3xl border border-border/80 bg-card shadow-sm-2xs mb-6">
       <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border">
         <div>
           <CardTitle className="text-base font-black flex items-center gap-2 text-foreground">
@@ -85,7 +85,7 @@ export function AutoSuggestPanel({ purchaseLists }: AutoSuggestPanelProps) {
           ) : (
             <div className="space-y-3">
               {suggestions.map((item) => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl border border-border/80 bg-slate-50/80">
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl border border-border/80 bg-muted/80">
                   <div>
                     <h4 className="font-bold text-xs text-foreground">{item.name}</h4>
                     {item.description && (
@@ -98,7 +98,7 @@ export function AutoSuggestPanel({ purchaseLists }: AutoSuggestPanelProps) {
                       {item.isOutOfStock ? (
                         <Badge variant="destructive" className="text-[10px] py-0">Out of Stock</Badge>
                       ) : (
-                        <Badge className="text-[10px] py-0 bg-amber-50 text-amber-700 border-amber-300">≤ 1 Remaining</Badge>
+                        <Badge className="text-[10px] py-0 bg-amber-50/80 text-amber-700 border-amber-300">≤ 1 Remaining</Badge>
                       )}
                     </div>
                   </div>
@@ -106,14 +106,18 @@ export function AutoSuggestPanel({ purchaseLists }: AutoSuggestPanelProps) {
                   <div className="flex items-center gap-2">
                     <Select
                       value={selectedLists[item.id] || ''}
-                      onValueChange={(val: string | null) => { if (val) setSelectedLists((prev) => ({ ...prev, [item.id]: val })); }}
+                      onValueChange={(val: string | null) => {
+                        if (val) setSelectedLists((prev) => ({ ...prev, [item.id]: val }));
+                      }}
                     >
-                      <SelectTrigger className="w-[180px] h-8 text-xs bg-white rounded-xl">
-                        <SelectValue placeholder="Select List..." />
+                      <SelectTrigger className="w-[180px] h-8 text-xs bg-white rounded-xl cursor-pointer">
+                        <SelectValue placeholder="Select List...">
+                          {purchaseLists.find((l) => l.id === selectedLists[item.id])?.title || 'Select List...'}
+                        </SelectValue>
                       </SelectTrigger>
-                      <SelectContent className="bg-background border-border text-xs">
+                      <SelectContent className="bg-white border-border text-xs z-50">
                         {purchaseLists.map((list) => (
-                          <SelectItem key={list.id} value={list.id} className="text-xs">
+                          <SelectItem key={list.id} value={list.id} className="text-xs cursor-pointer">
                             {list.title}
                           </SelectItem>
                         ))}

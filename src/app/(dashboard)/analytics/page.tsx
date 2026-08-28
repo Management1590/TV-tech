@@ -69,7 +69,7 @@ export default async function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-        <Card className="bg-card border border-border shadow-blend">
+        <Card className="bg-card border border-border shadow-sm-blend">
           <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
             <CardTitle className="text-[10px] sm:text-xs uppercase font-medium text-muted-foreground truncate">Total Catalog Items</CardTitle>
           </CardHeader>
@@ -78,7 +78,7 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-blend">
+        <Card className="bg-card border border-border shadow-sm-blend">
           <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
             <CardTitle className="text-[10px] sm:text-xs uppercase font-medium text-muted-foreground truncate">Out of Stock</CardTitle>
           </CardHeader>
@@ -87,7 +87,7 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-blend">
+        <Card className="bg-card border border-border shadow-sm-blend">
           <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
             <CardTitle className="text-[10px] sm:text-xs uppercase font-medium text-muted-foreground truncate">Low Stock Alert</CardTitle>
           </CardHeader>
@@ -96,7 +96,7 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-blend">
+        <Card className="bg-card border border-border shadow-sm-blend">
           <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
             <CardTitle className="text-[10px] sm:text-xs uppercase font-medium text-muted-foreground truncate">Est. Margin</CardTitle>
           </CardHeader>
@@ -108,7 +108,7 @@ export default async function AnalyticsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Most Selling Items */}
-        <Card className="bg-card border border-border shadow-blend">
+        <Card className="bg-card border border-border shadow-sm-blend">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-600" /> Top Selling Items
@@ -135,7 +135,7 @@ export default async function AnalyticsPage() {
         </Card>
 
         {/* Recent Stock Activity */}
-        <Card className="bg-card border border-border shadow-blend">
+        <Card className="bg-card border border-border shadow-sm-blend">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart2 className="h-4 w-4 text-primary" /> Recent Stock Movements

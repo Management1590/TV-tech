@@ -115,14 +115,14 @@ export function FilteredItemGrid({
           {Array.from({ length: Math.min(4, items.length - visibleCount) }).map((_, i) => (
             <div
               key={i}
-              className="glass-card overflow-hidden rounded-2xl border border-border/80 bg-slate-50/70 shadow-blend flex flex-col justify-between"
+              className="glass-card overflow-hidden rounded-2xl border border-border/80 bg-muted/50 shadow-blend flex flex-col justify-between"
             >
-              <div className="aspect-[16/10] w-full bg-slate-200/80 animate-pulse" />
+              <div className="aspect-[16/10] w-full bg-muted/80 animate-pulse" />
               <div className="p-4 space-y-3 bg-white/95">
-                <Skeleton className="h-4 w-3/4 bg-slate-100 rounded-md" />
+                <Skeleton className="h-4 w-3/4 bg-muted rounded-md" />
                 <div className="flex gap-2">
-                  <Skeleton className="h-3 w-16 bg-slate-100 rounded" />
-                  <Skeleton className="h-4 w-12 bg-slate-100 rounded" />
+                  <Skeleton className="h-3 w-16 bg-muted rounded" />
+                  <Skeleton className="h-4 w-12 bg-muted rounded" />
                 </div>
               </div>
             </div>
@@ -138,7 +138,7 @@ export function FilteredItemGrid({
             variant="outline"
             onClick={loadNextChunk}
             disabled={isLoadingMore}
-            className="text-xs font-semibold rounded-xl bg-white hover:bg-slate-50 border-border/80 text-muted-foreground gap-2 cursor-pointer"
+            className="text-xs font-semibold rounded-xl bg-white hover:bg-muted/50 border-border/80 text-muted-foreground gap-2 cursor-pointer"
           >
             {isLoadingMore ? (
               <>
