@@ -1165,7 +1165,9 @@ export function ItemProductShowcase({
       {/* PERMANENT FLOATING BOTTOM ACTION BAR (Stock Movement + Selected Code Price) */}
       {/* ========================================================================= */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-border/80 shadow-[0_-8px_30px_rgba(0,0,0,0.10)] transition-all duration-300"
+        className={`fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-border/80 shadow-[0_-8px_30px_rgba(0,0,0,0.10)] transition-all duration-300 ${
+          isLightboxOpen ? 'hidden' : ''
+        }`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2.5 sm:gap-3">

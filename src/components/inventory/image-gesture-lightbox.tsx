@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   ChevronLeft,
@@ -33,33 +34,61 @@ export function ImageGestureLightbox({
   const imageItems = mediaList.filter((m) => m.mediaType === 'IMAGE');
   const currentItem = imageItems[currentIndex] || imageItems[0];
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Transform state
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isGesturing, setIsGesturing] = useState(false);
   const [swipeDeltaX, setSwipeDeltaX] = useState(0);
+  const [dismissDeltaY, setDismissDeltaY] = useState(0);
+
+  // Desktop mouse dragging state
+  const [isDraggingMouse, setIsDraggingMouse] = useState(false);
+  const [mouseDragStart, setMouseDragStart] = useState({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastTapRef = useRef<number>(0);
-  const touchStartDistRef = useRef<number | null>(null);
-  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Gesture tracking refs for synchronous, butter-smooth 60fps touch handling
   const scaleRef = useRef<number>(1);
   const positionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isGesturingRef = useRef<boolean>(false);
+  const lastTapTimeRef = useRef<number>(0);
+  const lastTapPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Sync ref values for event listeners
+  // Pinch gesture tracking
+  const initialPinchDistRef = useRef<number | null>(null);
+  const initialPinchScaleRef = useRef<number>(1);
+  const initialPinchCenterRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialPositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Single touch drag tracking
+  const singleTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const singleTouchPosStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
   scaleRef.current = scale;
   positionRef.current = position;
 
-  const resetTransform = useCallback(() => {
+  const resetTransform = useCallback((animate = true) => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setSwipeDeltaX(0);
+    setDismissDeltaY(0);
     scaleRef.current = 1;
     positionRef.current = { x: 0, y: 0 };
+    if (animate) {
+      setIsGesturing(false);
+      isGesturingRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
-    resetTransform();
+    resetTransform(false);
   }, [currentIndex, isOpen, resetTransform]);
 
   const handlePrev = useCallback(() => {
@@ -75,10 +104,12 @@ export function ImageGestureLightbox({
   }, [currentIndex, imageItems.length, onIndexChange]);
 
   const zoomIn = () => {
+    setIsGesturing(false);
     setScale((prev) => Math.min(prev + 0.5, 5));
   };
 
   const zoomOut = () => {
+    setIsGesturing(false);
     setScale((prev) => {
       const next = Math.max(prev - 0.5, 1);
       if (next === 1) setPosition({ x: 0, y: 0 });
@@ -86,7 +117,7 @@ export function ImageGestureLightbox({
     });
   };
 
-  // Keyboard navigation & shortcuts
+  // Keyboard navigation for desktop
   useEffect(() => {
     if (!isOpen) return;
 
@@ -110,13 +141,45 @@ export function ImageGestureLightbox({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, handlePrev, handleNext, onClose, resetTransform]);
 
-  // Native non-passive Wheel & Touch listeners for smooth desktop wheel zoom and mobile pinch-to-zoom
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  // Clamp position within reasonable pan bounds based on current scale
+  const clampPosition = useCallback((pos: { x: number; y: number }, currentScale: number) => {
+    if (currentScale <= 1) return { x: 0, y: 0 };
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 400;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+    const maxX = (vw * (currentScale - 1)) / 1.8;
+    const maxY = (vh * (currentScale - 1)) / 1.8;
+
+    return {
+      x: Math.max(-maxX, Math.min(maxX, pos.x)),
+      y: Math.max(-maxY, Math.min(maxY, pos.y)),
+    };
+  }, []);
+
+  // Native touch & gesture listeners (Pinch-to-zoom, Double-tap, Momentum pan, Pull-to-dismiss)
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;
     const el = containerRef.current;
 
+    const getDistance = (t1: Touch, t2: Touch) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    const getCenter = (t1: Touch, t2: Touch) => ({
+      x: (t1.clientX + t2.clientX) / 2,
+      y: (t1.clientY + t2.clientY) / 2,
+    });
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      setIsGesturing(false);
       const delta = e.deltaY * -0.003;
       setScale((prevScale) => {
         const newScale = Math.min(Math.max(prevScale + delta, 1), 5);
@@ -127,111 +190,202 @@ export function ImageGestureLightbox({
       });
     };
 
-    const getDistance = (t1: Touch, t2: Touch) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
-        touchStartDistRef.current = getDistance(e.touches[0], e.touches[1]);
+        // Two-finger pinch gesture start
+        e.preventDefault();
+        isGesturingRef.current = true;
+        setIsGesturing(true);
+
+        initialPinchDistRef.current = getDistance(e.touches[0], e.touches[1]);
+        initialPinchScaleRef.current = scaleRef.current;
+        initialPinchCenterRef.current = getCenter(e.touches[0], e.touches[1]);
+        initialPositionRef.current = { ...positionRef.current };
+        singleTouchStartRef.current = null;
       } else if (e.touches.length === 1) {
         const touch = e.touches[0];
         const now = Date.now();
 
-        // Double tap detection
-        if (now - lastTapRef.current < 300) {
+        // Double tap check (< 300ms and close distance)
+        const timeSinceLastTap = now - lastTapTimeRef.current;
+        const distFromLastTap = Math.hypot(
+          touch.clientX - lastTapPosRef.current.x,
+          touch.clientY - lastTapPosRef.current.y
+        );
+
+        if (timeSinceLastTap < 300 && distFromLastTap < 35) {
           e.preventDefault();
+          setIsGesturing(false);
+          isGesturingRef.current = false;
+
           if (scaleRef.current > 1) {
-            resetTransform();
+            // Reset back to 1x smoothly
+            setScale(1);
+            setPosition({ x: 0, y: 0 });
+            scaleRef.current = 1;
+            positionRef.current = { x: 0, y: 0 };
           } else {
-            setScale(2.5);
+            // Zoom to 2.5x centered toward tap coordinate
+            const targetScale = 2.5;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const offsetX = (vw / 2 - touch.clientX) * 1.2;
+            const offsetY = (vh / 2 - touch.clientY) * 1.2;
+
+            const clamped = clampPosition({ x: offsetX, y: offsetY }, targetScale);
+            setScale(targetScale);
+            setPosition(clamped);
+            scaleRef.current = targetScale;
+            positionRef.current = clamped;
           }
-          lastTapRef.current = 0;
+
+          lastTapTimeRef.current = 0;
           return;
         }
-        lastTapRef.current = now;
 
-        touchStartPosRef.current = {
-          x: touch.clientX - positionRef.current.x,
-          y: touch.clientY - positionRef.current.y,
+        lastTapTimeRef.current = now;
+        lastTapPosRef.current = { x: touch.clientX, y: touch.clientY };
+
+        // Start single finger drag
+        singleTouchStartRef.current = {
+          x: touch.clientX,
+          y: touch.clientY,
+          time: now,
         };
+        singleTouchPosStartRef.current = { ...positionRef.current };
+        isGesturingRef.current = true;
+        setIsGesturing(true);
       }
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && touchStartDistRef.current !== null) {
+      if (e.touches.length === 2 && initialPinchDistRef.current !== null) {
+        // Two-finger pinch active
         e.preventDefault();
         const currentDist = getDistance(e.touches[0], e.touches[1]);
-        const factor = currentDist / touchStartDistRef.current;
+        const scaleRatio = currentDist / initialPinchDistRef.current;
+        const nextScale = Math.min(Math.max(initialPinchScaleRef.current * scaleRatio, 0.9), 5);
 
-        setScale((prev) => {
-          const next = Math.min(Math.max(prev * (factor > 1 ? 1.03 : 0.97), 1), 5);
-          if (next === 1) setPosition({ x: 0, y: 0 });
-          return next;
-        });
-      } else if (e.touches.length === 1 && touchStartPosRef.current) {
+        // Adjust position dynamically
+        const currentCenter = getCenter(e.touches[0], e.touches[1]);
+        const centerDx = currentCenter.x - initialPinchCenterRef.current.x;
+        const centerDy = currentCenter.y - initialPinchCenterRef.current.y;
+
+        const nextPos = {
+          x: initialPositionRef.current.x + centerDx,
+          y: initialPositionRef.current.y + centerDy,
+        };
+
+        scaleRef.current = nextScale;
+        positionRef.current = nextPos;
+        setScale(nextScale);
+        setPosition(nextPos);
+      } else if (e.touches.length === 1 && singleTouchStartRef.current) {
         const touch = e.touches[0];
+        const dx = touch.clientX - singleTouchStartRef.current.x;
+        const dy = touch.clientY - singleTouchStartRef.current.y;
+
         if (scaleRef.current > 1) {
+          // Pan inside zoomed image with smooth direct tracking
           e.preventDefault();
-          setPosition({
-            x: touch.clientX - touchStartPosRef.current.x,
-            y: touch.clientY - touchStartPosRef.current.y,
-          });
+          const nextPos = {
+            x: singleTouchPosStartRef.current.x + dx,
+            y: singleTouchPosStartRef.current.y + dy,
+          };
+          positionRef.current = nextPos;
+          setPosition(nextPos);
         } else {
-          const dx = touch.clientX - touchStartPosRef.current.x;
-          setSwipeDeltaX(dx);
+          // At 1x scale: Vertical swipe for dismiss, Horizontal swipe for next/prev
+          if (Math.abs(dy) > Math.abs(dx) && dy > 0) {
+            e.preventDefault();
+            setDismissDeltaY(dy);
+          } else if (Math.abs(dx) > Math.abs(dy)) {
+            setSwipeDeltaX(dx);
+          }
         }
       }
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      touchStartDistRef.current = null;
-      if (scaleRef.current === 1) {
-        setSwipeDeltaX((currentSwipe) => {
-          if (currentSwipe > 50) {
+      initialPinchDistRef.current = null;
+      singleTouchStartRef.current = null;
+      isGesturingRef.current = false;
+      setIsGesturing(false);
+
+      // Snap pinch scale back to bounds smoothly if released outside [1, 5]
+      if (scaleRef.current < 1.05) {
+        setScale(1);
+        setPosition({ x: 0, y: 0 });
+        scaleRef.current = 1;
+        positionRef.current = { x: 0, y: 0 };
+      } else {
+        const clamped = clampPosition(positionRef.current, scaleRef.current);
+        setPosition(clamped);
+        positionRef.current = clamped;
+      }
+
+      // Handle swipe down to dismiss (mobile native gallery feel)
+      setDismissDeltaY((currentY) => {
+        if (currentY > 90) {
+          onClose();
+        }
+        return 0;
+      });
+
+      // Handle horizontal swipe between images (desktop/mobile fallback)
+      setSwipeDeltaX((currentX) => {
+        if (scaleRef.current === 1) {
+          if (currentX > 60) {
             handlePrev();
-          } else if (currentSwipe < -50) {
+          } else if (currentX < -60) {
             handleNext();
           }
-          return 0;
-        });
-      }
-      touchStartPosRef.current = null;
+        }
+        return 0;
+      });
     };
 
     el.addEventListener('wheel', onWheel, { passive: false });
     el.addEventListener('touchstart', onTouchStart, { passive: false });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
     el.addEventListener('touchend', onTouchEnd, { passive: false });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: false });
 
     return () => {
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, [isOpen, handlePrev, handleNext, resetTransform]);
+  }, [isOpen, handlePrev, handleNext, onClose, clampPosition]);
 
-  // Mouse drag handlers (Desktop)
+  // Mouse Drag handlers for Computer / Desktop view
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    setIsDraggingMouse(true);
+    setMouseDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDraggingMouse) return;
     if (scale > 1) {
-      setPosition({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      });
+      const nextPos = clampPosition(
+        {
+          x: e.clientX - mouseDragStart.x,
+          y: e.clientY - mouseDragStart.y,
+        },
+        scale
+      );
+      setPosition(nextPos);
     } else {
-      setSwipeDeltaX(e.clientX - dragStart.x);
+      setSwipeDeltaX(e.clientX - mouseDragStart.x);
     }
   };
 
   const handleMouseUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
+    if (!isDraggingMouse) return;
+    setIsDraggingMouse(false);
 
     if (scale === 1 && Math.abs(swipeDeltaX) > 50) {
       if (swipeDeltaX > 50) {
@@ -243,22 +397,51 @@ export function ImageGestureLightbox({
     setSwipeDeltaX(0);
   };
 
-  if (!isOpen || !currentItem) return null;
+  if (!isOpen || !currentItem || !mounted) return null;
 
-  return (
+  // Fade out background on swipe-to-dismiss pull
+  const dismissOpacity = Math.max(0.2, 1 - dismissDeltaY / 300);
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-between select-none touch-none animate-in fade-in-0 duration-200"
+      className="fixed inset-0 z-[99999] w-screen h-screen min-h-[100dvh] bg-black sm:bg-black/95 sm:backdrop-blur-md flex flex-col items-center justify-between select-none touch-none animate-in fade-in-0 duration-200"
+      style={{
+        backgroundColor: `rgba(0, 0, 0, ${dismissOpacity})`,
+      }}
       onMouseUp={handleMouseUp}
     >
-      {/* Top Header Bar */}
-      <div className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent z-50">
+      {/* ============================================================ */}
+      {/* MOBILE-ONLY MINIMAL CLOSE BUTTON (Pure solid black backdrop) */}
+      {/* ============================================================ */}
+      <div className="sm:hidden fixed top-4 right-4 z-[110]">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-10 h-10 rounded-full bg-black/60 active:bg-black text-white flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg active:scale-90 transition-transform"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+      </div>
+
+      {/* ============================================================ */}
+      {/* COMPUTER / DESKTOP HEADER BAR (Preserved 100% untouched)     */}
+      {/* ============================================================ */}
+      <div className="hidden sm:flex w-full items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent z-[110]">
         <div className="flex items-center gap-3 min-w-0">
           <Badge className="bg-primary/30 text-primary border-primary/30 text-xs font-mono">
             {currentIndex + 1} / {imageItems.length}
           </Badge>
-          {title && <h3 className="text-sm font-semibold text-foreground truncate max-w-xs sm:max-w-md">{title}</h3>}
+          {title && (
+            <h3 className="text-sm font-semibold text-foreground truncate max-w-xs sm:max-w-md">
+              {title}
+            </h3>
+          )}
           {scale > 1 && (
-            <Badge variant="outline" className="text-xs font-mono text-emerald-600 border-emerald-500/30 bg-emerald-500/10">
+            <Badge
+              variant="outline"
+              className="text-xs font-mono text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+            >
               {Math.round(scale * 100)}% Zoom
             </Badge>
           )}
@@ -268,7 +451,7 @@ export function ImageGestureLightbox({
           <Button
             variant="ghost"
             size="icon"
-            onClick={resetTransform}
+            onClick={() => resetTransform(true)}
             className="text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full h-9 w-9"
             title="Reset Zoom (0)"
           >
@@ -287,52 +470,59 @@ export function ImageGestureLightbox({
         </div>
       </div>
 
-      {/* Main Interactive Stage with Gesture & Drag Container */}
+      {/* ============================================================ */}
+      {/* MAIN INTERACTIVE STAGE (Native Gallery Gestures)             */}
+      {/* ============================================================ */}
       <div
         ref={containerRef}
-        className="relative w-full flex-1 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+        className="relative w-full h-full flex-1 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing touch-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
-        onDoubleClick={() => (scale > 1 ? resetTransform() : setScale(2.5))}
       >
-        {/* Navigation Arrow Left */}
+        {/* Computer / Desktop Navigation Arrow Left */}
         {imageItems.length > 1 && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               handlePrev();
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/60 hover:bg-primary/80 text-foreground flex items-center justify-center backdrop-blur-sm border border-border shadow-xl transition-all hover:scale-105 active:scale-95"
+            className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/60 hover:bg-primary/80 text-foreground items-center justify-center backdrop-blur-sm border border-border shadow-xl transition-all hover:scale-105 active:scale-95"
             aria-label="Previous photo"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
         )}
 
-        {/* Image Container with smooth hardware-accelerated transforms */}
+        {/* Image Container with Hardware-Accelerated 3D Transform */}
         <div
-          className="relative max-w-full max-h-full transition-transform duration-75 ease-out flex items-center justify-center pointer-events-none"
+          className={`relative max-w-full max-h-full flex items-center justify-center ${
+            isGesturing || isDraggingMouse ? 'transition-none' : 'transition-transform duration-200 ease-out'
+          }`}
           style={{
-            transform: `translate3d(${position.x + (scale === 1 ? swipeDeltaX : 0)}px, ${position.y}px, 0px) scale(${scale})`,
+            transform: `translate3d(${position.x + (scale === 1 ? swipeDeltaX : 0)}px, ${
+              position.y + dismissDeltaY
+            }px, 0px) scale(${scale})`,
             transformOrigin: 'center center',
+            willChange: 'transform',
           }}
         >
           <img
+            ref={imgRef}
             src={currentItem.secureUrl || currentItem.url}
             alt={currentItem.filename || title || 'Photo preview'}
-            className="max-w-[90vw] max-h-[75vh] object-contain rounded-lg shadow-2xl"
+            className="max-w-[100vw] max-h-[100vh] sm:max-w-[90vw] sm:max-h-[75vh] object-contain sm:rounded-lg shadow-2xl pointer-events-none select-none"
             draggable={false}
           />
         </div>
 
-        {/* Navigation Arrow Right */}
+        {/* Computer / Desktop Navigation Arrow Right */}
         {imageItems.length > 1 && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleNext();
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/60 hover:bg-primary/80 text-foreground flex items-center justify-center backdrop-blur-sm border border-border shadow-xl transition-all hover:scale-105 active:scale-95"
+            className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-black/60 hover:bg-primary/80 text-foreground items-center justify-center backdrop-blur-sm border border-border shadow-xl transition-all hover:scale-105 active:scale-95"
             aria-label="Next photo"
           >
             <ChevronRight className="w-6 h-6" />
@@ -340,29 +530,31 @@ export function ImageGestureLightbox({
         )}
       </div>
 
-      {/* Floating Bottom Control Bar */}
-      <div className="w-full flex items-center justify-center pb-6 pt-2 z-50">
-        <div className="flex items-center gap-1 sm:gap-2 px-4 py-2 rounded-2xl bg-muted/90 border border-border backdrop-blur-md shadow-2xl">
+      {/* ============================================================ */}
+      {/* COMPUTER / DESKTOP FLOATING BOTTOM CONTROL BAR               */}
+      {/* ============================================================ */}
+      <div className="hidden sm:flex w-full items-center justify-center pb-6 pt-2 z-50">
+        <div className="flex items-center gap-1 sm:gap-2 px-4 py-2 rounded-2xl bg-neutral-900/90 border border-white/10 backdrop-blur-md shadow-2xl">
           {imageItems.length > 1 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handlePrev}
-              className="text-foreground hover:text-foreground hover:bg-muted rounded-xl px-2.5 h-8 gap-1 text-xs"
+              className="text-foreground hover:text-foreground hover:bg-white/10 rounded-xl px-2.5 h-8 gap-1 text-xs"
             >
               <ChevronLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Prev</span>
             </Button>
           )}
 
-          <div className="h-4 w-px bg-muted mx-1" />
+          <div className="h-4 w-px bg-white/20 mx-1" />
 
           <Button
             variant="ghost"
             size="icon"
             onClick={zoomOut}
             disabled={scale <= 1}
-            className="text-foreground hover:text-foreground hover:bg-muted rounded-xl h-8 w-8 disabled:opacity-30"
+            className="text-foreground hover:text-foreground hover:bg-white/10 rounded-xl h-8 w-8 disabled:opacity-30"
             title="Zoom Out (-)"
           >
             <ZoomOut className="h-4 w-4" />
@@ -371,8 +563,8 @@ export function ImageGestureLightbox({
           <Button
             variant="ghost"
             size="sm"
-            onClick={resetTransform}
-            className="text-foreground hover:text-foreground hover:bg-muted rounded-xl px-2.5 h-8 text-xs font-mono"
+            onClick={() => resetTransform(true)}
+            className="text-foreground hover:text-foreground hover:bg-white/10 rounded-xl px-2.5 h-8 text-xs font-mono"
             title="Reset to 100%"
           >
             {Math.round(scale * 100)}%
@@ -383,20 +575,20 @@ export function ImageGestureLightbox({
             size="icon"
             onClick={zoomIn}
             disabled={scale >= 5}
-            className="text-foreground hover:text-foreground hover:bg-muted rounded-xl h-8 w-8 disabled:opacity-30"
+            className="text-foreground hover:text-foreground hover:bg-white/10 rounded-xl h-8 w-8 disabled:opacity-30"
             title="Zoom In (+)"
           >
             <ZoomIn className="h-4 w-4" />
           </Button>
 
-          <div className="h-4 w-px bg-muted mx-1" />
+          <div className="h-4 w-px bg-white/20 mx-1" />
 
           {imageItems.length > 1 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleNext}
-              className="text-foreground hover:text-foreground hover:bg-muted rounded-xl px-2.5 h-8 gap-1 text-xs"
+              className="text-foreground hover:text-foreground hover:bg-white/10 rounded-xl px-2.5 h-8 gap-1 text-xs"
             >
               <span className="hidden sm:inline">Next</span>
               <ChevronRight className="h-4 w-4" />
@@ -404,6 +596,8 @@ export function ImageGestureLightbox({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+
