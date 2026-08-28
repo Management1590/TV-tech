@@ -36,7 +36,15 @@ function getOrCreatePrismaClient(): PrismaClient {
   }
 
   if (connectionString) {
-    const pool = new Pool({ connectionString });
+    const pool = new Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+    });
+    pool.on('error', (err) => {
+      console.warn('PostgreSQL pool event warning:', err?.message);
+    });
     const adapter = new PrismaPg(pool);
     const client = new PrismaClient({
       adapter,

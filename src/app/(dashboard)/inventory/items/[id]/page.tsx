@@ -70,8 +70,10 @@ export default async function ItemDetailPage({
 
   if (!item) return notFound();
 
-  // Record item view asynchronously for popularity tracking
-  recordItemView(item.id, user?.id).catch(() => {});
+  // Record item view for popularity tracking
+  try {
+    await recordItemView(item.id, user?.id);
+  } catch {}
 
   // Fetch effective parameter definitions from all folders this item is linked to
   const effectiveDefsMap = new Map<string, any>();
