@@ -28,44 +28,6 @@ function getDatabaseConnectionString(): string | undefined {
   return process.env.DATABASE_URL;
 }
 
-function resetClient() {
-  if (globalForPrisma.pool) {
-    try {
-      globalForPrisma.pool.end().catch(() => {});
-    } catch {}
-  }
-  globalForPrisma.prisma = undefined;
-  globalForPrisma.pool = undefined;
-  globalForPrisma.currentConnStr = undefined;
-}
-
-function createFreshPrismaClient(connectionString: string): PrismaClient {
-  const pool = new Pool({
-    connectionString,
-    max: 10,
-    idleTimeoutMillis: 1000,
-    connectionTimeoutMillis: 5000,
-  });
-
-  pool.on('error', (err) => {
-    console.warn('[PostgreSQL Pool Warning]:', err?.message);
-    if (err?.message?.includes('closed') || err?.message?.includes('terminat')) {
-      resetClient();
-    }
-  });
-
-  const adapter = new PrismaPg(pool);
-  const client = new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
-
-  globalForPrisma.prisma = client;
-  globalForPrisma.pool = pool;
-  globalForPrisma.currentConnStr = connectionString;
-  return client;
-}
-
 function getOrCreatePrismaClient(): PrismaClient {
   const connectionString = getDatabaseConnectionString();
 
@@ -74,7 +36,16 @@ function getOrCreatePrismaClient(): PrismaClient {
   }
 
   if (connectionString) {
-    return createFreshPrismaClient(connectionString);
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    const client = new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
+    globalForPrisma.prisma = client;
+    globalForPrisma.pool = pool;
+    globalForPrisma.currentConnStr = connectionString;
+    return client;
   }
 
   const defaultClient = new PrismaClient({
@@ -85,47 +56,13 @@ function getOrCreatePrismaClient(): PrismaClient {
 }
 
 export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, modelOrProp: string | symbol) {
+  get(_target, prop: string | symbol) {
     const client = getOrCreatePrismaClient();
-    const modelObj = (client as any)[modelOrProp];
-
-    if (typeof modelObj === 'object' && modelObj !== null) {
-      // Transparently retry on stale Hyperdrive connection drops
-      return new Proxy(modelObj, {
-        get(modelTarget, action: string | symbol) {
-          const originalFn = (modelTarget as any)[action];
-          if (typeof originalFn === 'function') {
-            return async function (...args: any[]) {
-              try {
-                return await originalFn.apply(modelTarget, args);
-              } catch (err: any) {
-                const msg = err?.message || String(err);
-                if (
-                  msg.includes('closed') ||
-                  msg.includes('terminat') ||
-                  msg.includes('Connection closed') ||
-                  msg.includes('ECONNRESET') ||
-                  msg.includes('Connection terminated')
-                ) {
-                  console.warn('[Prisma Auto-Reconnect on Idle Drop]:', msg);
-                  resetClient();
-                  const freshClient = getOrCreatePrismaClient();
-                  const freshModel = (freshClient as any)[modelOrProp];
-                  return await freshModel[action](...args);
-                }
-                throw err;
-              }
-            };
-          }
-          return originalFn;
-        },
-      });
+    const val = (client as any)[prop];
+    if (typeof val === 'function') {
+      return val.bind(client);
     }
-
-    if (typeof modelObj === 'function') {
-      return modelObj.bind(client);
-    }
-    return modelObj;
+    return val;
   },
 });
 

@@ -117,15 +117,15 @@ export default async function NestedFolderViewPage(props: {
 
   if (!folder) return notFound();
 
-  // Increment folder open count safely for "Most Opened" directory ranking
-  try {
-    await prisma.folder.update({
+  // Increment folder open count asynchronously for "Most Opened" directory ranking
+  prisma.folder
+    .update({
       where: { id: folder.id },
       data: { openCount: { increment: 1 } },
+    })
+    .catch((err) => {
+      console.error('[FOLDER OPEN TRACKING ERROR]', err);
     });
-  } catch (err) {
-    console.warn('[FOLDER OPEN TRACKING WARNING]', err);
-  }
 
   // Run dynamic subtree filter scoped to this folder & its descendant subfolders
   const filterResult = await filterUniversalInventoryItems({
