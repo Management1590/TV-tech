@@ -64,14 +64,19 @@ export async function createMediaAttachment(input: CreateMediaInput): Promise<Me
       },
     });
 
-    // 3. Link to target entity via EntityMedia junction table
-    const sortOrder = input.purpose === 'PRIMARY' ? 0 : 1;
+    // 3. Link to target entity via EntityMedia junction table (assign next sortOrder so new items take last place)
+    const maxSort = await tx.entityMedia.aggregate({
+      where: { entityId: input.entityId },
+      _max: { sortOrder: true },
+    });
+    const nextSortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+
     await tx.entityMedia.create({
       data: {
         entityId: input.entityId,
         mediaId: media.id,
         purpose: input.purpose || 'GALLERY',
-        sortOrder,
+        sortOrder: input.purpose === 'PRIMARY' ? 0 : nextSortOrder,
       },
     });
 

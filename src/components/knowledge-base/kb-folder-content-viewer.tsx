@@ -1299,7 +1299,7 @@ export function KbFolderContentViewer({
                 <VoiceRecorderWidget
                   entityId={entityId}
                   onRecordingComplete={(newMedia) => {
-                    setMediaList((prev) => [newMedia, ...prev]);
+                    setMediaList((prev) => [...prev, newMedia]);
                   }}
                   disabled={isUploadingMedia}
                 />
@@ -1648,7 +1648,8 @@ export function KbFolderContentViewer({
         folderName={folderName}
         modelName={modelName}
         onMediaUploaded={(newMedia) => {
-          setMediaList((prev) => [newMedia, ...prev]);
+          setMediaList((prev) => [...prev, newMedia]);
+          setVisibleMediaCount((prev) => prev + 5);
         }}
       />
 
