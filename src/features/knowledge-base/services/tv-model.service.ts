@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma';
 import { TvModel } from '@prisma/client';
 import { ensureEntityType } from '@/lib/ensure-entity-types';
+import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
 
 export interface CreateTvModelInput {
   brandId: string;
@@ -33,10 +34,22 @@ function generateSlug(str: string): string {
 
 /**
  * Creates a TV Model record, registers it in Entity Registry,
- * and auto-creates the 7 default system Knowledge Folders (RD-4).
+ * and auto-creates the 2 default system Knowledge Folders (Backlight & More info).
  */
 export async function createTvModel(input: CreateTvModelInput): Promise<TvModel> {
-  const slug = generateSlug(input.modelNumber);
+  const cleanNumber = input.modelNumber.trim().toUpperCase();
+
+  // Validate duplicate / 8-character sequential match against existing models in the same Brand directory
+  const existingModels = await prisma.tvModel.findMany({
+    where: { brandId: input.brandId },
+    select: { modelNumber: true },
+  });
+  const collision = validateNameSimilarity(cleanNumber, existingModels.map((m) => m.modelNumber), 'Model');
+  if (collision.hasConflict) {
+    throw new Error(collision.message);
+  }
+
+  const slug = generateSlug(cleanNumber);
 
   return await prisma.$transaction(async (tx) => {
     // 0. Ensure EntityTypes exist
@@ -47,8 +60,8 @@ export async function createTvModel(input: CreateTvModelInput): Promise<TvModel>
     const entity = await tx.entity.create({
       data: {
         entityTypeCode: 'TV_MODEL',
-        displayName: input.modelNumber,
-        searchText: `${input.modelNumber} ${input.chassisNo || ''} ${input.displayType || ''} ${input.notes || ''}`.trim(),
+        displayName: cleanNumber,
+        searchText: `${cleanNumber} ${input.chassisNo || ''} ${input.displayType || ''} ${input.notes || ''}`.trim(),
       },
     });
 
@@ -57,7 +70,7 @@ export async function createTvModel(input: CreateTvModelInput): Promise<TvModel>
       data: {
         entityId: entity.id,
         brandId: input.brandId,
-        modelNumber: input.modelNumber,
+        modelNumber: cleanNumber,
         slug,
         screenSize: input.screenSize,
         displayType: input.displayType,

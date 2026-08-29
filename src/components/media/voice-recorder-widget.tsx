@@ -209,7 +209,7 @@ export function VoiceRecorderWidget({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 w-full sm:w-auto">
       {!isRecording && !isUploading ? (
         /* ========================================================================= */
         /* IDLE STATE: TAP TO RECORD BUTTON                                          */
@@ -218,13 +218,13 @@ export function VoiceRecorderWidget({
           type="button"
           onClick={handleStartClick}
           disabled={disabled}
-          className="h-10 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2.5 cursor-pointer transition-all shadow-md shadow-violet-500/20 hover:shadow-lg active:scale-95 border border-white/20 select-none group"
+          className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer transition-all shadow-md shadow-violet-500/20 hover:shadow-lg active:scale-95 border border-white/20 select-none group w-full sm:w-auto"
           title="Tap to record voice note"
         >
-          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Mic className="w-3.5 h-3.5 text-white" />
+          <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+            <Mic className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
           </div>
-          <span>Record Voice Note</span>
+          <span className="truncate">Record Voice</span>
         </button>
       ) : isUploading ? (
         /* ========================================================================= */

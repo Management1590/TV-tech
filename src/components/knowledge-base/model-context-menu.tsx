@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useMemo } from 'react';
 import {
   MoreVertical,
   Pencil,
@@ -9,6 +9,7 @@ import {
   Loader2,
   Monitor,
   CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -34,6 +35,7 @@ import {
   renameTvModelAction,
   deleteTvModelAction,
 } from '@/features/knowledge-base/actions/kb.actions';
+import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
 
 interface ModelContextMenuProps {
   modelId: string;
@@ -42,6 +44,7 @@ interface ModelContextMenuProps {
   brandName?: string;
   folderCount?: number;
   userRole?: string;
+  existingModels?: string[];
 }
 
 export function ModelContextMenu({
@@ -51,6 +54,7 @@ export function ModelContextMenu({
   brandName,
   folderCount = 0,
   userRole = 'STAFF',
+  existingModels = [],
 }: ModelContextMenuProps) {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -61,6 +65,21 @@ export function ModelContextMenu({
 
   const [isPending, startTransition] = useTransition();
   const isAdmin = !!userRole;
+
+  // Filter out current model number from collision comparison
+  const otherModels = useMemo(() => {
+    return (existingModels || []).filter(
+      (m) => m.trim().toUpperCase() !== modelNumber.trim().toUpperCase()
+    );
+  }, [existingModels, modelNumber]);
+
+  // Real-time duplicate & similarity checking
+  const similarityResult = useMemo(() => {
+    if (!newModelNumber.trim() || otherModels.length === 0) {
+      return { level: 'NONE' as const, hasConflict: false, hasWarning: false };
+    }
+    return validateNameSimilarity(newModelNumber, otherModels, 'Model');
+  }, [newModelNumber, otherModels]);
 
   React.useEffect(() => {
     if (isRenameOpen) {
@@ -89,7 +108,7 @@ export function ModelContextMenu({
 
   const handleRename = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newModelNumber.trim()) return;
+    if (!newModelNumber.trim() || similarityResult.level === 'BLOCK') return;
 
     startTransition(async () => {
       const res = await renameTvModelAction(
@@ -99,7 +118,11 @@ export function ModelContextMenu({
       );
 
       if (res.success) {
-        toast.success(`Model updated to "${newModelNumber.trim().toUpperCase()}"`);
+        if (similarityResult.level === 'WARN') {
+          toast.success(`Model updated to "${newModelNumber.trim().toUpperCase()}" (Similar to: ${similarityResult.conflictingName})`);
+        } else {
+          toast.success(`Model updated to "${newModelNumber.trim().toUpperCase()}"`);
+        }
         setIsRenameOpen(false);
       } else {
         toast.error(res.error || 'Failed to rename model');
@@ -138,23 +161,33 @@ export function ModelContextMenu({
           className="w-56 rounded-2xl bg-white border border-border/80 shadow-xl p-1.5 z-30"
           onClick={(e) => e.stopPropagation()}
         >
+          <div className="px-2 py-1.5 border-b border-border/60 mb-1">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Model Actions
+            </p>
+            <p className="text-xs font-bold text-foreground truncate">{modelNumber}</p>
+          </div>
+
           <DropdownMenuItem
             onClick={() => setIsRenameOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted"
+            className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-muted cursor-pointer transition-colors"
           >
             <Pencil className="w-3.5 h-3.5 text-primary" />
             <span>Rename Model</span>
           </DropdownMenuItem>
 
-          <DropdownMenuSeparator className="my-1 border-border/60" />
-
-          <DropdownMenuItem
-            onClick={() => setIsDeleteOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Delete Model</span>
-          </DropdownMenuItem>
+          {isAdmin && (
+            <>
+              <DropdownMenuSeparator className="my-1 border-border/60" />
+              <DropdownMenuItem
+                onClick={() => setIsDeleteOpen(true)}
+                className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                <span>Delete Model</span>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -198,8 +231,44 @@ export function ModelContextMenu({
                   required
                   autoFocus
                   disabled={isPending}
-                  className="h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm font-bold tracking-wide"
+                  className={`h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
+                    similarityResult.level === 'BLOCK'
+                      ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
+                      : similarityResult.level === 'WARN'
+                      ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
+                      : 'border-border/80 focus-visible:ring-primary/30'
+                  }`}
                 />
+
+                {/* 8+ Match Restriction Banner */}
+                {similarityResult.level === 'BLOCK' && (
+                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-rose-900">
+                        {similarityResult.reason === 'EXACT_MATCH' ? 'Exact Duplicate Model' : 'Model Code Restricted (8+ Matching Characters)'}
+                      </p>
+                      <p className="text-[11px] text-rose-700 leading-relaxed">
+                        {similarityResult.message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5-7 Match Warning Banner with Proceed to Continue guidance */}
+                {similarityResult.level === 'WARN' && (
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-amber-900">
+                        Similar Model In Existence ({similarityResult.matchLength} Matching Characters: &quot;{similarityResult.matchedSequence}&quot;)
+                      </p>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        Shares sequence with existing model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>. You may proceed to save if intended.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* TV Screen Size */}
@@ -241,11 +310,22 @@ export function ModelContextMenu({
               </Button>
               <Button
                 type="submit"
-                disabled={isPending || !newModelNumber.trim()}
-                className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold gap-2 shadow-md shadow-blue-500/20"
+                disabled={isPending || !newModelNumber.trim() || similarityResult.level === 'BLOCK'}
+                className={`rounded-2xl text-xs h-10 px-5 text-white font-bold gap-2 shadow-md transition-all cursor-pointer ${
+                  similarityResult.level === 'WARN'
+                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/20'
+                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-blue-500/20'
+                }`}
               >
                 {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Save Changes
+                {similarityResult.level === 'WARN' ? (
+                  <>
+                    <span>Proceed & Save Changes</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                ) : (
+                  <span>Save Changes</span>
+                )}
               </Button>
             </DialogFooter>
           </form>

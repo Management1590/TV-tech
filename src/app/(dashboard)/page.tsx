@@ -243,38 +243,69 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Premium Navigation Action Bar */}
-      <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3">
+      {/* Premium Navigation Action Bar (Responsive Full-Width Grid) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
         {/* Knowledge Base */}
-        <Link href="/knowledge-base" className="group">
+        <Link href="/knowledge-base" className="group block">
           <Button
             variant="outline"
-            className="h-11 px-5 rounded-2xl bg-white hover:bg-muted/90 text-foreground border border-border/80 shadow-sm-2xs hover:shadow-sm-md hover:border-violet-300 hover:text-violet-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
+            className="w-full h-12 px-4 rounded-2xl bg-white hover:bg-violet-50/50 text-foreground border border-border/80 shadow-2xs hover:shadow-md hover:border-violet-300 hover:text-violet-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm flex items-center justify-between gap-3"
           >
-            <BookOpen className="mr-2.5 h-4 w-4 text-violet-500 group-hover:scale-110 transition-transform" />
-            Knowledge Base
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-violet-50 border border-violet-200/80 flex items-center justify-center shrink-0 text-violet-600 group-hover:scale-105 transition-transform">
+                <BookOpen className="h-4 w-4" />
+              </div>
+              <span className="truncate font-bold">Knowledge Base</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-violet-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
           </Button>
         </Link>
 
         {/* Inventory & Items */}
-        <Link href="/inventory" className="group">
+        <Link href="/inventory" className="group block">
           <Button
             variant="outline"
-            className="h-11 px-5 rounded-2xl bg-white hover:bg-muted/90 text-foreground border border-border/80 shadow-sm-2xs hover:shadow-sm-md hover:border-primary/25 hover:text-primary transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
+            className="w-full h-12 px-4 rounded-2xl bg-white hover:bg-primary/5 text-foreground border border-border/80 shadow-2xs hover:shadow-md hover:border-primary/30 hover:text-primary transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm flex items-center justify-between gap-3"
           >
-            <Package className="mr-2.5 h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-            Inventory & Items
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-center shrink-0 text-primary group-hover:scale-105 transition-transform">
+                <Package className="h-4 w-4" />
+              </div>
+              <span className="truncate font-bold">Inventory & Items</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
           </Button>
         </Link>
 
         {/* Purchase Manager */}
-        <Link href="/purchase-manager" className="group">
+        <Link href="/purchase-manager" className="group block">
           <Button
             variant="outline"
-            className="h-11 px-5 rounded-2xl bg-white hover:bg-muted/90 text-foreground border border-border/80 shadow-sm-2xs hover:shadow-sm-md hover:border-emerald-300 hover:text-emerald-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm"
+            className="w-full h-12 px-4 rounded-2xl bg-white hover:bg-emerald-50/50 text-foreground border border-border/80 shadow-2xs hover:shadow-md hover:border-emerald-300 hover:text-emerald-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm flex items-center justify-between gap-3"
           >
-            <ShoppingCart className="mr-2.5 h-4 w-4 text-emerald-500 group-hover:scale-110 transition-transform" />
-            Purchase Manager
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center shrink-0 text-emerald-600 group-hover:scale-105 transition-transform">
+                <ShoppingCart className="h-4 w-4" />
+              </div>
+              <span className="truncate font-bold">Purchase Manager</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
+          </Button>
+        </Link>
+
+        {/* Analytics & Reports */}
+        <Link href="/analytics" className="group block">
+          <Button
+            variant="outline"
+            className="w-full h-12 px-4 rounded-2xl bg-white hover:bg-amber-50/50 text-foreground border border-border/80 shadow-2xs hover:shadow-md hover:border-amber-300 hover:text-amber-700 transition-all duration-200 cursor-pointer font-semibold text-xs sm:text-sm flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center shrink-0 text-amber-600 group-hover:scale-105 transition-transform">
+                <Activity className="h-4 w-4" />
+              </div>
+              <span className="truncate font-bold">Analytics & Reports</span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
           </Button>
         </Link>
       </div>

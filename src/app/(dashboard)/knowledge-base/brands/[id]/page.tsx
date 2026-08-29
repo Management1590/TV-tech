@@ -81,6 +81,7 @@ export default async function TvBrandDetailPage({
             <CreateTvModelDialog
               brands={[{ id: brand.id, name: cleanBrandName }]}
               preselectedBrandId={brand.id}
+              existingModels={brand.models.map((m) => m.modelNumber)}
             />
           )}
         </div>
@@ -100,7 +101,9 @@ export default async function TvBrandDetailPage({
             ...m,
             brand: { name: brand.name },
           }))}
-          brandName={brand.name}
+          brandName={cleanBrandName}
+          brandId={brand.id}
+          brands={[{ id: brand.id, name: cleanBrandName }]}
           userRole={user?.role}
         />
       </div>

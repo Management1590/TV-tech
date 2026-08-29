@@ -29,6 +29,8 @@ import {
   Layers,
   Edit3,
   GripVertical,
+  Eye,
+  FolderOpen,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -96,6 +98,10 @@ export function KbFolderContentViewer({
 }: KbFolderContentViewerProps) {
   const isAdmin = !!userRole;
 
+  // Global View vs Edit Mode State (pre-enabled if folder is empty / newly created)
+  const isInitiallyEmpty = mediaAttachments.length === 0 && pages.length === 0;
+  const [isGlobalEditMode, setIsGlobalEditMode] = useState<boolean>(isInitiallyEmpty);
+
   // Media state
   const [mediaList, setMediaList] = useState<MediaItem[]>(mediaAttachments);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -104,6 +110,7 @@ export function KbFolderContentViewer({
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [visibleMediaCount, setVisibleMediaCount] = useState(15);
   const [isLoadingMoreMedia, setIsLoadingMoreMedia] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   const mediaObserverRef = useRef<IntersectionObserver | null>(null);
 
@@ -245,10 +252,17 @@ export function KbFolderContentViewer({
     ];
 
     setMediaList(updatedMediaList);
-    toast.success('Media order updated.');
+    setIsSavingOrder(true);
 
-    const orderedIds = updatedMediaList.map((m) => m.id);
-    await reorderMediaAction(entityId, orderedIds);
+    try {
+      const orderedIds = updatedMediaList.map((m) => m.id);
+      await reorderMediaAction(entityId, orderedIds);
+      toast.success('Media order saved.');
+    } catch (err: any) {
+      toast.error('Failed to save media order: ' + err.message);
+    } finally {
+      setIsSavingOrder(false);
+    }
   };
 
   // Reorder Audio from fromIndex to toIndex
@@ -274,10 +288,17 @@ export function KbFolderContentViewer({
     ];
 
     setMediaList(updatedMediaList);
-    toast.success('Voice notes reordered.');
+    setIsSavingOrder(true);
 
-    const orderedIds = updatedMediaList.map((m) => m.id);
-    await reorderMediaAction(entityId, orderedIds);
+    try {
+      const orderedIds = updatedMediaList.map((m) => m.id);
+      await reorderMediaAction(entityId, orderedIds);
+      toast.success('Voice notes order saved.');
+    } catch (err: any) {
+      toast.error('Failed to save audio order: ' + err.message);
+    } finally {
+      setIsSavingOrder(false);
+    }
   };
 
   // Reorder Documents from fromIndex to toIndex
@@ -289,7 +310,7 @@ export function KbFolderContentViewer({
     list.splice(toIndex, 0, movedItem);
 
     setPageList(list);
-    toast.success('Documents reordered.');
+    toast.success('Documents order updated.');
   };
 
   // Pointer Down for Photo/Video Cards (PC drag & Mobile 200ms hold)
@@ -736,7 +757,125 @@ export function KbFolderContentViewer({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
+      {/* ========================================================================= */}
+      {/* 0. UNIFIED MASTER FOLDER HEADER & MODE CONTROLLER                        */}
+      {/* ========================================================================= */}
+      <div className="p-4 sm:p-6 bg-white border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 sm:gap-4">
+          <div
+            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs transition-all duration-300 ${
+              isGlobalEditMode
+                ? 'bg-amber-500/15 border border-amber-300/80 text-amber-600 ring-4 ring-amber-500/10'
+                : 'bg-primary/15 border border-primary/20 text-primary'
+            }`}
+          >
+            {isGlobalEditMode ? (
+              <SlidersHorizontal className="w-5 h-5 sm:w-6 sm:h-6 animate-in zoom-in-75 duration-200 text-amber-600" />
+            ) : (
+              <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate">
+                {folderName}
+              </h1>
+              <Badge
+                variant="secondary"
+                className="bg-primary/10 text-primary border-primary/20 text-[10px] sm:text-xs font-bold py-0.5 px-2"
+              >
+                Photo • Audio • Text
+              </Badge>
+              <Badge
+                variant="outline"
+                className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 transition-colors ${
+                  isGlobalEditMode
+                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-muted/80 text-muted-foreground border-border/80'
+                }`}
+              >
+                {isGlobalEditMode ? '⚡ Edit Mode' : '👁️ View Mode'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
+              {modelName} • Troubleshooting & Repair Knowledge
+            </p>
+          </div>
+        </div>
+
+        {/* Premium Segmented Mode Toggle Switch */}
+        {isAdmin && (
+          <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0 justify-end">
+            <div className="inline-flex items-center p-1 sm:p-1.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl sm:rounded-full shadow-inner gap-1 w-full sm:w-auto">
+              {/* View Mode Segment */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsGlobalEditMode(false);
+                  setIsEditMode(false);
+                  setIsAudioEditMode(false);
+                  setIsDocEditMode(false);
+                }}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  !isGlobalEditMode
+                    ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm ring-1 ring-black/5'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-zinc-800/50'
+                }`}
+              >
+                <Eye className={`w-4 h-4 transition-transform duration-200 ${!isGlobalEditMode ? 'text-primary scale-110' : 'text-muted-foreground'}`} />
+                <span>View Mode</span>
+              </button>
+
+              {/* Edit Mode Segment */}
+              <button
+                type="button"
+                onClick={() => setIsGlobalEditMode(true)}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  isGlobalEditMode
+                    ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/40'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-zinc-800/50'
+                }`}
+              >
+                <Edit3 className={`w-4 h-4 transition-transform duration-200 ${isGlobalEditMode ? 'text-white scale-110' : 'text-muted-foreground'}`} />
+                <span>Edit Mode</span>
+                {isGlobalEditMode && (
+                  <span className="flex h-2 w-2 relative ml-0.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Editing Mode Workspace Alert Banner */}
+      {isGlobalEditMode && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-1">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span className="text-amber-950 font-medium">
+              <strong className="font-bold text-amber-900">Editing Mode is active:</strong> You can upload media, record voice notes, add docs, and organize items across all sections.
+            </span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setIsGlobalEditMode(false);
+              setIsEditMode(false);
+              setIsAudioEditMode(false);
+              setIsDocEditMode(false);
+            }}
+            className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 self-end sm:self-auto shadow-xs active:scale-95"
+          >
+            Switch to View Mode
+          </Button>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* SECTION 1 (TOP): 📷 PHOTO & VIDEO AREA (Single Expandable Grid + Edit Mode)*/}
       {/* ========================================================================= */}
@@ -761,35 +900,50 @@ export function KbFolderContentViewer({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-            {/* Separate Edit Mode Button */}
-            {isAdmin && photoVideoList.length > 0 && (
-              <Button
-                type="button"
-                variant={isEditMode ? 'default' : 'outline'}
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-xs font-bold gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer justify-center ${
-                  isEditMode
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-amber-500/20'
-                    : 'bg-white hover:bg-muted/50 border-border/80 text-foreground/80 hover:text-foreground'
-                }`}
-              >
-                {isEditMode ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Done</span>
-                  </>
-                ) : (
-                  <>
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Organize</span>
-                  </>
-                )}
-              </Button>
-            )}
+          {/* Action buttons (Only visible in Edit Mode) */}
+          {isAdmin && isGlobalEditMode && (
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto animate-in fade-in">
+              {photoVideoList.length > 0 && (
+                <Button
+                  type="button"
+                  variant={isEditMode ? 'default' : 'outline'}
+                  onClick={() => {
+                    setIsEditMode(!isEditMode);
+                    if (isEditMode) {
+                      if (isSavingOrder) {
+                        toast.info('Saving media order in background...');
+                      } else {
+                        toast.success('Organizing finished.');
+                      }
+                    }
+                  }}
+                  className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-xs font-bold gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer justify-center ${
+                    isEditMode
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-amber-500/20'
+                      : 'bg-white hover:bg-muted/50 border-border/80 text-foreground/80 hover:text-foreground'
+                  }`}
+                >
+                  {isEditMode ? (
+                    isSavingOrder ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Done</span>
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Organize</span>
+                    </>
+                  )}
+                </Button>
+              )}
 
-            {/* Upload Button (Opens Light-Themed Dialog Window) */}
-            {isAdmin && (
               <Button
                 type="button"
                 onClick={() => setIsUploadDialogOpen(true)}
@@ -798,12 +952,12 @@ export function KbFolderContentViewer({
                 <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>Upload</span>
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Edit Mode Active Banner */}
-        {isEditMode && (
+        {/* Edit Mode Active Banner (within Photo Section) */}
+        {isGlobalEditMode && isEditMode && (
           <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 font-semibold animate-in fade-in">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-amber-600 shrink-0" />
@@ -814,23 +968,51 @@ export function KbFolderContentViewer({
             <Button
               type="button"
               size="sm"
-              onClick={() => setIsEditMode(false)}
-              className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 self-end sm:self-auto"
+              onClick={() => {
+                setIsEditMode(false);
+                if (isSavingOrder) {
+                  toast.info('Saving media order in background...');
+                } else {
+                  toast.success('Organizing finished.');
+                }
+              }}
+              className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 self-end sm:self-auto flex items-center gap-1 cursor-pointer"
             >
-              Done
+              {isSavingOrder ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin text-white" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Done</span>
+              )}
             </Button>
           </div>
         )}
 
         {photoVideoList.length === 0 ? (
-          <div className="p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-center mx-auto mb-2.5 text-primary">
+          <div className="p-10 sm:p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-center mx-auto text-primary">
               <ImageIcon className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-foreground">No photos or videos uploaded yet</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-              Upload repair schematics, panel photos, and high-definition video demonstrations to this model.
-            </p>
+            <div>
+              <p className="text-sm font-bold text-foreground">No photos or videos uploaded yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                {isGlobalEditMode
+                  ? 'Upload repair schematics, panel photos, and high-definition video demonstrations to this model.'
+                  : 'Clean View Mode active. Switch to Edit Mode to upload photos or videos.'}
+              </p>
+            </div>
+            {isAdmin && isGlobalEditMode && (
+              <Button
+                type="button"
+                onClick={() => setIsUploadDialogOpen(true)}
+                className="h-9 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-sm cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Upload Photo / Video</span>
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -1004,15 +1186,25 @@ export function KbFolderContentViewer({
             </div>
           </div>
 
-          {isAdmin && (
-            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+          {/* Action buttons (Only visible in Edit Mode) */}
+          {isAdmin && isGlobalEditMode && (
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto animate-in fade-in">
               {/* Organize & Delete Mode Toggle Button (Left) */}
               {audioList.length > 0 && (
                 <Button
                   type="button"
                   variant={isAudioEditMode ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setIsAudioEditMode(!isAudioEditMode)}
+                  onClick={() => {
+                    setIsAudioEditMode(!isAudioEditMode);
+                    if (isAudioEditMode) {
+                      if (isSavingOrder) {
+                        toast.info('Saving audio order in background...');
+                      } else {
+                        toast.success('Voice notes organizing finished.');
+                      }
+                    }
+                  }}
                   className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
                     isAudioEditMode
                       ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20'
@@ -1020,10 +1212,17 @@ export function KbFolderContentViewer({
                   }`}
                 >
                   {isAudioEditMode ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white" />
-                      <span>Done</span>
-                    </>
+                    isSavingOrder ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-white" />
+                        <span>Done</span>
+                      </>
+                    )
                   ) : (
                     <>
                       <SlidersHorizontal className="w-3.5 h-3.5 text-violet-600" />
@@ -1048,7 +1247,7 @@ export function KbFolderContentViewer({
         </div>
 
         {/* Audio Edit Mode Informational Banner */}
-        {isAudioEditMode && audioList.length > 0 && (
+        {isGlobalEditMode && isAudioEditMode && audioList.length > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 rounded-2xl bg-violet-50/90 border border-violet-200 text-violet-900 text-xs font-semibold gap-3 animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5">
               <span className="flex h-2.5 w-2.5 rounded-full bg-violet-600 animate-pulse shrink-0" />
@@ -1060,23 +1259,52 @@ export function KbFolderContentViewer({
               type="button"
               size="sm"
               variant="ghost"
-              onClick={() => setIsAudioEditMode(false)}
-              className="h-7 px-2.5 text-violet-700 hover:text-violet-900 hover:bg-violet-100 font-bold rounded-xl text-xs self-end sm:self-auto"
+              onClick={() => {
+                setIsAudioEditMode(false);
+                if (isSavingOrder) {
+                  toast.info('Saving audio order in background...');
+                } else {
+                  toast.success('Voice notes organizing finished.');
+                }
+              }}
+              className="h-7 px-2.5 text-violet-700 hover:text-violet-900 hover:bg-violet-100 font-bold rounded-xl text-xs self-end sm:self-auto flex items-center gap-1 cursor-pointer"
             >
-              Done
+              {isSavingOrder ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Done</span>
+              )}
             </Button>
           </div>
         )}
 
         {audioList.length === 0 ? (
-          <div className="p-10 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl">
-            <div className="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-200/80 flex items-center justify-center mx-auto mb-2.5 text-violet-600">
+          <div className="p-10 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-200/80 flex items-center justify-center mx-auto text-violet-600">
               <Mic className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-foreground">No audio recordings yet</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-              Tap or hold the <strong>Record Voice Note</strong> button above to record diagnostic voice notes directly from your browser.
-            </p>
+            <div>
+              <p className="text-sm font-bold text-foreground">No audio recordings yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                {isGlobalEditMode
+                  ? 'Tap or hold the Record Voice Note button to record diagnostic audio notes directly from your browser.'
+                  : 'Clean View Mode active. Switch to Edit Mode to record troubleshooting voice notes.'}
+              </p>
+            </div>
+            {isAdmin && isGlobalEditMode && (
+              <div className="inline-flex justify-center">
+                <VoiceRecorderWidget
+                  entityId={entityId}
+                  onRecordingComplete={(newMedia) => {
+                    setMediaList((prev) => [newMedia, ...prev]);
+                  }}
+                  disabled={isUploadingMedia}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -1094,7 +1322,7 @@ export function KbFolderContentViewer({
                   createdAt={audio.createdAt}
                   publicId={audio.publicId}
                   index={idx}
-                  isEditMode={isAudioEditMode}
+                  isEditMode={isGlobalEditMode && isAudioEditMode}
                   onDelete={(id, pubId) =>
                     setDeleteTarget({
                       type: 'voice recording',
@@ -1103,7 +1331,7 @@ export function KbFolderContentViewer({
                       title: audio.filename || `Voice Recording #${idx + 1}`,
                     })
                   }
-                  isAdmin={isAdmin}
+                  isAdmin={isAdmin && isGlobalEditMode}
                   onPointerDown={(e) => onAudioPointerDown(idx, e)}
                   isFloating={isFloating}
                   isSourceSlot={isSource}
@@ -1141,15 +1369,21 @@ export function KbFolderContentViewer({
             </div>
           </div>
 
-          {isAdmin && (
-            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+          {/* Action buttons (Only visible in Edit Mode) */}
+          {isAdmin && isGlobalEditMode && (
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto animate-in fade-in">
               {/* Organize & Delete Mode Toggle Button (Left) */}
               {pageList.length > 0 && (
                 <Button
                   type="button"
                   variant={isDocEditMode ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setIsDocEditMode(!isDocEditMode)}
+                  onClick={() => {
+                    setIsDocEditMode(!isDocEditMode);
+                    if (isDocEditMode) {
+                      toast.success('Document organizing finished.');
+                    }
+                  }}
                   className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
                     isDocEditMode
                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20'
@@ -1184,7 +1418,7 @@ export function KbFolderContentViewer({
         </div>
 
         {/* Document Edit Mode Informational Banner */}
-        {isDocEditMode && pageList.length > 0 && (
+        {isGlobalEditMode && isDocEditMode && pageList.length > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-emerald-900 text-xs font-semibold gap-3 animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5">
               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
@@ -1196,8 +1430,11 @@ export function KbFolderContentViewer({
               type="button"
               size="sm"
               variant="ghost"
-              onClick={() => setIsDocEditMode(false)}
-              className="h-7 px-2.5 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 font-bold rounded-xl text-xs self-end sm:self-auto"
+              onClick={() => {
+                setIsDocEditMode(false);
+                toast.success('Document organizing finished.');
+              }}
+              className="h-7 px-2.5 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 font-bold rounded-xl text-xs self-end sm:self-auto cursor-pointer"
             >
               Done
             </Button>
@@ -1206,14 +1443,28 @@ export function KbFolderContentViewer({
 
         {/* Documents Stack Feed (Sequential cards visible directly) */}
         {pageList.length === 0 ? (
-          <div className="p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center mx-auto mb-2.5 text-emerald-600">
+          <div className="p-10 sm:p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center mx-auto text-emerald-600">
               <FileText className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-foreground">No documents added yet</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-              Click <strong>Create Document</strong> above to add technical specs, fault descriptions, and diagnostic procedures.
-            </p>
+            <div>
+              <p className="text-sm font-bold text-foreground">No documents added yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                {isGlobalEditMode
+                  ? 'Add technical specs, fault descriptions, voltage readings, and diagnostic procedures.'
+                  : 'Clean View Mode active. Switch to Edit Mode to create technical notes or documents.'}
+              </p>
+            </div>
+            {isAdmin && isGlobalEditMode && (
+              <Button
+                type="button"
+                onClick={handleOpenCreateDoc}
+                className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create First Document</span>
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -1244,7 +1495,7 @@ export function KbFolderContentViewer({
               return (
                 <div
                   key={doc.id}
-                  onPointerDown={(e) => onDocPointerDown(idx, e)}
+                  onPointerDown={(e) => (isGlobalEditMode && isDocEditMode ? onDocPointerDown(idx, e) : undefined)}
                   data-doc-index={idx}
                   style={{
                     transform: isFloating
@@ -1260,7 +1511,7 @@ export function KbFolderContentViewer({
                       ? 'opacity-25 border-dashed border-2 border-emerald-500 scale-95'
                       : isTarget && activeDocDrag?.isFloating
                       ? 'border-emerald-600 ring-4 ring-emerald-500/30 bg-emerald-50/40 scale-[1.01] shadow-xl'
-                      : isDocEditMode
+                      : isGlobalEditMode && isDocEditMode
                       ? 'border-emerald-400 ring-2 ring-emerald-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
                       : 'border-border/80 shadow-2xs hover:shadow-md'
                   }`}
@@ -1268,7 +1519,7 @@ export function KbFolderContentViewer({
                   {/* Card Header: Position, Heading & Action Controls */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
-                      {isDocEditMode ? (
+                      {isGlobalEditMode && isDocEditMode ? (
                         <Badge className="bg-emerald-600 text-white font-extrabold text-xs px-2 py-0.5 shadow-sm shrink-0 mt-0.5 cursor-grab">
                           #{idx + 1}
                         </Badge>
@@ -1289,10 +1540,10 @@ export function KbFolderContentViewer({
                       </div>
                     </div>
 
-                    {/* Action Controls */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {!isDocEditMode ? (
-                        isAdmin && (
+                    {/* Action Controls (Only in Edit Mode) */}
+                    {isAdmin && isGlobalEditMode && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {!isDocEditMode ? (
                           <Button
                             type="button"
                             variant="ghost"
@@ -1303,9 +1554,7 @@ export function KbFolderContentViewer({
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit</span>
                           </Button>
-                        )
-                      ) : (
-                        isAdmin && (
+                        ) : (
                           <Button
                             type="button"
                             variant="destructive"
@@ -1322,9 +1571,9 @@ export function KbFolderContentViewer({
                           >
                             <Trash2 className="w-3.5 h-3.5 text-white" />
                           </Button>
-                        )
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Description: Smaller & Highly Readable */}
@@ -1367,7 +1616,7 @@ export function KbFolderContentViewer({
             title: item.filename || 'Media Item',
           })
         }
-        isAdmin={isAdmin}
+        isAdmin={isAdmin && isGlobalEditMode}
       />
 
       {/* ========================================================================= */}
@@ -1402,6 +1651,16 @@ export function KbFolderContentViewer({
           setMediaList((prev) => [newMedia, ...prev]);
         }}
       />
+
+      {/* ========================================================================= */}
+      {/* 8. FLOATING ORDER SAVING & PROCESSING HUD                                 */}
+      {/* ========================================================================= */}
+      {isSavingOrder && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-900/95 text-white backdrop-blur-xl border border-slate-700/80 shadow-2xl animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-none">
+          <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+          <span className="text-xs font-bold tracking-tight">Saving new order...</span>
+        </div>
+      )}
     </div>
   );
 }

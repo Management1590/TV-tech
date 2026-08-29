@@ -13,6 +13,7 @@ import {
   getEntityTypeConnectOrCreate,
 } from '@/lib/ensure-entity-types';
 import { processAndUploadThumbnailUrl } from '@/lib/server-upload-thumbnail';
+import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
 
 function generateSlug(name: string): string {
   return name
@@ -33,8 +34,21 @@ export async function createTvBrandAction(data: {
     return { success: false, error: 'Unauthorized: Authentication required.' };
   }
 
+  if (!data.name || !data.name.trim()) {
+    return { success: false, error: 'Brand name cannot be empty.' };
+  }
+
+  const cleanName = data.name.trim();
+
+  // Validate duplicate / 8-character sequential match against all existing brands
+  const existingBrands = await prisma.tvBrand.findMany({ select: { name: true } });
+  const collision = validateNameSimilarity(cleanName, existingBrands.map((b) => b.name), 'Brand');
+  if (collision.hasConflict) {
+    return { success: false, error: collision.message };
+  }
+
   try {
-    const slug = generateSlug(data.name);
+    const slug = generateSlug(cleanName);
     const cleanLogoUrl = await processAndUploadThumbnailUrl(data.logoUrl, 'tv-tech-os/brands');
 
     const brand = await prisma.$transaction(async (tx) => {
@@ -42,14 +56,14 @@ export async function createTvBrandAction(data: {
       const entity = await tx.entity.create({
         data: {
           entityType: getEntityTypeConnectOrCreate('TV_BRAND'),
-          displayName: data.name,
+          displayName: cleanName,
         },
       });
 
       const brand = await tx.tvBrand.create({
         data: {
           entityId: entity.id,
-          name: data.name,
+          name: cleanName,
           slug,
           description: data.description?.trim() || null,
           logoUrl: cleanLogoUrl || null,
@@ -62,7 +76,7 @@ export async function createTvBrandAction(data: {
           action: 'CREATE',
           entityType: 'TV_BRAND',
           entityId: entity.id,
-          changes: { name: data.name },
+          changes: { name: cleanName },
         },
       });
 
@@ -86,8 +100,19 @@ export async function renameTvBrandAction(brandId: string, newName: string) {
     return { success: false, error: 'Brand name cannot be empty.' };
   }
 
+  const cleanName = newName.trim();
+
+  // Validate duplicate / 8-character sequential match against other existing brands
+  const existingBrands = await prisma.tvBrand.findMany({
+    where: { id: { not: brandId } },
+    select: { name: true },
+  });
+  const collision = validateNameSimilarity(cleanName, existingBrands.map((b) => b.name), 'Brand');
+  if (collision.hasConflict) {
+    return { success: false, error: collision.message };
+  }
+
   try {
-    const cleanName = newName.trim();
     const slug = generateSlug(cleanName);
 
     await prisma.$transaction(async (tx) => {
@@ -257,15 +282,31 @@ export async function createTvModelAction(data: {
     return { success: false, error: 'Unauthorized: Authentication required.' };
   }
 
-  try {
-    const model = await prisma.$transaction(async (tx) => {
-      const brand = await tx.tvBrand.findUnique({
-        where: { id: data.brandId },
-        select: { name: true },
-      });
-      if (!brand) throw new Error('TV Brand not found.');
+  if (!data.modelNumber || !data.modelNumber.trim()) {
+    return { success: false, error: 'Model number cannot be empty.' };
+  }
 
-      const slug = generateSlug(data.modelNumber);
+  const cleanNumber = data.modelNumber.trim().toUpperCase();
+
+  // Validate duplicate / 8-character sequential match against existing models in the same Brand directory
+  const existingModels = await prisma.tvModel.findMany({
+    where: { brandId: data.brandId },
+    select: { modelNumber: true },
+  });
+  const collision = validateNameSimilarity(cleanNumber, existingModels.map((m) => m.modelNumber), 'Model');
+  if (collision.hasConflict) {
+    return { success: false, error: collision.message };
+  }
+
+  try {
+    const brand = await prisma.tvBrand.findUnique({
+      where: { id: data.brandId },
+      select: { name: true },
+    });
+    if (!brand) return { success: false, error: 'TV Brand not found.' };
+
+    const model = await prisma.$transaction(async (tx) => {
+      const slug = generateSlug(cleanNumber);
       const screenSizeInt = data.screenSize ? parseInt(data.screenSize, 10) : null;
 
       await ensureEntityType('TV_MODEL', tx);
@@ -274,7 +315,7 @@ export async function createTvModelAction(data: {
       const entity = await tx.entity.create({
         data: {
           entityType: getEntityTypeConnectOrCreate('TV_MODEL'),
-          displayName: `${brand.name} ${data.modelNumber}`,
+          displayName: `${brand.name} ${cleanNumber}`,
         },
       });
 
@@ -282,7 +323,7 @@ export async function createTvModelAction(data: {
         data: {
           entityId: entity.id,
           brandId: data.brandId,
-          modelNumber: data.modelNumber,
+          modelNumber: cleanNumber,
           slug,
           screenSize: screenSizeInt && !isNaN(screenSizeInt) ? screenSizeInt : null,
           displayType: data.displayType || null,
@@ -291,41 +332,40 @@ export async function createTvModelAction(data: {
         },
       });
 
-      // Create the 2 default premade technical folders (Backlight & More info)
-      const systemFolders = [
-        'Backlight',
-        'More info',
-      ];
-      for (let i = 0; i < systemFolders.length; i++) {
-        const folderEntity = await tx.entity.create({
-          data: {
-            entityType: getEntityTypeConnectOrCreate('KNOWLEDGE_FOLDER'),
-            displayName: `${brand.name} ${data.modelNumber} / ${systemFolders[i]}`,
-          },
-        });
+      // Create the 2 default premade technical folders in parallel
+      const systemFolders = ['Backlight', 'More info'];
+      await Promise.all(
+        systemFolders.map(async (folderName, idx) => {
+          const folderEntity = await tx.entity.create({
+            data: {
+              entityType: getEntityTypeConnectOrCreate('KNOWLEDGE_FOLDER'),
+              displayName: `${brand.name} ${cleanNumber} / ${folderName}`,
+            },
+          });
 
-        await tx.knowledgeFolder.create({
-          data: {
-            entityId: folderEntity.id,
-            modelId: model.id,
-            name: systemFolders[i],
-            slug: generateSlug(systemFolders[i]),
-            sortOrder: i,
-            isSystem: true,
-          },
-        });
-      }
+          return tx.knowledgeFolder.create({
+            data: {
+              entityId: folderEntity.id,
+              modelId: model.id,
+              name: folderName,
+              slug: generateSlug(folderName),
+              sortOrder: idx,
+              isSystem: true,
+            },
+          });
+        })
+      );
 
       // Add to search index
       await tx.searchIndex.create({
         data: {
           entityId: entity.id,
           entityType: 'TV_MODEL',
-          title: `${brand.name} ${data.modelNumber}`,
+          title: `${brand.name} ${cleanNumber}`,
           subtitle: [screenSizeInt && `${screenSizeInt}"`, data.displayType, data.chassisNo]
             .filter(Boolean)
             .join(' • ') || null,
-          searchText: [brand.name, data.modelNumber, data.screenSize, data.displayType, data.chassisNo, data.notes]
+          searchText: [brand.name, cleanNumber, data.screenSize, data.displayType, data.chassisNo, data.notes]
             .filter(Boolean)
             .join(' '),
         },
@@ -343,14 +383,15 @@ export async function createTvModelAction(data: {
           action: 'CREATE',
           entityType: 'TV_MODEL',
           entityId: entity.id,
-          changes: { brandId: data.brandId, modelNumber: data.modelNumber },
+          changes: { brandId: data.brandId, modelNumber: cleanNumber },
         },
       });
 
       return model;
-    });
+    }, { timeout: 35000, maxWait: 15000 });
 
     revalidatePath('/knowledge-base');
+    revalidatePath(`/knowledge-base/brands/${data.brandId}`);
     return { success: true, data: model };
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to create TV model.' };
@@ -482,8 +523,29 @@ export async function renameTvModelAction(
     return { success: false, error: 'Model number cannot be empty.' };
   }
 
+  const cleanNumber = newModelNumber.trim().toUpperCase();
+
+  // Find target model to know its brandId
+  const currentModel = await prisma.tvModel.findUnique({
+    where: { id: modelId },
+    select: { brandId: true },
+  });
+
+  if (!currentModel) {
+    return { success: false, error: 'TV Model not found.' };
+  }
+
+  // Validate duplicate / 8-character sequential match against other models in the same Brand directory
+  const existingModels = await prisma.tvModel.findMany({
+    where: { brandId: currentModel.brandId, id: { not: modelId } },
+    select: { modelNumber: true },
+  });
+  const collision = validateNameSimilarity(cleanNumber, existingModels.map((m) => m.modelNumber), 'Model');
+  if (collision.hasConflict) {
+    return { success: false, error: collision.message };
+  }
+
   try {
-    const cleanNumber = newModelNumber.trim().toUpperCase();
     const slug = generateSlug(cleanNumber);
     const screenSizeInt = newScreenSize ? parseInt(newScreenSize, 10) : null;
 

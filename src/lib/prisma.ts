@@ -36,7 +36,12 @@ function getOrCreatePrismaClient(): PrismaClient {
   }
 
   if (connectionString) {
-    const pool = new Pool({ connectionString });
+    const pool = new Pool({
+      connectionString,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 15000,
+    });
     const adapter = new PrismaPg(pool);
     const client = new PrismaClient({
       adapter,
@@ -59,6 +64,16 @@ export const prisma = new Proxy({} as PrismaClient, {
   get(_target, prop: string | symbol) {
     const client = getOrCreatePrismaClient();
     const val = (client as any)[prop];
+    if (prop === '$transaction') {
+      return (arg1: any, arg2?: any) => {
+        if (typeof arg1 === 'function') {
+          // Interactive transaction: automatically inject generous timeout for cloud database resilience
+          const opts = { timeout: 35000, maxWait: 15000, ...(arg2 || {}) };
+          return client.$transaction(arg1, opts);
+        }
+        return client.$transaction(arg1, arg2);
+      };
+    }
     if (typeof val === 'function') {
       return val.bind(client);
     }

@@ -7,6 +7,7 @@
 import { prisma } from '@/lib/prisma';
 import { TvBrand } from '@prisma/client';
 import { ensureEntityType } from '@/lib/ensure-entity-types';
+import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
 
 export interface CreateTvBrandInput {
   name: string;
@@ -22,22 +23,29 @@ function generateSlug(name: string): string {
 }
 
 export async function createTvBrand(input: CreateTvBrandInput): Promise<TvBrand> {
-  const slug = generateSlug(input.name);
+  const cleanName = input.name.trim();
+  const existingBrands = await prisma.tvBrand.findMany({ select: { name: true } });
+  const collision = validateNameSimilarity(cleanName, existingBrands.map((b) => b.name), 'Brand');
+  if (collision.hasConflict) {
+    throw new Error(collision.message);
+  }
+
+  const slug = generateSlug(cleanName);
 
   return await prisma.$transaction(async (tx) => {
     await ensureEntityType('TV_BRAND', tx);
     const entity = await tx.entity.create({
       data: {
         entityTypeCode: 'TV_BRAND',
-        displayName: input.name,
-        searchText: input.name,
+        displayName: cleanName,
+        searchText: cleanName,
       },
     });
 
     return await tx.tvBrand.create({
       data: {
         entityId: entity.id,
-        name: input.name,
+        name: cleanName,
         slug,
         logoUrl: input.logoUrl,
       },

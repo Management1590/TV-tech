@@ -22,6 +22,8 @@ const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
  * registers it in the Entity Registry, and links it to the target entity.
  * Supports unlimited image sizes and all common image formats.
  */
+import { detectMediaKind } from '@/lib/media-detect';
+
 export async function uploadMediaAction(formData: FormData): Promise<UploadMediaResult> {
   const user = await getCurrentUser();
   if (!user) {
@@ -37,28 +39,18 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
       return { success: false, error: 'Missing file or target entity ID.' };
     }
 
-    const mimeType = file.type.toLowerCase();
+    const { mediaType: detectedType, resourceType, normalizedMime } = detectMediaKind(file.name, file.type);
     const size = file.size;
 
-    let mediaType: MediaType;
-    let resourceType: 'image' | 'video' | 'raw' | 'auto' = 'image';
-
-    if (mimeType.startsWith('image/')) {
-      // No size limit on images as requested by user
-      mediaType = MediaType.IMAGE;
-      resourceType = 'image';
-    } else if (mimeType.startsWith('video/')) {
+    let mediaType: MediaType = MediaType.IMAGE;
+    if (detectedType === 'VIDEO') {
       if (size > MAX_VIDEO_SIZE) return { success: false, error: 'Video size exceeds maximum 500MB limit.' };
       mediaType = MediaType.VIDEO;
-      resourceType = 'video';
-    } else if (mimeType.startsWith('audio/')) {
+    } else if (detectedType === 'AUDIO') {
       if (size > MAX_AUDIO_SIZE) return { success: false, error: 'Audio size exceeds maximum 100MB limit.' };
       mediaType = MediaType.AUDIO;
-      resourceType = 'video'; // Cloudinary processes audio under video resource_type
     } else {
-      // Default to auto/image fallback
       mediaType = MediaType.IMAGE;
-      resourceType = 'auto';
     }
 
     // Convert file to Buffer for streaming upload
@@ -67,15 +59,27 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
 
     // Stream directly to Cloudinary
     const uploadResult: any = await new Promise((resolve, reject) => {
+      const uploadOptions: any = {
+        folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
+        resource_type: resourceType,
+        timeout: 300000, // 5 minutes timeout for large video files
+      };
+
+      if (mediaType === MediaType.AUDIO) {
+        uploadOptions.format = 'mp3';
+      } else if (mediaType === MediaType.VIDEO) {
+        uploadOptions.chunk_size = 20 * 1024 * 1024; // 20MB chunks
+      }
+
       const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
-          resource_type: resourceType,
-          timeout: 300000, // 5 minutes timeout for large video files
-        },
+        uploadOptions,
         (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
+          if (error) {
+            console.error('[CLOUDINARY_ACTION_UPLOAD_ERROR]', error);
+            reject(error);
+          } else {
+            resolve(result);
+          }
         }
       );
       uploadStream.end(buffer);
@@ -98,7 +102,7 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
       url: uploadResult.url || uploadResult.secure_url,
       secureUrl: uploadResult.secure_url || uploadResult.url,
       filename: file.name,
-      mimeType,
+      mimeType: normalizedMime,
       sizeBytes: size,
       width: uploadResult.width || undefined,
       height: uploadResult.height || undefined,
@@ -108,6 +112,7 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
 
     // Revalidate paths
     revalidatePath('/inventory');
+    revalidatePath('/knowledge-base');
     revalidatePath(`/inventory/items/${entityId}`);
 
     return { success: true, media };

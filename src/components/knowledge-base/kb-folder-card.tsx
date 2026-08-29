@@ -2,7 +2,7 @@
 
 import React, { useId } from 'react';
 import Link from 'next/link';
-import { Folder, ArrowRight, Lightbulb, Info, FileText, Image, Mic, Sparkles } from 'lucide-react';
+import { Folder, Lightbulb, Info, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export interface KbFolderCardData {
@@ -35,29 +35,37 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
   const isBacklight = nameLower.includes('backlight');
   const isMoreInfo = nameLower.includes('more info') || nameLower.includes('more-info');
 
+  // Count items inside folder
+  const mediaCount = folder.entity?.mediaAttachments?.length ?? 0;
+  const docCount = folder.pages?.length ?? folder._count?.pages ?? 0;
+  const totalItems = mediaCount + docCount;
+
   // Folder specific color theme configurations
   const theme = isBacklight
     ? {
-        bgCanvas: 'bg-gradient-to-br from-amber-100/95 via-amber-50/90 to-amber-200/60',
+        bgCanvas: 'bg-gradient-to-br from-amber-100/90 via-amber-50/70 to-amber-200/50',
         glowColor: 'bg-amber-500/20',
         iconBg: 'bg-white/95 border-amber-300/80 text-amber-600 shadow-md shadow-amber-500/10',
-        strokeColor: 'rgba(245, 158, 11, 0.45)',
-        badgeStyle: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
+        strokeColor: 'rgba(245, 158, 11, 0.40)',
+        badgeStyle: 'bg-white/95 text-amber-800 border-amber-300/80',
+        badgeLabel: 'Linker',
       }
     : isMoreInfo
     ? {
-        bgCanvas: 'bg-gradient-to-br from-indigo-100/95 via-blue-50/90 to-indigo-200/60',
+        bgCanvas: 'bg-gradient-to-br from-indigo-100/90 via-blue-50/70 to-indigo-200/50',
         glowColor: 'bg-indigo-500/20',
         iconBg: 'bg-white/95 border-indigo-300/80 text-indigo-600 shadow-md shadow-indigo-500/10',
-        strokeColor: 'rgba(99, 102, 241, 0.45)',
-        badgeStyle: 'bg-indigo-100 text-indigo-900 border-indigo-300 font-bold',
+        strokeColor: 'rgba(99, 102, 241, 0.40)',
+        badgeStyle: 'bg-white/95 text-indigo-800 border-indigo-200/80',
+        badgeLabel: totalItems > 0 ? `${totalItems} items` : 'Media & Docs',
       }
     : {
-        bgCanvas: 'bg-gradient-to-br from-primary/10 via-sky-50/90 to-muted/80',
+        bgCanvas: 'bg-gradient-to-br from-primary/10 via-sky-50/70 to-muted/80',
         glowColor: 'bg-primary/20',
         iconBg: 'bg-white/95 border-primary/25 text-primary shadow-md shadow-primary/10',
-        strokeColor: 'rgba(59, 130, 246, 0.40)',
-        badgeStyle: 'bg-primary/10 text-primary border-primary/30 font-bold',
+        strokeColor: 'rgba(59, 130, 246, 0.35)',
+        badgeStyle: 'bg-white/95 text-primary border-primary/30',
+        badgeLabel: totalItems > 0 ? `${totalItems} items` : 'Folder',
       };
 
   return (
@@ -75,9 +83,9 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
         href={`/knowledge-base/models/${modelId}/folders/${folder.id}`}
         className="block h-full flex flex-col relative"
       >
-        {/* Curved Folder Body */}
+        {/* 1. CLIPPED FOLDER BODY & ARTWORK */}
         <div
-          className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted/90 overflow-hidden transition-all duration-300 flex flex-col justify-end group-hover:shadow-2xl group-hover:-translate-y-1.5"
+          className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted/90 overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
           style={{
             clipPath: `url(#kb-folder-clip-${clipId})`,
             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
@@ -85,7 +93,7 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
         >
           {/* Background Canvas & Thematic Icon */}
           <div
-            className={`absolute inset-0 w-full h-full flex items-center justify-center pb-12 sm:pb-16 transition-colors overflow-hidden ${theme.bgCanvas}`}
+            className={`absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden ${theme.bgCanvas}`}
           >
             {/* Ambient background glow */}
             <div
@@ -94,7 +102,7 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
 
             {/* Geometric Dot Pattern */}
             <div
-              className="absolute inset-0 opacity-[0.08] group-hover:opacity-[0.12] transition-opacity"
+              className="absolute inset-0 opacity-[0.07] group-hover:opacity-[0.1] transition-opacity"
               style={{
                 backgroundImage: 'radial-gradient(oklch(0.35 0.15 260) 1.2px, transparent 1.2px)',
                 backgroundSize: '16px 16px',
@@ -102,60 +110,50 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
             />
 
             {/* Centered Thematic Icon Badge */}
-            <div
-              className={`relative z-10 w-11 h-11 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 group-hover:shadow-xl transition-all duration-300 ${theme.iconBg}`}
-            >
-              {isBacklight ? (
-                <Lightbulb className="h-5 w-5 sm:h-8 sm:w-8 text-amber-600" />
-              ) : isMoreInfo ? (
-                <Info className="h-5 w-5 sm:h-8 sm:w-8 text-indigo-600" />
-              ) : (
-                <Folder className="h-5 w-5 sm:h-8 sm:w-8 text-primary" />
-              )}
+            <div className="relative flex flex-col items-center justify-center text-center p-2 sm:p-4">
+              <div
+                className={`w-11 h-11 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 group-hover:shadow-lg transition-all duration-300 ${theme.iconBg}`}
+              >
+                {isBacklight ? (
+                  <Lightbulb className="h-5 w-5 sm:h-8 sm:w-8 text-amber-600" />
+                ) : isMoreInfo ? (
+                  <Info className="h-5 w-5 sm:h-8 sm:w-8 text-indigo-600" />
+                ) : (
+                  <Folder className="h-5 w-5 sm:h-8 sm:w-8 text-primary" />
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Folder Content Overlay Container (Bottom Bar - exactly matching Inventory folder-card) */}
-          <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-3.5 py-1.5 sm:py-2.5 bg-white/95 backdrop-blur-md border-t border-border/80 transition-colors flex flex-col gap-0.5 sm:gap-1 shadow-sm">
-            <div className="flex items-center justify-between gap-1 sm:gap-2">
-              <h3 className="font-bold text-foreground text-xs sm:text-base tracking-tight truncate group-hover:text-primary transition-colors">
-                {folder.name}
-              </h3>
+          {/* 2. FLOATING ITEM/TYPE BADGE (Matching Inventory & Brand Folder Cards) */}
+          <div className="absolute bottom-9 sm:bottom-12 right-2 sm:right-2 z-20">
+            <Badge
+              variant="secondary"
+              className={`backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-bold shadow-md group-hover:shadow-lg transition-all border ${theme.badgeStyle}`}
+            >
               {isBacklight ? (
-                <Badge variant="secondary" className={`text-[9px] sm:text-[10px] py-0.5 px-1.5 sm:px-2 ${theme.badgeStyle} shrink-0`}>
-                  Linker
-                </Badge>
+                <Lightbulb className="w-3 h-3 text-amber-600 shrink-0" />
               ) : isMoreInfo ? (
-                <Badge variant="secondary" className={`text-[9px] sm:text-[10px] py-0.5 px-1.5 sm:px-2 ${theme.badgeStyle} shrink-0`}>
-                  Media
-                </Badge>
+                <Sparkles className="w-3 h-3 text-indigo-600 shrink-0" />
               ) : (
-                <Badge variant="secondary" className={`text-[9px] sm:text-[10px] py-0.5 px-1.5 sm:px-2 ${theme.badgeStyle} shrink-0`}>
-                  Custom
-                </Badge>
+                <Folder className="w-3 h-3 text-primary shrink-0" />
               )}
-            </div>
+              <span>{theme.badgeLabel}</span>
+            </Badge>
+          </div>
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5 border-t border-border/40">
-              <span className="flex items-center gap-1 font-semibold text-[10px] sm:text-[11px] text-muted-foreground truncate">
-                {isBacklight ? (
-                  <span className="truncate">Spare Parts</span>
-                ) : (
-                  <span className="flex items-center gap-1 sm:gap-1.5">
-                    <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
-                    <Mic className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-600" />
-                    <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" />
-                  </span>
-                )}
-              </span>
-              <span className="flex items-center gap-0.5 sm:gap-1 font-bold text-primary group-hover:translate-x-0.5 transition-transform text-[10px] sm:text-[11px] shrink-0">
-                Open <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </span>
-            </div>
+          {/* 3. BOTTOM BAR (Folder Name Centered - matching Inventory folder-card) */}
+          <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-4 py-2 sm:py-3 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
+            <h3
+              className="text-xs sm:text-base font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate leading-tight w-full text-center"
+              title={folder.name}
+            >
+              {folder.name}
+            </h3>
           </div>
         </div>
 
-        {/* Clean Perimeter Border Contour */}
+        {/* 4. CLEAN PERIMETER BORDER CONTOUR */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible"
           viewBox="0 0 100 100"

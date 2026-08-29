@@ -149,48 +149,38 @@ export default async function KbFolderDetailPage({
         </span>
       </nav>
 
-      {/* Folder Header: Clean & Balanced Mobile-First Card */}
-      <div className="p-4 sm:p-6 bg-white border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
-        <div className="flex items-center gap-3.5 sm:gap-4">
-          <div
-            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${
-              isBacklight
-                ? 'bg-amber-500/15 border border-amber-300/80 text-amber-600'
-                : 'bg-primary/15 border border-primary/20 text-primary'
-            }`}
-          >
-            {isBacklight ? <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6" /> : <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate">
-                {folder.name}
-              </h1>
-              {isBacklight ? (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] sm:text-xs font-bold py-0.5 px-2">
-                  Backlight Linker
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[10px] sm:text-xs font-bold py-0.5 px-2">
-                  Photo • Audio • Text
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
-              {modelFullName} • {isBacklight ? 'Backlight Inventory Linker' : 'Troubleshooting & Repair Knowledge'}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content: Backlight Linker OR 3-Tier Photo/Video, Audio, Text Viewer */}
       {isBacklight ? (
-        <KbBacklightLinker
-          modelId={folder.model.id}
-          modelName={modelFullName}
-          linkedItems={linkedBacklights as any}
-          userRole={user?.role}
-        />
+        <>
+          {/* Backlight Folder Header */}
+          <div className="p-4 sm:p-6 bg-white border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3.5 sm:gap-4">
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs bg-amber-500/15 border border-amber-300/80 text-amber-600">
+                <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate">
+                    {folder.name}
+                  </h1>
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] sm:text-xs font-bold py-0.5 px-2">
+                    Backlight Linker
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
+                  {modelFullName} • Backlight Inventory Linker
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <KbBacklightLinker
+            modelId={folder.model.id}
+            modelName={modelFullName}
+            linkedItems={linkedBacklights as any}
+            userRole={user?.role}
+          />
+        </>
       ) : (
         <KbFolderContentViewer
           folderId={folder.id}

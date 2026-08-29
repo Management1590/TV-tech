@@ -5,6 +5,7 @@ import { createMediaAttachment } from '@/features/media/services/media.service';
 import { MediaType, StorageProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { detectMediaKind } from '@/lib/media-detect';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max duration for large video uploads
@@ -28,48 +29,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing file or target entity ID.' }, { status: 400 });
     }
 
-    const mimeType = file.type.toLowerCase();
+    // Detect media kind with full device/Samsung fallback
+    const { mediaType: detectedType, resourceType, normalizedMime } = detectMediaKind(file.name, file.type);
     const size = file.size;
 
-    let mediaType: MediaType;
-    let resourceType: 'image' | 'video' | 'raw' | 'auto' = 'image';
-
-    if (mimeType.startsWith('image/')) {
-      mediaType = MediaType.IMAGE;
-      resourceType = 'image';
-    } else if (mimeType.startsWith('video/')) {
+    let mediaType: MediaType = MediaType.IMAGE;
+    if (detectedType === 'VIDEO') {
       if (size > MAX_VIDEO_SIZE) {
         return NextResponse.json({ success: false, error: 'Video size exceeds maximum 500MB limit.' }, { status: 400 });
       }
       mediaType = MediaType.VIDEO;
-      resourceType = 'video';
-    } else if (mimeType.startsWith('audio/')) {
+    } else if (detectedType === 'AUDIO') {
       if (size > MAX_AUDIO_SIZE) {
         return NextResponse.json({ success: false, error: 'Audio size exceeds maximum 100MB limit.' }, { status: 400 });
       }
       mediaType = MediaType.AUDIO;
-      resourceType = 'video'; // Cloudinary processes audio under video resource_type
     } else {
       mediaType = MediaType.IMAGE;
-      resourceType = 'auto';
     }
 
     // Convert file to Buffer for streaming upload
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Stream upload directly to Cloudinary
+    // Stream upload directly to Cloudinary with chunking support
     const uploadResult: any = await new Promise((resolve, reject) => {
+      const uploadOptions: any = {
+        folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
+        resource_type: resourceType,
+        timeout: 300000, // 5 minutes timeout for large files
+      };
+
+      if (mediaType === MediaType.AUDIO) {
+        uploadOptions.format = 'mp3';
+      } else if (mediaType === MediaType.VIDEO) {
+        uploadOptions.chunk_size = 20 * 1024 * 1024; // 20MB chunks
+      }
+
       const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
-          resource_type: resourceType,
-          format: mediaType === MediaType.AUDIO ? 'mp3' : undefined,
-          timeout: 300000, // 5 minutes timeout for large files
-        },
+        uploadOptions,
         (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
+          if (error) {
+            console.error('[CLOUDINARY_API_UPLOAD_ERROR]', error);
+            reject(error);
+          } else {
+            resolve(result);
+          }
         }
       );
       uploadStream.end(buffer);
@@ -87,12 +92,12 @@ export async function POST(req: NextRequest) {
     const media = await createMediaAttachment({
       entityId,
       mediaType,
-      url: uploadResult.url,
-      secureUrl: uploadResult.secure_url,
+      url: uploadResult.url || uploadResult.secure_url,
+      secureUrl: uploadResult.secure_url || uploadResult.url,
       publicId: uploadResult.public_id,
       provider: StorageProvider.CLOUDINARY,
       filename: file.name,
-      mimeType: mimeType || `${mediaType.toLowerCase()}/unknown`,
+      mimeType: normalizedMime,
       sizeBytes: size,
       width: uploadResult.width || undefined,
       height: uploadResult.height || undefined,

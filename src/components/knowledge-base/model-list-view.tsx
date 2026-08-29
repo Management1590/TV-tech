@@ -15,6 +15,7 @@ import {
   ArrowDownAZ,
   SlidersHorizontal,
   Loader2,
+  Plus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { matchesOrderedPattern, calculateMatchScore } from '@/lib/search-utils';
 import { recordModelOpen, getModelOpenCounts } from '@/lib/kb-tracking-utils';
 import { ModelContextMenu } from './model-context-menu';
+import { CreateTvModelDialog } from './create-tv-model-dialog';
 import { ModelRowSkeleton, SearchDropdownRowSkeleton } from './kb-skeletons';
 
 export interface TvModelListItem {
@@ -44,13 +46,21 @@ export interface TvModelListItem {
 interface ModelListViewProps {
   models: TvModelListItem[];
   brandName?: string;
+  brandId?: string;
+  brands?: { id: string; name: string }[];
   userRole?: string;
 }
 
 const ITEMS_PER_PAGE = 15;
 const TRIGGER_OFFSET = 5; // Triggers loading next batch when user reaches (visibleCount - 5) which is the 10th item
 
-export function ModelListView({ models, brandName, userRole = 'STAFF' }: ModelListViewProps) {
+export function ModelListView({
+  models,
+  brandName,
+  brandId,
+  brands,
+  userRole = 'STAFF',
+}: ModelListViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -142,6 +152,18 @@ export function ModelListView({ models, brandName, userRole = 'STAFF' }: ModelLi
       return nameA.localeCompare(nameB);
     });
   }, [models, debouncedQuery, sortBy, openCounts]);
+
+  const normalizedQuery = useMemo(() => {
+    return debouncedQuery.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }, [debouncedQuery]);
+
+  const hasExactMatch = useMemo(() => {
+    if (!normalizedQuery) return true;
+    return models.some((m) => {
+      const clean = m.modelNumber.replace(/_\d{10,}$/, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      return clean === normalizedQuery;
+    });
+  }, [models, normalizedQuery]);
 
   const visibleModels = useMemo(() => {
     return filteredModels.slice(0, visibleCount);
@@ -265,30 +287,84 @@ export function ModelListView({ models, brandName, userRole = 'STAFF' }: ModelLi
           <ModelRowSkeleton />
         </div>
       ) : filteredModels.length === 0 ? (
-        <div className="p-12 text-center bg-white border border-border/80 border-dashed rounded-3xl shadow-blend">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3 text-primary">
+        <div className="p-8 sm:p-12 text-center bg-white border border-border/80 border-dashed rounded-3xl shadow-blend">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/30 flex items-center justify-center mx-auto mb-3.5 text-primary shadow-2xs">
             <Monitor className="w-7 h-7" />
           </div>
-          <h3 className="font-bold text-foreground text-base">No models found</h3>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto mb-4">
+          <h3 className="font-bold text-foreground text-base sm:text-lg">
+            {searchQuery ? `No model found matching "${searchQuery}"` : 'No models registered'}
+          </h3>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md mx-auto mb-5 leading-relaxed">
             {searchQuery
-              ? `No model numbers matching "${searchQuery}". Try a different keyword or check spelling.`
+              ? `This model is not registered under ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'this brand'} yet. Create "${searchQuery.trim().toUpperCase()}" to automatically set up its technical folders (Backlight & More info).`
               : 'Add your first TV model for this brand to start organizing documentation.'}
           </p>
-          {searchQuery && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setSearchQuery('')}
-              className="rounded-xl text-xs gap-1.5 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" /> Clear Search Filter
-            </Button>
-          )}
+
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            {searchQuery && !!userRole && (
+              <CreateTvModelDialog
+                brands={brands || (brandId ? [{ id: brandId, name: brandName || 'Brand' }] : [])}
+                preselectedBrandId={brandId}
+                initialModelNumber={searchQuery.trim().toUpperCase()}
+                existingModels={models.map((m) => m.modelNumber)}
+                trigger={
+                  <Button
+                    type="button"
+                    className="h-10 px-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:to-primary text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 hover:shadow-lg active:scale-95 transition-all flex items-center gap-2 border border-white/20 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create Model &ldquo;{searchQuery.trim().toUpperCase()}&rdquo;</span>
+                  </Button>
+                }
+              />
+            )}
+
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSearchQuery('')}
+                className="h-10 px-4 rounded-2xl text-xs font-semibold gap-1.5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" /> Clear Search Filter
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
+          {/* Quick-Create Suggestion Banner when Searching (if query has no exact match) */}
+          {debouncedQuery.trim().length >= 2 && !hasExactMatch && !!userRole && (
+            <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 dark:bg-slate-900/90 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-600/15 border border-blue-500/30 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1 text-xs">
+                  <span className="text-foreground font-bold">Model not in list?</span>{' '}
+                  <span className="text-muted-foreground">Register <strong>&ldquo;{debouncedQuery.trim().toUpperCase()}&rdquo;</strong> to create its technical folders.</span>
+                </div>
+              </div>
+
+              <CreateTvModelDialog
+                brands={brands || (brandId ? [{ id: brandId, name: brandName || 'Brand' }] : [])}
+                preselectedBrandId={brandId}
+                initialModelNumber={debouncedQuery.trim().toUpperCase()}
+                existingModels={models.map((m) => m.modelNumber)}
+                trigger={
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8.5 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 self-stretch sm:self-auto justify-center"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create &ldquo;{debouncedQuery.trim().toUpperCase()}&rdquo;</span>
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
           <div className="divide-y divide-border/70 bg-white border border-border/80 rounded-3xl shadow-blend overflow-hidden">
             {visibleModels.map((model, idx) => {
               const folderCount = model._count?.knowledgeFolders ?? 0;
@@ -372,6 +448,7 @@ export function ModelListView({ models, brandName, userRole = 'STAFF' }: ModelLi
                             brandName={brandName || model.brand?.name}
                             folderCount={folderCount}
                             userRole={userRole}
+                            existingModels={models.map((m) => m.modelNumber)}
                           />
                         </div>
                       )}

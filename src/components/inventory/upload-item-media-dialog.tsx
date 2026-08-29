@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { uploadMediaAction } from '@/features/media/actions/media.actions';
+import { detectMediaKind } from '@/lib/media-detect';
 
 interface UploadItemMediaDialogProps {
   itemId: string;
@@ -78,14 +79,16 @@ export function UploadItemMediaDialog({
   const handleFileSelect = (file: File) => {
     if (!file) return;
 
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/')) {
+    const { isImage, isVideo, isAudio } = detectMediaKind(file.name, file.type);
+
+    if (!isImage && !isVideo && !isAudio) {
       toast.error('Please select an image, video, or audio file');
       return;
     }
 
     setSelectedFile(file);
 
-    if (file.type.startsWith('image/')) {
+    if (isImage) {
       const reader = new FileReader();
       reader.onload = () => {
         setPreviewUrl(reader.result as string);
@@ -285,7 +288,7 @@ export function UploadItemMediaDialog({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,video/*,audio/*"
+                    accept="image/*,video/*,audio/*,.mp4,.mov,.mkv,.avi,.webm,.3gp,.3gpp,.hevc,.jpg,.jpeg,.png,.webp,.heic,.mp3,.wav,.m4a"
                     onChange={handleFileInputChange}
                     className="hidden"
                   />

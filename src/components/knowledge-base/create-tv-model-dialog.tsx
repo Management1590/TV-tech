@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useTransition, useEffect, useId } from 'react';
-import { Monitor, Loader2, Plus, Sparkles, CheckCircle2, Tv } from 'lucide-react';
+import React, { useState, useTransition, useEffect, useId, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { Monitor, Loader2, Plus, Sparkles, CheckCircle2, Tv, AlertTriangle, AlertCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,25 +25,61 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { createTvModelAction } from '@/features/knowledge-base/actions/kb.actions';
+import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
 
 interface CreateTvModelDialogProps {
   brands: { id: string; name: string }[];
   preselectedBrandId?: string;
+  initialModelNumber?: string;
   trigger?: React.ReactNode;
+  existingModels?: string[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function CreateTvModelDialog({
   brands,
   preselectedBrandId,
+  initialModelNumber = '',
   trigger,
+  existingModels = [],
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
 }: CreateTvModelDialogProps) {
-  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? setControlledOpen! : setInternalOpen;
   const [isPending, startTransition] = useTransition();
 
   const [brandId, setBrandId] = useState(preselectedBrandId || brands[0]?.id || '');
-  const [modelNumber, setModelNumber] = useState('');
+  const [modelNumber, setModelNumber] = useState(initialModelNumber);
   const [screenSize, setScreenSize] = useState('');
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
+
+  // Sync initialModelNumber when dialog opens
+  useEffect(() => {
+    if (open) {
+      if (initialModelNumber) {
+        setModelNumber(initialModelNumber);
+        const cleaned = initialModelNumber.trim();
+        const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[a-zA-Z]{0,4}[-_]?)(\d{2})/);
+        if (match && match[1]) {
+          setScreenSize(match[1]);
+          setAutoDetectedSize(match[1]);
+        }
+      }
+    }
+  }, [open, initialModelNumber]);
+
+  // Real-time duplicate & similarity checking
+  const similarityResult = useMemo(() => {
+    if (!modelNumber.trim() || !existingModels || existingModels.length === 0) {
+      return { level: 'NONE' as const, hasConflict: false, hasWarning: false };
+    }
+    return validateNameSimilarity(modelNumber, existingModels, 'Model');
+  }, [modelNumber, existingModels]);
 
   // Sync preselectedBrandId if prop changes
   useEffect(() => {
@@ -60,8 +97,6 @@ export function CreateTvModelDialog({
   const handleModelNumberChange = (value: string) => {
     setModelNumber(value);
 
-    // Extract starting 2 numeric digits or the first 2-digit number sequence
-    // Supports direct digits "55NU7100" -> "55", "32LM..." -> "32", or brand prefix "UA65..." -> "65"
     const cleaned = value.trim();
     const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[a-zA-Z]{0,4}[-_]?)(\d{2})/);
 
@@ -77,7 +112,7 @@ export function CreateTvModelDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!brandId || !modelNumber.trim()) return;
+    if (!brandId || !modelNumber.trim() || similarityResult.level === 'BLOCK') return;
 
     startTransition(async () => {
       const result = await createTvModelAction({
@@ -86,12 +121,17 @@ export function CreateTvModelDialog({
         screenSize: screenSize.trim() || undefined,
       });
 
-      if (result.success) {
-        toast.success(`Model "${modelNumber.trim().toUpperCase()}" created successfully`);
+      if (result.success && result.data) {
+        if (similarityResult.level === 'WARN') {
+          toast.success(`Model "${modelNumber.trim().toUpperCase()}" created (Similar to: ${similarityResult.conflictingName})`);
+        } else {
+          toast.success(`Model "${modelNumber.trim().toUpperCase()}" created successfully`);
+        }
         setOpen(false);
         setModelNumber('');
         setScreenSize('');
         setAutoDetectedSize(null);
+        router.push(`/knowledge-base/models/${result.data.id}`);
       } else {
         toast.error(result.error || 'Failed to create model');
       }
@@ -183,8 +223,45 @@ export function CreateTvModelDialog({
                   required
                   autoFocus
                   disabled={isPending}
-                  className="h-12 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm sm:text-base font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className={`h-12 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border text-sm sm:text-base font-bold tracking-wide transition-all focus-visible:ring-2 ${
+                    similarityResult.level === 'BLOCK'
+                      ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
+                      : similarityResult.level === 'WARN'
+                      ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
+                      : 'border-border/80 focus-visible:ring-primary/30'
+                  }`}
                 />
+                
+                {/* 8+ Match Restriction Banner */}
+                {similarityResult.level === 'BLOCK' && (
+                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-rose-900">
+                        {similarityResult.reason === 'EXACT_MATCH' ? 'Exact Duplicate Model' : 'Model Code Restricted (8+ Matching Characters)'}
+                      </p>
+                      <p className="text-[11px] text-rose-700 leading-relaxed">
+                        {similarityResult.message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5-7 Match Warning Banner with Proceed to Continue guidance */}
+                {similarityResult.level === 'WARN' && (
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-amber-900">
+                        Similar Model In Existence ({similarityResult.matchLength} Matching Characters: &quot;{similarityResult.matchedSequence}&quot;)
+                      </p>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        Shares sequence with existing model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>. You may proceed to create this model if intended.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-[11px] text-muted-foreground">
                   Type the full model code. The first 2 digits automatically calculate the TV screen size.
                 </p>
@@ -230,11 +307,22 @@ export function CreateTvModelDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={isPending || !brandId || !modelNumber.trim()}
-                className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold gap-2 shadow-md shadow-blue-500/20 hover:shadow-lg active:scale-95 transition-all"
+                disabled={isPending || !brandId || !modelNumber.trim() || similarityResult.level === 'BLOCK'}
+                className={`rounded-2xl text-xs h-10 px-5 text-white font-bold gap-2 shadow-md active:scale-95 transition-all cursor-pointer ${
+                  similarityResult.level === 'WARN'
+                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/20'
+                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-blue-500/20 hover:shadow-lg'
+                }`}
               >
                 {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Create Model
+                {similarityResult.level === 'WARN' ? (
+                  <>
+                    <span>Proceed & Create Model</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                ) : (
+                  <span>Create Model</span>
+                )}
               </Button>
             </DialogFooter>
           </form>
