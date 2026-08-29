@@ -153,18 +153,6 @@ export function ModelListView({
     });
   }, [models, debouncedQuery, sortBy, openCounts]);
 
-  const normalizedQuery = useMemo(() => {
-    return debouncedQuery.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  }, [debouncedQuery]);
-
-  const hasExactMatch = useMemo(() => {
-    if (!normalizedQuery) return true;
-    return models.some((m) => {
-      const clean = m.modelNumber.replace(/_\d{10,}$/, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      return clean === normalizedQuery;
-    });
-  }, [models, normalizedQuery]);
-
   const visibleModels = useMemo(() => {
     return filteredModels.slice(0, visibleCount);
   }, [filteredModels, visibleCount]);
@@ -333,38 +321,6 @@ export function ModelListView({
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Quick-Create Suggestion Banner when Searching (if query has no exact match) */}
-          {debouncedQuery.trim().length >= 2 && !hasExactMatch && !!userRole && (
-            <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 dark:bg-slate-900/90 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-blue-600/15 border border-blue-500/30 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
-                  <Plus className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1 text-xs">
-                  <span className="text-foreground font-bold">Model not in list?</span>{' '}
-                  <span className="text-muted-foreground">Register <strong>&ldquo;{debouncedQuery.trim().toUpperCase()}&rdquo;</strong> to create its technical folders.</span>
-                </div>
-              </div>
-
-              <CreateTvModelDialog
-                brands={brands || (brandId ? [{ id: brandId, name: brandName || 'Brand' }] : [])}
-                preselectedBrandId={brandId}
-                initialModelNumber={debouncedQuery.trim().toUpperCase()}
-                existingModels={models.map((m) => m.modelNumber)}
-                trigger={
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8.5 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 self-stretch sm:self-auto justify-center"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Create &ldquo;{debouncedQuery.trim().toUpperCase()}&rdquo;</span>
-                  </Button>
-                }
-              />
-            </div>
-          )}
-
           <div className="divide-y divide-border/70 bg-white border border-border/80 rounded-3xl shadow-blend overflow-hidden">
             {visibleModels.map((model, idx) => {
               const folderCount = model._count?.knowledgeFolders ?? 0;
