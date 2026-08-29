@@ -3,9 +3,10 @@
  * 
  * Rules:
  * 1. Normalized comparison: Strips all spaces, hyphens, and non-alphanumeric characters (case-insensitive).
- * 2. Exact Match (BLOCK): Cannot create/rename an entity to an identical name.
- * 3. 8+ Sequential Alphanumeric Match (BLOCK): Strictly restricted if candidate shares 8+ consecutive characters.
- * 4. 5 to 7 Sequential Alphanumeric Match (WARN): Shows a non-blocking warning informing that the model is in existence and allowing the user to proceed.
+ * 2. Exact Match (BLOCK): Duplicate entity names in the same directory are strictly prevented.
+ * 3. 11+ Sequential Alphanumeric Match (WARN_11): Displays a high-intensity "crazy red" critical similarity warning banner. Non-blocking (user can proceed).
+ * 4. 8 to 10 Sequential Alphanumeric Match (WARN_8): Displays a red similarity warning banner. Non-blocking (user can proceed).
+ * 5. 5 to 7 Sequential Alphanumeric Match (WARN_5): Displays a soft amber similarity notice. Non-blocking (user can proceed).
  */
 
 export function normalizeAlphanumeric(input: string): string {
@@ -13,17 +14,37 @@ export function normalizeAlphanumeric(input: string): string {
   return input.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export type CollisionLevel = 'BLOCK' | 'WARN' | 'NONE';
+export type CollisionLevel = 'BLOCK' | 'WARN_11' | 'WARN_8' | 'WARN_5' | 'WARN' | 'NONE';
 
 export interface NameCollisionResult {
   level: CollisionLevel;
-  hasConflict: boolean; // true if BLOCK
-  hasWarning: boolean;  // true if WARN
-  reason?: 'EXACT_MATCH' | 'SEQUENTIAL_8_MATCH' | 'SEQUENTIAL_SIMILARITY_WARN';
+  hasConflict: boolean; // true ONLY if exact duplicate (BLOCK)
+  hasWarning: boolean;  // true if WARN_11, WARN_8, WARN_5, or WARN
+  reason?: 'EXACT_MATCH' | 'SEQUENTIAL_11_MATCH' | 'SEQUENTIAL_8_MATCH' | 'SEQUENTIAL_5_MATCH' | 'SEQUENTIAL_SIMILARITY_WARN';
   conflictingName?: string;
   matchedSequence?: string;
   matchLength?: number;
   message?: string;
+}
+
+/**
+ * Finds the longest common substring between two strings.
+ */
+function findLongestCommonSubstring(str1: string, str2: string): { sequence: string; length: number } {
+  let longestSeq = '';
+  let maxLen = 0;
+
+  for (let i = 0; i < str1.length; i++) {
+    for (let j = i + 1; j <= str1.length; j++) {
+      const sub = str1.substring(i, j);
+      if (str2.includes(sub) && sub.length > maxLen) {
+        maxLen = sub.length;
+        longestSeq = sub;
+      }
+    }
+  }
+
+  return { sequence: longestSeq, length: maxLen };
 }
 
 /**
@@ -45,13 +66,10 @@ export function validateNameSimilarity(
     return { level: 'NONE', hasConflict: false, hasWarning: false };
   }
 
-  const BLOCK_SEQ_LEN = 8;
-  const WARN_MIN_LEN = 5;
-
-  let highestWarning: {
+  let highestMatch: {
     conflictingName: string;
-    matchedSequence: string;
-    matchLength: number;
+    sequence: string;
+    length: number;
   } | null = null;
 
   for (const existing of existingList) {
@@ -72,81 +90,61 @@ export function validateNameSimilarity(
       };
     }
 
-    // Rule 2: 8+ character sequential alphanumeric matching -> STRICT BLOCK
-    if (candNorm.length >= BLOCK_SEQ_LEN && existNorm.length >= BLOCK_SEQ_LEN) {
-      for (let i = 0; i <= candNorm.length - BLOCK_SEQ_LEN; i++) {
-        const windowSeq = candNorm.substring(i, i + BLOCK_SEQ_LEN);
-        if (existNorm.includes(windowSeq)) {
-          return {
-            level: 'BLOCK',
-            hasConflict: true,
-            hasWarning: false,
-            reason: 'SEQUENTIAL_8_MATCH',
-            conflictingName: existClean,
-            matchedSequence: windowSeq.toUpperCase(),
-            matchLength: BLOCK_SEQ_LEN,
-            message: `Cannot create ${entityType.toLowerCase()} "${cleanCand}". It shares 8 sequential characters ("${windowSeq.toUpperCase()}") with existing ${entityType.toLowerCase()} "${existClean}".`,
-          };
-        }
-      }
-
-      for (let i = 0; i <= existNorm.length - BLOCK_SEQ_LEN; i++) {
-        const windowSeq = existNorm.substring(i, i + BLOCK_SEQ_LEN);
-        if (candNorm.includes(windowSeq)) {
-          return {
-            level: 'BLOCK',
-            hasConflict: true,
-            hasWarning: false,
-            reason: 'SEQUENTIAL_8_MATCH',
-            conflictingName: existClean,
-            matchedSequence: windowSeq.toUpperCase(),
-            matchLength: BLOCK_SEQ_LEN,
-            message: `Cannot create ${entityType.toLowerCase()} "${cleanCand}". It shares 8 sequential characters ("${windowSeq.toUpperCase()}") with existing ${entityType.toLowerCase()} "${existClean}".`,
-          };
-        }
-      }
-    }
-
-    // Rule 3: 5, 6, or 7 character sequential match -> SOFT WARNING
-    // We scan for the longest sub-match between 5 and 7 characters
-    const maxLen = Math.min(7, candNorm.length, existNorm.length);
-    for (let len = maxLen; len >= WARN_MIN_LEN; len--) {
-      // If we already found a longer or equal warning, don't downgrade
-      if (highestWarning && highestWarning.matchLength >= len) {
-        break;
-      }
-
-      let foundSub: string | null = null;
-      for (let i = 0; i <= candNorm.length - len; i++) {
-        const sub = candNorm.substring(i, i + len);
-        if (existNorm.includes(sub)) {
-          foundSub = sub;
-          break;
-        }
-      }
-
-      if (foundSub) {
-        highestWarning = {
+    // Compute longest sequential match with this item
+    const common = findLongestCommonSubstring(candNorm, existNorm);
+    if (common.length >= 5) {
+      if (!highestMatch || common.length > highestMatch.length) {
+        highestMatch = {
           conflictingName: existClean,
-          matchedSequence: foundSub.toUpperCase(),
-          matchLength: len,
+          sequence: common.sequence,
+          length: common.length,
         };
-        break;
       }
     }
   }
 
-  // If a 5, 6, or 7 match was detected and not blocked by 8+ rule, return WARN
-  if (highestWarning) {
+  if (highestMatch) {
+    const upperSeq = highestMatch.sequence.toUpperCase();
+    const matchLen = highestMatch.length;
+
+    // Rule 2: 11+ sequential character match -> "Crazy Red" Critical Warning (Non-blocking)
+    if (matchLen >= 11) {
+      return {
+        level: 'WARN_11',
+        hasConflict: false,
+        hasWarning: true,
+        reason: 'SEQUENTIAL_11_MATCH',
+        conflictingName: highestMatch.conflictingName,
+        matchedSequence: upperSeq,
+        matchLength: matchLen,
+        message: `Critical Warning: ${matchLen} sequential characters ("${upperSeq}") match with existing ${entityType.toLowerCase()} "${highestMatch.conflictingName}". Proceed to continue?`,
+      };
+    }
+
+    // Rule 3: 8 to 10 sequential character match -> Red Warning (Non-blocking)
+    if (matchLen >= 8) {
+      return {
+        level: 'WARN_8',
+        hasConflict: false,
+        hasWarning: true,
+        reason: 'SEQUENTIAL_8_MATCH',
+        conflictingName: highestMatch.conflictingName,
+        matchedSequence: upperSeq,
+        matchLength: matchLen,
+        message: `Warning: ${matchLen} sequential characters ("${upperSeq}") match with existing ${entityType.toLowerCase()} "${highestMatch.conflictingName}". Proceed to continue?`,
+      };
+    }
+
+    // Rule 4: 5 to 7 sequential character match -> Amber Notice (Non-blocking)
     return {
-      level: 'WARN',
+      level: 'WARN_5',
       hasConflict: false,
       hasWarning: true,
-      reason: 'SEQUENTIAL_SIMILARITY_WARN',
-      conflictingName: highestWarning.conflictingName,
-      matchedSequence: highestWarning.matchedSequence,
-      matchLength: highestWarning.matchLength,
-      message: `Warning: This ${entityType.toLowerCase()} shares ${highestWarning.matchLength} sequential characters ("${highestWarning.matchedSequence}") with existing ${entityType.toLowerCase()} "${highestWarning.conflictingName}". Proceed to continue?`,
+      reason: 'SEQUENTIAL_5_MATCH',
+      conflictingName: highestMatch.conflictingName,
+      matchedSequence: upperSeq,
+      matchLength: matchLen,
+      message: `Notice: This ${entityType.toLowerCase()} shares ${matchLen} sequential characters ("${upperSeq}") with existing ${entityType.toLowerCase()} "${highestMatch.conflictingName}". Proceed to continue?`,
     };
   }
 

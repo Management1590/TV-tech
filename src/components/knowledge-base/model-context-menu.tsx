@@ -118,7 +118,11 @@ export function ModelContextMenu({
       );
 
       if (res.success) {
-        if (similarityResult.level === 'WARN') {
+        if (similarityResult.level === 'WARN_11') {
+          toast.warning(`Model updated to "${newModelNumber.trim().toUpperCase()}" (11+ Match: ${similarityResult.conflictingName})`);
+        } else if (similarityResult.level === 'WARN_8') {
+          toast.warning(`Model updated to "${newModelNumber.trim().toUpperCase()}" (8+ Match: ${similarityResult.conflictingName})`);
+        } else if (similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN') {
           toast.success(`Model updated to "${newModelNumber.trim().toUpperCase()}" (Similar to: ${similarityResult.conflictingName})`);
         } else {
           toast.success(`Model updated to "${newModelNumber.trim().toUpperCase()}"`);
@@ -148,69 +152,61 @@ export function ModelContextMenu({
         <DropdownMenuTrigger
           aria-label="Model options"
           onClick={(e) => {
-            e.preventDefault();
             e.stopPropagation();
           }}
-          className="h-8 w-8 inline-flex items-center justify-center rounded-xl bg-white/80 hover:bg-white text-foreground/80 hover:text-primary border border-border/80 hover:border-primary/40 shadow-2xs hover:shadow-md backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer z-20 group/btn"
+          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer outline-none active:scale-95"
         >
-          <MoreVertical className="h-4 w-4 transition-transform group-hover/btn:scale-110" />
+          <MoreVertical className="w-4 h-4" />
         </DropdownMenuTrigger>
-
         <DropdownMenuContent
           align="end"
-          className="w-56 rounded-2xl bg-white border border-border/80 shadow-xl p-1.5 z-30"
+          className="w-48 p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl border border-border/80 shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-2 py-1.5 border-b border-border/60 mb-1">
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Model Actions
-            </p>
-            <p className="text-xs font-bold text-foreground truncate">{modelNumber}</p>
-          </div>
+          {isAdmin && (
+            <DropdownMenuItem
+              onClick={() => setIsRenameOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted focus:bg-muted"
+            >
+              <Pencil className="w-3.5 h-3.5 text-primary" />
+              <span>Rename Model</span>
+            </DropdownMenuItem>
+          )}
 
-          <DropdownMenuItem
-            onClick={() => setIsRenameOpen(true)}
-            className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-muted cursor-pointer transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5 text-primary" />
-            <span>Rename Model</span>
-          </DropdownMenuItem>
+          {isAdmin && <DropdownMenuSeparator className="my-1 border-border/60" />}
 
           {isAdmin && (
-            <>
-              <DropdownMenuSeparator className="my-1 border-border/60" />
-              <DropdownMenuItem
-                onClick={() => setIsDeleteOpen(true)}
-                className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                <span>Delete Model</span>
-              </DropdownMenuItem>
-            </>
+            <DropdownMenuItem
+              onClick={() => setIsDeleteOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl text-red-600 focus:text-red-700 hover:bg-red-50 focus:bg-red-50 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Model</span>
+            </DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       {/* ── 1. RENAME TV MODEL DIALOG ── */}
-      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+      <Dialog open={isRenameOpen} onOpenChange={isPending ? undefined : setIsRenameOpen}>
         <DialogContent
-          className="sm:max-w-[460px] p-6 bg-white/95 backdrop-blur-2xl border border-border/80 text-foreground shadow-2xl rounded-3xl"
+          className="sm:max-w-[440px] p-4 sm:p-5 bg-white border border-border/80 text-foreground shadow-2xl rounded-3xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <form onSubmit={handleRename} className="space-y-4">
-            <DialogHeader className="space-y-1 pb-3 border-b border-border/60">
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600/15 to-indigo-600/15 border border-primary/25 flex items-center justify-center text-primary shadow-sm">
-                  <Pencil className="w-4.5 h-4.5" />
+          <form onSubmit={handleRename} className="space-y-3.5">
+            <DialogHeader className="space-y-0.5 pb-2 border-b border-border/60">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs">
+                  <Pencil className="w-4 h-4" />
                 </div>
                 <span>Rename TV Model</span>
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
+              <DialogDescription className="text-[11px] text-muted-foreground line-clamp-1">
                 Update model number and screen size for {brandName || 'this brand'}.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3.5 py-1">
+            <div className="space-y-3">
               {/* Model Number */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -218,8 +214,8 @@ export function ModelContextMenu({
                     Model Number *
                   </Label>
                   {autoDetectedSize && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg animate-in fade-in">
-                      <CheckCircle2 className="w-3 h-3" /> Auto-detected: {autoDetectedSize}&quot; Size
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> {autoDetectedSize}&quot; Size
                     </span>
                   )}
                 </div>
@@ -231,40 +227,73 @@ export function ModelContextMenu({
                   required
                   autoFocus
                   disabled={isPending}
-                  className={`h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
+                  className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
                     similarityResult.level === 'BLOCK'
                       ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
-                      : similarityResult.level === 'WARN'
+                      : similarityResult.level === 'WARN_11'
+                      ? 'border-2 border-red-600 focus-visible:ring-red-600/50 text-red-950 bg-red-100/40 font-black'
+                      : similarityResult.level === 'WARN_8'
+                      ? 'border-red-500 focus-visible:ring-red-500/30 text-red-900 bg-red-50/30'
+                      : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
                       ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
                       : 'border-border/80 focus-visible:ring-primary/30'
                   }`}
                 />
 
-                {/* 8+ Match Restriction Banner */}
+                {/* Exact Duplicate Match Restriction Banner */}
                 {similarityResult.level === 'BLOCK' && (
-                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-rose-900">
-                        {similarityResult.reason === 'EXACT_MATCH' ? 'Exact Duplicate Model' : 'Model Code Restricted (8+ Matching Characters)'}
-                      </p>
-                      <p className="text-[11px] text-rose-700 leading-relaxed">
-                        {similarityResult.message}
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2 animate-in fade-in">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-600 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <p className="font-bold text-rose-900 text-xs">Exact Duplicate Model</p>
+                      <p className="text-[11px] text-rose-700 leading-tight">{similarityResult.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 11+ Match Crazy Red Critical Warning Banner */}
+                {similarityResult.level === 'WARN_11' && (
+                  <div className="p-2.5 rounded-xl bg-red-600/10 border-2 border-red-600 text-red-950 text-xs flex items-start gap-2.5 animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 fill-red-600 text-white shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-black uppercase tracking-wider">
+                          11+ Match Warning
+                        </span>
+                        <span className="font-bold text-xs truncate">&quot;{similarityResult.matchedSequence}&quot;</span>
+                      </div>
+                      <p className="text-[11px] text-red-900 leading-tight mt-0.5">
+                        Matches model <strong className="font-extrabold text-red-950 underline">{similarityResult.conflictingName}</strong>. You may proceed if intended.
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* 5-7 Match Warning Banner with Proceed to Continue guidance */}
-                {similarityResult.level === 'WARN' && (
-                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-amber-900">
-                        Similar Model In Existence ({similarityResult.matchLength} Matching Characters: &quot;{similarityResult.matchedSequence}&quot;)
+                {/* 8-10 Match Red Warning Banner */}
+                {similarityResult.level === 'WARN_8' && (
+                  <div className="p-2.5 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs flex items-start gap-2 animate-in fade-in">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <p className="font-bold text-red-900 text-xs">
+                        8+ Match: &quot;{similarityResult.matchedSequence}&quot;
                       </p>
-                      <p className="text-[11px] text-amber-800 leading-relaxed">
-                        Shares sequence with existing model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>. You may proceed to save if intended.
+                      <p className="text-[11px] text-red-800 leading-tight">
+                        Matches model <strong className="font-bold text-red-950">{similarityResult.conflictingName}</strong>. You may proceed if intended.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5-7 Match Soft Amber Warning Banner */}
+                {(similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN') && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2 animate-in fade-in">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <p className="font-bold text-amber-900 text-xs">
+                        Similar Model ({similarityResult.matchLength} Chars: &quot;{similarityResult.matchedSequence}&quot;)
+                      </p>
+                      <p className="text-[11px] text-amber-800 leading-tight">
+                        Matches model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>.
                       </p>
                     </div>
                   </div>
@@ -272,7 +301,7 @@ export function ModelContextMenu({
               </div>
 
               {/* TV Screen Size */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label htmlFor="rename-screen-size" className="text-xs font-semibold text-foreground">
                   TV Size (Inches)
                 </Label>
@@ -289,36 +318,50 @@ export function ModelContextMenu({
                     }}
                     placeholder="e.g. 55"
                     disabled={isPending}
-                    className="h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16"
+                    className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16"
                   />
-                  <div className="absolute right-3.5 text-xs font-bold text-muted-foreground pointer-events-none">
+                  <div className="absolute right-3 text-xs font-bold text-muted-foreground pointer-events-none">
                     Inches (&quot;)
                   </div>
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="pt-2 gap-2">
+            <DialogFooter className="pt-2 gap-2 flex items-center justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsRenameOpen(false)}
                 disabled={isPending}
-                className="rounded-2xl text-xs h-10 px-4"
+                className="rounded-xl text-xs h-9.5 px-3.5"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isPending || !newModelNumber.trim() || similarityResult.level === 'BLOCK'}
-                className={`rounded-2xl text-xs h-10 px-5 text-white font-bold gap-2 shadow-md transition-all cursor-pointer ${
-                  similarityResult.level === 'WARN'
-                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/20'
-                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-blue-500/20'
+                className={`rounded-xl text-xs h-9.5 px-4 text-white font-bold gap-1.5 shadow-sm transition-all cursor-pointer ${
+                  similarityResult.level === 'WARN_11'
+                    ? 'bg-gradient-to-r from-red-700 via-rose-700 to-red-800 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-600/30 border border-red-400/40 font-black'
+                    : similarityResult.level === 'WARN_8'
+                    ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20'
+                    : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
+                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20'
+                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-sm shadow-blue-500/20'
                 }`}
               >
                 {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {similarityResult.level === 'WARN' ? (
+                {similarityResult.level === 'WARN_11' ? (
+                  <>
+                    <span>Proceed & Save (11+ Match)</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                ) : similarityResult.level === 'WARN_8' ? (
+                  <>
+                    <span>Proceed & Save (8+ Match)</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                ) : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN' ? (
                   <>
                     <span>Proceed & Save Changes</span>
                     <ArrowRight className="w-3.5 h-3.5" />

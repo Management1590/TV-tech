@@ -122,7 +122,11 @@ export function CreateTvModelDialog({
       });
 
       if (result.success && result.data) {
-        if (similarityResult.level === 'WARN') {
+        if (similarityResult.level === 'WARN_11') {
+          toast.warning(`Model "${modelNumber.trim().toUpperCase()}" created (11+ Match: ${similarityResult.conflictingName})`);
+        } else if (similarityResult.level === 'WARN_8') {
+          toast.warning(`Model "${modelNumber.trim().toUpperCase()}" created (8+ Match: ${similarityResult.conflictingName})`);
+        } else if (similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN') {
           toast.success(`Model "${modelNumber.trim().toUpperCase()}" created (Similar to: ${similarityResult.conflictingName})`);
         } else {
           toast.success(`Model "${modelNumber.trim().toUpperCase()}" created successfully`);
@@ -158,43 +162,39 @@ export function CreateTvModelDialog({
       )}
 
       <Dialog open={open} onOpenChange={isPending ? undefined : setOpen}>
-        <DialogContent className="sm:max-w-[480px] p-6 bg-white/95 backdrop-blur-2xl border border-border/80 text-foreground shadow-2xl rounded-3xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <DialogContent className="sm:max-w-[440px] p-4 sm:p-5 bg-white border border-border/80 text-foreground shadow-2xl rounded-3xl overflow-hidden">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             {/* Header */}
-            <DialogHeader className="space-y-1 pb-3 border-b border-border/60">
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/30 flex items-center justify-center text-primary shadow-sm">
-                  <Monitor className="w-5 h-5" />
+            <DialogHeader className="space-y-0.5 pb-2 border-b border-border/60">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs">
+                  <Monitor className="w-4 h-4" />
                 </div>
                 <span>Add TV Model</span>
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
+              <DialogDescription className="text-[11px] text-muted-foreground line-clamp-1">
                 {selectedBrand ? (
-                  <span>
-                    Adding under brand{' '}
-                    <strong className="text-foreground font-bold">{selectedBrand.name}</strong>. Screen
-                    size is automatically populated from model digits.
-                  </span>
+                  <span>Adding under brand <strong className="text-foreground font-semibold">{selectedBrand.name}</strong></span>
                 ) : (
-                  <span>Register a new TV model number with automatic screen size detection.</span>
+                  <span>Register a new TV model number.</span>
                 )}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-1">
+            <div className="space-y-3">
               {/* Optional Brand Selector (Only if multiple brands exist and not preselected) */}
               {!preselectedBrandId && brands.length > 1 && (
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <Label htmlFor="brand-select" className="text-xs font-semibold text-foreground">
                     Brand Category *
                   </Label>
                   <Select value={brandId} onValueChange={(v) => v && setBrandId(v)}>
-                    <SelectTrigger id="brand-select" className="h-11 rounded-2xl bg-muted/50 border-border/80 text-sm">
+                    <SelectTrigger id="brand-select" className="h-9.5 rounded-xl bg-muted/40 border-border/80 text-xs font-medium">
                       <SelectValue placeholder="Select brand..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl bg-white border border-border shadow-xl">
+                    <SelectContent className="rounded-xl bg-white border border-border shadow-xl">
                       {brands.map((b) => (
-                        <SelectItem key={b.id} value={b.id} className="cursor-pointer font-medium">
+                        <SelectItem key={b.id} value={b.id} className="cursor-pointer font-medium text-xs">
                           {b.name}
                         </SelectItem>
                       ))}
@@ -210,8 +210,8 @@ export function CreateTvModelDialog({
                     Model Number *
                   </Label>
                   {autoDetectedSize && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg animate-in fade-in">
-                      <CheckCircle2 className="w-3 h-3" /> Auto-detected: {autoDetectedSize}&quot; Size
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> {autoDetectedSize}&quot; Size
                     </span>
                   )}
                 </div>
@@ -223,52 +223,81 @@ export function CreateTvModelDialog({
                   required
                   autoFocus
                   disabled={isPending}
-                  className={`h-12 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border text-sm sm:text-base font-bold tracking-wide transition-all focus-visible:ring-2 ${
+                  className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
                     similarityResult.level === 'BLOCK'
                       ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
-                      : similarityResult.level === 'WARN'
+                      : similarityResult.level === 'WARN_11'
+                      ? 'border-2 border-red-600 focus-visible:ring-red-600/50 text-red-950 bg-red-100/40 font-black'
+                      : similarityResult.level === 'WARN_8'
+                      ? 'border-red-500 focus-visible:ring-red-500/30 text-red-900 bg-red-50/30'
+                      : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
                       ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
                       : 'border-border/80 focus-visible:ring-primary/30'
                   }`}
                 />
                 
-                {/* 8+ Match Restriction Banner */}
+                {/* Exact Duplicate Match Restriction Banner */}
                 {similarityResult.level === 'BLOCK' && (
-                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-rose-900">
-                        {similarityResult.reason === 'EXACT_MATCH' ? 'Exact Duplicate Model' : 'Model Code Restricted (8+ Matching Characters)'}
-                      </p>
-                      <p className="text-[11px] text-rose-700 leading-relaxed">
-                        {similarityResult.message}
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2 animate-in fade-in">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <p className="font-bold text-rose-900 text-xs">Exact Duplicate Model</p>
+                      <p className="text-[11px] text-rose-700 leading-tight">{similarityResult.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 11+ Match Crazy Red Critical Warning Banner */}
+                {similarityResult.level === 'WARN_11' && (
+                  <div className="p-2.5 rounded-xl bg-red-600/10 border-2 border-red-600 text-red-950 text-xs flex items-start gap-2.5 animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 fill-red-600 text-white shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-black uppercase tracking-wider">
+                          11+ Match Warning
+                        </span>
+                        <span className="font-bold text-xs truncate">&quot;{similarityResult.matchedSequence}&quot;</span>
+                      </div>
+                      <p className="text-[11px] text-red-900 leading-tight mt-0.5">
+                        Matches model <strong className="font-extrabold text-red-950 underline">{similarityResult.conflictingName}</strong>. You may proceed if intended.
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* 5-7 Match Warning Banner with Proceed to Continue guidance */}
-                {similarityResult.level === 'WARN' && (
-                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-amber-900">
-                        Similar Model In Existence ({similarityResult.matchLength} Matching Characters: &quot;{similarityResult.matchedSequence}&quot;)
+                {/* 8-10 Match Red Warning Banner */}
+                {similarityResult.level === 'WARN_8' && (
+                  <div className="p-2.5 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs flex items-start gap-2 animate-in fade-in">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <p className="font-bold text-red-900 text-xs">
+                        8+ Match: &quot;{similarityResult.matchedSequence}&quot;
                       </p>
-                      <p className="text-[11px] text-amber-800 leading-relaxed">
-                        Shares sequence with existing model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>. You may proceed to create this model if intended.
+                      <p className="text-[11px] text-red-800 leading-tight">
+                        Matches model <strong className="font-bold text-red-950">{similarityResult.conflictingName}</strong>. You may proceed if intended.
                       </p>
                     </div>
                   </div>
                 )}
 
-                <p className="text-[11px] text-muted-foreground">
-                  Type the full model code. The first 2 digits automatically calculate the TV screen size.
-                </p>
+                {/* 5-7 Match Soft Amber Warning Banner */}
+                {(similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN') && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2 animate-in fade-in">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <p className="font-bold text-amber-900 text-xs">
+                        Similar Model ({similarityResult.matchLength} Chars: &quot;{similarityResult.matchedSequence}&quot;)
+                      </p>
+                      <p className="text-[11px] text-amber-800 leading-tight">
+                        Matches model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 2. TV Screen Size (Auto-filled) */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label htmlFor="screen-size" className="text-xs font-semibold text-foreground">
                   TV Size (Inches)
                 </Label>
@@ -285,9 +314,9 @@ export function CreateTvModelDialog({
                     }}
                     placeholder="e.g. 55"
                     disabled={isPending}
-                    className="h-11 rounded-2xl bg-muted/50 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
+                    className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
                   />
-                  <div className="absolute right-3.5 text-xs font-bold text-muted-foreground pointer-events-none">
+                  <div className="absolute right-3 text-xs font-bold text-muted-foreground pointer-events-none">
                     Inches (&quot;)
                   </div>
                 </div>
@@ -295,27 +324,41 @@ export function CreateTvModelDialog({
             </div>
 
             {/* Footer Actions */}
-            <DialogFooter className="pt-2 gap-2">
+            <DialogFooter className="pt-2 gap-2 flex items-center justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={isPending}
-                className="rounded-2xl text-xs h-10 px-4"
+                className="rounded-xl text-xs h-9.5 px-3.5"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isPending || !brandId || !modelNumber.trim() || similarityResult.level === 'BLOCK'}
-                className={`rounded-2xl text-xs h-10 px-5 text-white font-bold gap-2 shadow-md active:scale-95 transition-all cursor-pointer ${
-                  similarityResult.level === 'WARN'
-                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/20'
-                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-blue-500/20 hover:shadow-lg'
+                className={`rounded-xl text-xs h-9.5 px-4 text-white font-bold gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer ${
+                  similarityResult.level === 'WARN_11'
+                    ? 'bg-gradient-to-r from-red-700 via-rose-700 to-red-800 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-600/30 border border-red-400/40 font-black'
+                    : similarityResult.level === 'WARN_8'
+                    ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20'
+                    : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
+                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20'
+                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-sm shadow-blue-500/20 hover:shadow-md'
                 }`}
               >
                 {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {similarityResult.level === 'WARN' ? (
+                {similarityResult.level === 'WARN_11' ? (
+                  <>
+                    <span>Proceed & Create (11+ Match)</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                ) : similarityResult.level === 'WARN_8' ? (
+                  <>
+                    <span>Proceed & Create (8+ Match)</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                ) : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN' ? (
                   <>
                     <span>Proceed & Create Model</span>
                     <ArrowRight className="w-3.5 h-3.5" />
