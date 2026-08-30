@@ -16,8 +16,8 @@ const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== 'ADMIN') {
-      return NextResponse.json({ success: false, error: 'Unauthorized: Admin access required.' }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized: Authentication required.' }, { status: 401 });
     }
 
     const formData = await req.formData();

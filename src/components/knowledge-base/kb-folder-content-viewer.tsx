@@ -639,6 +639,25 @@ export function KbFolderContentViewer({
   } | null>(null);
   const [isDeletingTarget, setIsDeletingTarget] = useState(false);
 
+  // Stop all active audio playback & voice recording when any modal/dialog opens or viewer unmounts
+  useEffect(() => {
+    if (isPlayerOpen || isUploadDialogOpen || isDocDialogOpen || deleteTarget) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tv-tech-pause-all-audio'));
+        window.dispatchEvent(new CustomEvent('tv-tech-stop-all-recording'));
+      }
+    }
+  }, [isPlayerOpen, isUploadDialogOpen, isDocDialogOpen, deleteTarget]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tv-tech-pause-all-audio'));
+        window.dispatchEvent(new CustomEvent('tv-tech-stop-all-recording'));
+      }
+    };
+  }, []);
+
   // Execute Confirmed Deletion
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -1186,64 +1205,62 @@ export function KbFolderContentViewer({
             </div>
           </div>
 
-          {/* Action buttons (Only visible in Edit Mode) */}
-          {isAdmin && isGlobalEditMode && (
-            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto animate-in fade-in">
-              {/* Organize & Delete Mode Toggle Button (Left) */}
-              {audioList.length > 0 && (
-                <Button
-                  type="button"
-                  variant={isAudioEditMode ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setIsAudioEditMode(!isAudioEditMode);
-                    if (isAudioEditMode) {
-                      if (isSavingOrder) {
-                        toast.info('Saving audio order in background...');
-                      } else {
-                        toast.success('Voice notes organizing finished.');
-                      }
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+            {/* Organize & Delete Mode Toggle Button (Left) */}
+            {isAdmin && isGlobalEditMode && audioList.length > 0 && (
+              <Button
+                type="button"
+                variant={isAudioEditMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setIsAudioEditMode(!isAudioEditMode);
+                  if (isAudioEditMode) {
+                    if (isSavingOrder) {
+                      toast.info('Saving audio order in background...');
+                    } else {
+                      toast.success('Voice notes organizing finished.');
                     }
-                  }}
-                  className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
-                    isAudioEditMode
-                      ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20'
-                      : 'border-violet-200 bg-violet-50/60 hover:bg-violet-100/80 text-violet-800'
-                  }`}
-                >
-                  {isAudioEditMode ? (
-                    isSavingOrder ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-white" />
-                        <span>Done</span>
-                      </>
-                    )
+                  }
+                }}
+                className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
+                  isAudioEditMode
+                    ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20'
+                    : 'border-violet-200 bg-violet-50/60 hover:bg-violet-100/80 text-violet-800'
+                }`}
+              >
+                {isAudioEditMode ? (
+                  isSavingOrder ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                      <span>Saving...</span>
+                    </>
                   ) : (
                     <>
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-violet-600" />
-                      <span>Organize</span>
+                      <Check className="w-3.5 h-3.5 text-white" />
+                      <span>Done</span>
                     </>
-                  )}
-                </Button>
-              )}
+                  )
+                ) : (
+                  <>
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-violet-600" />
+                    <span>Organize</span>
+                  </>
+                )}
+              </Button>
+            )}
 
-              {/* Direct Voice Recorder Widget (Right) */}
-              <div className="flex-1 sm:flex-none">
-                <VoiceRecorderWidget
-                  entityId={entityId}
-                  onRecordingComplete={(newMedia) => {
-                    setMediaList((prev) => [newMedia, ...prev]);
-                  }}
-                  disabled={isUploadingMedia}
-                />
-              </div>
+            {/* Direct Voice Recorder Widget (Always accessible!) */}
+            <div className="w-full sm:w-auto">
+              <VoiceRecorderWidget
+                entityId={entityId}
+                onRecordingComplete={(newMedia) => {
+                  setMediaList((prev) => [...prev, newMedia]);
+                }}
+                disabled={isUploadingMedia}
+              />
             </div>
-          )}
+          </div>
         </div>
 
         {/* Audio Edit Mode Informational Banner */}
@@ -1282,29 +1299,25 @@ export function KbFolderContentViewer({
         )}
 
         {audioList.length === 0 ? (
-          <div className="p-10 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-200/80 flex items-center justify-center mx-auto text-violet-600">
-              <Mic className="w-6 h-6" />
+          <div className="p-8 sm:p-12 text-center bg-violet-50/40 border-2 border-violet-200/70 border-dashed rounded-3xl space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600/15 via-purple-600/15 to-indigo-600/15 border border-violet-300/50 flex items-center justify-center mx-auto text-violet-600 shadow-sm">
+              <Mic className="w-7 h-7" />
             </div>
-            <div>
-              <p className="text-sm font-bold text-foreground">No audio recordings yet</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                {isGlobalEditMode
-                  ? 'Tap or hold the Record Voice Note button to record diagnostic audio notes directly from your browser.'
-                  : 'Clean View Mode active. Switch to Edit Mode to record troubleshooting voice notes.'}
+            <div className="space-y-1">
+              <p className="text-base font-extrabold text-foreground tracking-tight">Record Diagnostic Voice Notes</p>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                Record diagnostic audio, chime patterns, component beep codes, or verbal repair instructions directly from your browser.
               </p>
             </div>
-            {isAdmin && isGlobalEditMode && (
-              <div className="inline-flex justify-center">
-                <VoiceRecorderWidget
-                  entityId={entityId}
-                  onRecordingComplete={(newMedia) => {
-                    setMediaList((prev) => [...prev, newMedia]);
-                  }}
-                  disabled={isUploadingMedia}
-                />
-              </div>
-            )}
+            <div className="inline-flex justify-center pt-1">
+              <VoiceRecorderWidget
+                entityId={entityId}
+                onRecordingComplete={(newMedia) => {
+                  setMediaList((prev) => [...prev, newMedia]);
+                }}
+                disabled={isUploadingMedia}
+              />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">

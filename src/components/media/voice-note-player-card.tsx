@@ -66,6 +66,48 @@ export function VoiceNotePlayerCard({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Global coordination: auto-pause on other audio playback, tab change, modal open, or page navigation
+  useEffect(() => {
+    const handlePauseAll = (e: any) => {
+      if (e.detail?.exceptId !== id) {
+        if (audioRef.current && !audioRef.current.paused) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        }
+      }
+    };
+
+    const handleNavigationOrVisibility = () => {
+      if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    };
+
+    window.addEventListener('tv-tech-pause-all-audio', handlePauseAll);
+    window.addEventListener('popstate', handleNavigationOrVisibility);
+    window.addEventListener('pagehide', handleNavigationOrVisibility);
+    window.addEventListener('beforeunload', handleNavigationOrVisibility);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleNavigationOrVisibility();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      window.removeEventListener('tv-tech-pause-all-audio', handlePauseAll);
+      window.removeEventListener('popstate', handleNavigationOrVisibility);
+      window.removeEventListener('pagehide', handleNavigationOrVisibility);
+      window.removeEventListener('beforeunload', handleNavigationOrVisibility);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [id]);
+
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -74,6 +116,12 @@ export function VoiceNotePlayerCard({
       audio.pause();
       setIsPlaying(false);
     } else {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('tv-tech-pause-all-audio', { detail: { exceptId: id } })
+        );
+        window.dispatchEvent(new CustomEvent('tv-tech-stop-all-recording'));
+      }
       audio.play().catch(() => {});
       setIsPlaying(true);
     }

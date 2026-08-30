@@ -1,4 +1,4 @@
-﻿export interface MediaKindResult {
+export interface MediaKindResult {
   mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO';
   resourceType: 'image' | 'video' | 'raw' | 'auto';
   normalizedMime: string;
@@ -66,20 +66,38 @@ export function detectMediaKind(filename: string, mimeType?: string | null): Med
   const cleanMime = (mimeType || '').toLowerCase().trim();
   const ext = (filename || '').split('.').pop()?.toLowerCase() || '';
 
+  const isAudioByMime = cleanMime.startsWith('audio/');
+  const isAudioByExt = AUDIO_EXTENSIONS.includes(ext) || ext === 'weba' || ext === 'opus';
+
   const isVideoByMime =
     cleanMime.startsWith('video/') ||
     cleanMime.includes('matroska') ||
     cleanMime.includes('quicktime') ||
-    cleanMime.includes('webm') ||
+    (cleanMime.includes('webm') && !cleanMime.startsWith('audio/')) ||
     cleanMime.includes('3gp') ||
     cleanMime.includes('hevc');
-  const isVideoByExt = VIDEO_EXTENSIONS.includes(ext);
-
-  const isAudioByMime = cleanMime.startsWith('audio/');
-  const isAudioByExt = AUDIO_EXTENSIONS.includes(ext);
+  const isVideoByExt = VIDEO_EXTENSIONS.includes(ext) && (ext !== 'webm' || !isAudioByMime);
 
   const isImageByMime = cleanMime.startsWith('image/');
   const isImageByExt = IMAGE_EXTENSIONS.includes(ext);
+
+  // 1. Audio detection MUST BE FIRST because audio/webm, audio/mp4, audio/ogg are audio!
+  if (isAudioByMime || isAudioByExt) {
+    let resolvedMime = cleanMime.startsWith('audio/') ? cleanMime : 'audio/mpeg';
+    if (ext === 'wav') resolvedMime = 'audio/wav';
+    if (ext === 'm4a') resolvedMime = 'audio/mp4';
+    if (ext === 'ogg' || ext === 'opus') resolvedMime = 'audio/ogg';
+    if (ext === 'webm' || ext === 'weba') resolvedMime = 'audio/webm';
+
+    return {
+      mediaType: 'AUDIO',
+      resourceType: 'video', // In Cloudinary, audio uses resource_type 'video'
+      normalizedMime: resolvedMime,
+      isVideo: false,
+      isAudio: true,
+      isImage: false,
+    };
+  }
 
   if (isVideoByMime || isVideoByExt) {
     let resolvedMime = cleanMime.startsWith('video/') ? cleanMime : 'video/mp4';
@@ -94,22 +112,6 @@ export function detectMediaKind(filename: string, mimeType?: string | null): Med
       normalizedMime: resolvedMime,
       isVideo: true,
       isAudio: false,
-      isImage: false,
-    };
-  }
-
-  if (isAudioByMime || isAudioByExt) {
-    let resolvedMime = cleanMime.startsWith('audio/') ? cleanMime : 'audio/mpeg';
-    if (ext === 'wav') resolvedMime = 'audio/wav';
-    if (ext === 'm4a') resolvedMime = 'audio/mp4';
-    if (ext === 'ogg') resolvedMime = 'audio/ogg';
-
-    return {
-      mediaType: 'AUDIO',
-      resourceType: 'video',
-      normalizedMime: resolvedMime,
-      isVideo: false,
-      isAudio: true,
       isImage: false,
     };
   }

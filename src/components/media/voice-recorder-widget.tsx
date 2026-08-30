@@ -3,18 +3,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Mic,
-  Square,
   Trash2,
-  Send,
   Loader2,
   Check,
-  Volume2,
-  AlertCircle,
-  Sparkles,
-  Radio,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { uploadMediaAction } from '@/features/media/actions/media.actions';
 
 interface VoiceRecorderWidgetProps {
   entityId: string;
@@ -30,14 +24,11 @@ export function VoiceRecorderWidget({
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [isLocked, setIsLocked] = useState(false); // Tap mode vs hold mode
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const pointerDownTimeRef = useRef<number>(0);
-  const isHoldingRef = useRef<boolean>(false);
 
   // Format seconds to mm:ss
   const formatDuration = (secs: number) => {
@@ -53,26 +44,61 @@ export function VoiceRecorderWidget({
       timerIntervalRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch {}
+      });
       streamRef.current = null;
     }
     mediaRecorderRef.current = null;
     audioChunksRef.current = [];
     setRecordingDuration(0);
     setIsRecording(false);
-    setIsLocked(false);
-    isHoldingRef.current = false;
   }, []);
 
+  // Global listeners: Automatically stop recording when navigating away, clicking back, or switching tabs
   useEffect(() => {
-    return () => {
+    const handleStopRecording = () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {}
+      }
       cleanupStream();
+    };
+
+    window.addEventListener('popstate', handleStopRecording);
+    window.addEventListener('pagehide', handleStopRecording);
+    window.addEventListener('beforeunload', handleStopRecording);
+    window.addEventListener('tv-tech-stop-all-recording', handleStopRecording);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleStopRecording();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      handleStopRecording();
+      window.removeEventListener('popstate', handleStopRecording);
+      window.removeEventListener('pagehide', handleStopRecording);
+      window.removeEventListener('beforeunload', handleStopRecording);
+      window.removeEventListener('tv-tech-stop-all-recording', handleStopRecording);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [cleanupStream]);
 
   // Start recording
   const startRecording = async () => {
     if (disabled || isUploading) return;
+
+    // Stop all other audio playback and recordings across the app
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tv-tech-pause-all-audio'));
+      window.dispatchEvent(new CustomEvent('tv-tech-stop-all-recording'));
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -94,7 +120,7 @@ export function VoiceRecorderWidget({
         'audio/ogg;codecs=opus',
         'audio/wav',
       ];
-      const selectedMimeType = mimeTypes.find((type) => MediaRecorder.isTypeSupported(type)) || '';
+      const selectedMimeType = mimeTypes.find((type) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) || '';
 
       const recorder = new MediaRecorder(stream, selectedMimeType ? { mimeType: selectedMimeType } : undefined);
       mediaRecorderRef.current = recorder;
@@ -119,7 +145,7 @@ export function VoiceRecorderWidget({
       toast.error(
         err.name === 'NotAllowedError'
           ? 'Microphone access denied. Please allow mic permissions in browser settings.'
-          : 'Could not access microphone: ' + err.message
+          : 'Could not access microphone: ' + (err.message || 'Unknown error')
       );
       cleanupStream();
     }
@@ -168,35 +194,63 @@ export function VoiceRecorderWidget({
         formData.append('entityId', entityId);
         formData.append('purpose', 'AUDIO');
 
-        const response = await fetch('/api/media/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        let savedMedia: any = null;
 
-        const json = await response.json();
-        if (json.success && json.media) {
-          onRecordingComplete(json.media);
+        // 1. Try API Route
+        try {
+          const response = await fetch('/api/media/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const json = await response.json();
+          if (json.success && json.media) {
+            savedMedia = json.media;
+          }
+        } catch {
+          // Fallback below
+        }
+
+        // 2. Fallback to Server Action if API route failed
+        if (!savedMedia) {
+          const actionRes = await uploadMediaAction(formData);
+          if (actionRes.success && actionRes.media) {
+            savedMedia = actionRes.media;
+          } else {
+            toast.error(actionRes.error || 'Failed to save voice note');
+          }
+        }
+
+        if (savedMedia) {
+          onRecordingComplete(savedMedia);
           toast.success(`Voice note saved! (${formatDuration(recordingDuration)})`);
-        } else {
-          toast.error(json.error || 'Failed to save voice note');
         }
       } catch (err: any) {
-        toast.error('Audio upload error: ' + err.message);
+        toast.error('Audio upload error: ' + (err.message || 'Network error'));
       } finally {
         cleanupStream();
         setIsUploading(false);
       }
     };
 
-    recorder.stop();
+    try {
+      recorder.stop();
+    } catch {}
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch {}
+      });
+    }
   };
 
   // Discard recording
   const cancelRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
     }
     cleanupStream();
     toast.info('Voice recording discarded');
@@ -212,25 +266,25 @@ export function VoiceRecorderWidget({
     <div className="flex items-center gap-2 w-full sm:w-auto">
       {!isRecording && !isUploading ? (
         /* ========================================================================= */
-        /* IDLE STATE: TAP TO RECORD BUTTON                                          */
+        /* IDLE STATE: PROMINENT, VIBRANT RECORD BUTTON                               */
         /* ========================================================================= */
         <button
           type="button"
           onClick={handleStartClick}
           disabled={disabled}
-          className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer transition-all shadow-md shadow-violet-500/20 hover:shadow-lg active:scale-95 border border-white/20 select-none group w-full sm:w-auto"
+          className="h-10 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 cursor-pointer transition-all shadow-md shadow-violet-500/25 hover:shadow-lg hover:shadow-violet-500/35 active:scale-95 border border-white/20 select-none group w-full sm:w-auto ring-2 ring-violet-400/20"
           title="Tap to record voice note"
         >
-          <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-            <Mic className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
+          <div className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+            <Mic className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="truncate">Record Voice</span>
+          <span className="truncate tracking-tight font-extrabold">Record Voice Note</span>
         </button>
       ) : isUploading ? (
         /* ========================================================================= */
         /* UPLOADING / PROCESSING STATE                                              */
         /* ========================================================================= */
-        <div className="h-10 px-4 rounded-2xl bg-violet-50 border border-violet-200 text-violet-700 text-xs font-bold flex items-center gap-2.5 animate-pulse">
+        <div className="h-10 px-4 rounded-2xl bg-violet-50 border border-violet-200 text-violet-800 text-xs font-bold flex items-center gap-2.5 animate-pulse shadow-sm">
           <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
           <span>Saving voice note to storage...</span>
         </div>
@@ -238,20 +292,20 @@ export function VoiceRecorderWidget({
         /* ========================================================================= */
         /* ACTIVE RECORDING STATE (LIVE SOUND WAVES, TIMER & ACTIONS)                 */
         /* ========================================================================= */
-        <div className="h-11 px-3 sm:px-4 rounded-2xl bg-violet-950/90 text-white border border-violet-500/40 shadow-xl flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-xl">
+        <div className="h-11 px-3.5 sm:px-4 rounded-2xl bg-violet-950/95 text-white border border-violet-400/40 shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-xl ring-2 ring-violet-500/30">
           {/* Pulsing Red Recording Indicator */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
             </span>
-            <span className="font-mono text-xs sm:text-sm font-extrabold text-red-200 tracking-wider">
+            <span className="font-mono text-xs sm:text-sm font-black text-red-200 tracking-wider">
               {formatDuration(recordingDuration)}
             </span>
           </div>
 
           {/* Animated Frequency Waves */}
-          <div className="flex items-center gap-0.5 h-4 px-1">
+          <div className="flex items-center gap-0.5 h-4 px-1 shrink-0">
             <span className="w-1 bg-violet-400 rounded-full animate-[pulse_0.6s_ease-in-out_infinite] h-3"></span>
             <span className="w-1 bg-violet-300 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-5"></span>
             <span className="w-1 bg-violet-200 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-4"></span>
@@ -260,7 +314,7 @@ export function VoiceRecorderWidget({
           </div>
 
           {/* Action Buttons: Cancel & Done */}
-          <div className="flex items-center gap-1.5 ml-1">
+          <div className="flex items-center gap-1.5 ml-auto">
             <button
               type="button"
               onClick={cancelRecording}
@@ -273,7 +327,7 @@ export function VoiceRecorderWidget({
             <button
               type="button"
               onClick={stopAndUpload}
-              className="px-3 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
+              className="px-3.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer"
               title="Finish & Save Voice Note"
             >
               <Check className="w-3.5 h-3.5" />
@@ -285,3 +339,4 @@ export function VoiceRecorderWidget({
     </div>
   );
 }
+
