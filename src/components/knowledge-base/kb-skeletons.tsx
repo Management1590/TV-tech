@@ -26,7 +26,7 @@ export function BrandFolderCardSkeleton() {
       <FolderSilhouetteClip clipId={clipId} />
 
       <div
-        className="relative w-full min-h-[190px] sm:min-h-[220px] bg-muted overflow-hidden flex flex-col justify-end p-4 border border-border rounded-3xl"
+        className="relative w-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted overflow-hidden flex flex-col justify-end p-4 border border-border rounded-3xl"
         style={{
           clipPath: `url(#folder-skeleton-clip-${clipId})`,
         }}

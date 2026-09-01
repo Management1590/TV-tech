@@ -36,15 +36,20 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
   const [scaleRatio, setScaleRatio] = React.useState(0.5);
 
   React.useEffect(() => {
-    const updateRatio = () => {
-      if (cardContainerRef.current) {
-        const width = cardContainerRef.current.clientWidth || 170;
-        setScaleRatio(width / 340);
+    if (!cardContainerRef.current) return;
+    const update = (w: number) => {
+      if (w > 0) {
+        setScaleRatio(w / 340);
       }
     };
-    updateRatio();
-    window.addEventListener('resize', updateRatio);
-    return () => window.removeEventListener('resize', updateRatio);
+    update(cardContainerRef.current.clientWidth);
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        update(entry.contentRect.width);
+      }
+    });
+    observer.observe(cardContainerRef.current);
+    return () => observer.disconnect();
   }, []);
 
   const effectiveX = parsedThumb.x * scaleRatio;
@@ -154,10 +159,10 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
           }}
           className="block h-full flex flex-col relative"
         >
-          {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK */}
+          {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK (100% matched to Inventory folder-card) */}
           <div
             ref={cardContainerRef}
-            className="relative w-full aspect-[3/2] bg-muted/90 overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
+            className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
             style={{
               clipPath: `url(#brand-folder-clip-${clipId})`,
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
@@ -165,15 +170,12 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
           >
             {/* Background Artwork or Rich Tinted Brand Gradient Canvas */}
             {parsedThumb.url ? (
-              <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted flex items-center justify-center">
+              <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center">
                 <img
                   src={parsedThumb.url}
                   alt={brand.name}
                   style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(calc(-50% + ${effectiveX}px), calc(-50% + ${effectiveY}px)) scale(${parsedThumb.scale})`,
+                    transform: `translate(${effectiveX}px, ${effectiveY}px) scale(${parsedThumb.scale})`,
                     transformOrigin: 'center center',
                   }}
                   className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-105 transition-all duration-500"
@@ -217,8 +219,8 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
               </Badge>
             </div>
 
-            {/* 3. BOTTOM BAR (Folder Name Centered - matching Inventory folder-card) */}
-            <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-4 py-2 sm:py-3 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
+            {/* 3. SOLID BOTTOM BAR WITH CENTERED TITLE */}
+            <div className="relative z-20 px-2 sm:px-4 py-2 sm:py-3 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
               <h3
                 className="text-xs sm:text-base font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate leading-tight w-full text-center"
                 title={cleanName}
@@ -228,9 +230,9 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
             </div>
           </div>
 
-          {/* 4. CLEAN PERIMETER BORDER CONTOUR */}
+          {/* 4. CLEAN PERIMETER BORDER CONTOUR (100% synchronized in same card wrapper) */}
           <svg
-            className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"
+            className="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible"
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
             aria-hidden="true"
@@ -238,7 +240,7 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
             <path
               d="M 6,100 A 6,8 0 0,1 0,92 L 0,8 A 6,8 0 0,1 6,0 L 30,0 C 34,0 33,13.5 37,13.5 L 94,13.5 A 6,8 0 0,1 100,21.5 L 100,92 A 6,8 0 0,1 94,100 Z"
               fill="none"
-              stroke="rgba(100, 116, 139, 0.35)"
+              stroke="rgba(100, 116, 139, 0.4)"
               strokeWidth="1.5"
               vectorEffect="non-scaling-stroke"
             />

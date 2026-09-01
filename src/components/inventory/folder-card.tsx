@@ -32,6 +32,29 @@ export function FolderCard({ folder, linkHref, userRole = 'STAFF' }: FolderCardP
   const itemCount = folder._count?.items ?? folder.itemCount ?? 0;
   const parsedThumb = parseThumbnailUrl(folder.thumbnailUrl);
 
+  const cardContainerRef = React.useRef<HTMLDivElement>(null);
+  const [scaleRatio, setScaleRatio] = React.useState(0.5);
+
+  React.useEffect(() => {
+    if (!cardContainerRef.current) return;
+    const update = (w: number) => {
+      if (w > 0) {
+        setScaleRatio(w / 340);
+      }
+    };
+    update(cardContainerRef.current.clientWidth);
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        update(entry.contentRect.width);
+      }
+    });
+    observer.observe(cardContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const effectiveX = parsedThumb.x * scaleRatio;
+  const effectiveY = parsedThumb.y * scaleRatio;
+
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [isPressing, setIsPressing] = React.useState(false);
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -137,6 +160,7 @@ export function FolderCard({ folder, linkHref, userRole = 'STAFF' }: FolderCardP
         >
           {/* 1. CLIPPED FOLDER BODY & FULL CONTINUOUS ARTWORK */}
           <div
+            ref={cardContainerRef}
             className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
             style={{
               clipPath: `url(#folder-clip-${clipId})`,
@@ -150,7 +174,7 @@ export function FolderCard({ folder, linkHref, userRole = 'STAFF' }: FolderCardP
                   src={parsedThumb.url}
                   alt={folder.name}
                   style={{
-                    transform: `translate(${parsedThumb.x}px, ${parsedThumb.y}px) scale(${parsedThumb.scale})`,
+                    transform: `translate(${effectiveX}px, ${effectiveY}px) scale(${parsedThumb.scale})`,
                     transformOrigin: 'center center',
                   }}
                   className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-105 transition-all duration-500"
