@@ -283,6 +283,55 @@ export function UniversalMediaPlayerModal({
     }
   }, [isOpen, initialIndex, items.length, resetTransform]);
 
+  // Dynamic Apple & Mobile Status Bar Theme Synchronization
+  useEffect(() => {
+    if (!isOpen || typeof document === 'undefined') return;
+
+    // 1. Dynamic theme-color meta tag (colors the iOS Safari and Android status bar pitch black)
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    const originalThemeColor = metaThemeColor ? metaThemeColor.getAttribute('content') : null;
+
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.setAttribute('content', '#000000');
+
+    // 2. Dynamic apple-mobile-web-app-status-bar-style (allows full notch immersion)
+    let metaAppleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement | null;
+    const originalAppleStatus = metaAppleStatus ? metaAppleStatus.getAttribute('content') : null;
+    if (!metaAppleStatus) {
+      metaAppleStatus = document.createElement('meta');
+      metaAppleStatus.setAttribute('name', 'apple-mobile-web-app-status-bar-style');
+      document.head.appendChild(metaAppleStatus);
+    }
+    metaAppleStatus.setAttribute('content', 'black-translucent');
+
+    // 3. Set root HTML and body background to deep pitch black so letterboxes and notch are seamless
+    const originalHtmlBg = document.documentElement.style.backgroundColor;
+    const originalBodyBg = document.body.style.backgroundColor;
+    document.documentElement.style.backgroundColor = '#000000';
+    document.body.style.backgroundColor = '#000000';
+
+    return () => {
+      if (originalThemeColor !== null) {
+        metaThemeColor?.setAttribute('content', originalThemeColor);
+      } else {
+        metaThemeColor?.remove();
+      }
+
+      if (originalAppleStatus !== null) {
+        metaAppleStatus?.setAttribute('content', originalAppleStatus);
+      } else {
+        metaAppleStatus?.setAttribute('content', 'black-translucent');
+      }
+
+      document.documentElement.style.backgroundColor = originalHtmlBg;
+      document.body.style.backgroundColor = originalBodyBg;
+    };
+  }, [isOpen]);
+
   // Video Auto-Play & Resume Lifecycle Engine
   useEffect(() => {
     if (!isOpen) {
@@ -938,20 +987,36 @@ export function UniversalMediaPlayerModal({
       onMouseUp={handleMouseUp}
     >
       {/* ========================================================================= */}
+      {/* 0. DYNAMIC ISLAND & STATUS BAR NOTCH AMBIENT BACKDROP                      */}
+      {/* ========================================================================= */}
+      <div
+        className="pointer-events-none absolute top-0 inset-x-0 z-40 bg-gradient-to-b from-black/95 via-black/55 to-transparent transition-opacity duration-300"
+        style={{
+          height: 'calc(env(safe-area-inset-top, 0px) + 70px)',
+        }}
+      />
+
+      {/* ========================================================================= */}
       {/* 1. MOBILE TOP BAR (Close Button & Photo Index Badge)                      */}
       {/* ========================================================================= */}
       <div
-        className={`sm:hidden absolute top-4 inset-x-4 z-50 flex items-center justify-between pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`sm:hidden absolute inset-x-0 z-50 flex items-center justify-between pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isMobileHeaderVisible
             ? 'opacity-100 translate-y-0'
             : 'opacity-0 -translate-y-6'
         }`}
+        style={{
+          top: 'max(env(safe-area-inset-top, 0px), 14px)',
+          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+          paddingTop: '6px',
+        }}
       >
         {/* Left: Compact Media Counter Indicator */}
-        <div className="pointer-events-auto px-3 py-1 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 text-white text-xs font-bold shadow-xl flex items-center gap-1.5">
-          <span className="text-white/70">{currentIndex + 1}</span>
-          <span className="text-white/40">/</span>
-          <span>{items.length}</span>
+        <div className="pointer-events-auto px-3.5 py-1.5 rounded-full bg-black/65 hover:bg-black/80 backdrop-blur-2xl border border-white/20 text-white text-xs font-bold shadow-2xl flex items-center gap-1.5 tracking-tight">
+          <span className="text-white/95">{currentIndex + 1}</span>
+          <span className="text-white/40 font-normal">/</span>
+          <span className="text-white/70">{items.length}</span>
         </div>
 
         {/* Right: Mobile Close / Cancel Button */}
@@ -961,10 +1026,10 @@ export function UniversalMediaPlayerModal({
             e.stopPropagation();
             onClose();
           }}
-          className="pointer-events-auto w-10 h-10 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-xl border border-white/25 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+          className="pointer-events-auto w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
           title="Close Viewer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4 text-white" />
         </button>
       </div>
 
@@ -973,11 +1038,15 @@ export function UniversalMediaPlayerModal({
       {/* ========================================================================= */}
       {!isDeviceLandscape && !isVideo && (
         <div
-          className={`sm:hidden absolute bottom-5 left-4 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`sm:hidden absolute z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isMobileHeaderVisible
               ? 'opacity-100 translate-y-0 pointer-events-auto'
               : 'opacity-0 translate-y-6 pointer-events-none'
           }`}
+          style={{
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            left: 'max(env(safe-area-inset-left, 0px), 16px)',
+          }}
         >
           <button
             type="button"
@@ -987,10 +1056,10 @@ export function UniversalMediaPlayerModal({
               else setRotation(0);
               showControlsTemporarily();
             }}
-            className={`h-9 px-3 rounded-full backdrop-blur-xl border shadow-2xl active:scale-90 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
+            className={`h-9 px-3.5 rounded-full backdrop-blur-2xl border shadow-2xl active:scale-90 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
               rotation !== 0
                 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-400/60 ring-2 ring-amber-400/40 shadow-amber-500/30'
-                : 'bg-black/75 hover:bg-black/90 text-white border-white/25'
+                : 'bg-black/65 hover:bg-black/85 text-white border-white/20'
             }`}
             title={rotation !== 0 ? 'Back to Portrait (0°)' : 'Rotate 90°'}
           >
@@ -1004,11 +1073,16 @@ export function UniversalMediaPlayerModal({
       {/* 2. DESKTOP TOP FLOATING CONTROL BAR                                       */}
       {/* ========================================================================= */}
       <div
-        className={`relative z-30 shrink-0 hidden sm:flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 text-white border-b border-white/10 bg-black/40 backdrop-blur-md transition-all duration-300 ease-in-out ${
+        className={`relative z-30 shrink-0 hidden sm:flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 text-white border-b border-white/10 bg-black/50 backdrop-blur-xl transition-all duration-300 ease-in-out ${
           isUiVisible
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 -translate-y-full pointer-events-none'
         }`}
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 14px)',
+          paddingLeft: 'max(env(safe-area-inset-left, 0px), 24px)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px), 24px)',
+        }}
         onClick={(e) => {
           e.stopPropagation();
           showControlsTemporarily();
@@ -1275,6 +1349,11 @@ export function UniversalMediaPlayerModal({
                             ? 'opacity-100 translate-y-0 pointer-events-auto'
                             : 'opacity-0 translate-y-full pointer-events-none'
                         }`}
+                        style={{
+                          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+                          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+                          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           showControlsTemporarily();
