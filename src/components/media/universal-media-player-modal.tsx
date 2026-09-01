@@ -979,81 +979,7 @@ export function UniversalMediaPlayerModal({
       }}
       onMouseUp={handleMouseUp}
     >
-      {/* ========================================================================= */}
-      {/* 1. MOBILE TOP BAR (For Photos Only - Completely Hidden When Video Is Open) */}
-      {/* ========================================================================= */}
-      {!isVideoCurrent && (
-        <div
-          className={`sm:hidden absolute inset-x-0 z-50 flex items-center justify-between pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            isMobileHeaderVisible
-              ? 'opacity-100 translate-y-0'
-              : 'opacity-0 -translate-y-6'
-          }`}
-          style={{
-            top: 'max(env(safe-area-inset-top, 0px), 14px)',
-            paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
-            paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
-            paddingTop: '6px',
-          }}
-        >
-          {/* Left: Compact Media Counter Indicator */}
-          <div className="pointer-events-auto px-3.5 py-1.5 rounded-full bg-black/65 hover:bg-black/80 backdrop-blur-2xl border border-white/20 text-white text-xs font-bold shadow-2xl flex items-center gap-1.5 tracking-tight">
-            <span className="text-white/95">{currentIndex + 1}</span>
-            <span className="text-white/40 font-normal">/</span>
-            <span className="text-white/70">{items.length}</span>
-          </div>
 
-          {/* Right: Close Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              stopAllVideos();
-              onClose();
-            }}
-            className="pointer-events-auto w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
-            title="Close Viewer"
-          >
-            <X className="w-4 h-4 text-white" />
-          </button>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MOBILE BOTTOM LEFT ROTATE BUTTON                                         */}
-      {/* ========================================================================= */}
-      {!isDeviceLandscape && !isVideo && (
-        <div
-          className={`sm:hidden absolute z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            isMobileHeaderVisible
-              ? 'opacity-100 translate-y-0 pointer-events-auto'
-              : 'opacity-0 translate-y-6 pointer-events-none'
-          }`}
-          style={{
-            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
-            left: 'max(env(safe-area-inset-left, 0px), 16px)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (rotation === 0) handleRotate();
-              else setRotation(0);
-              showControlsTemporarily();
-            }}
-            className={`h-9 px-3.5 rounded-full backdrop-blur-2xl border shadow-2xl active:scale-90 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
-              rotation !== 0
-                ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-400/60 ring-2 ring-amber-400/40 shadow-amber-500/30'
-                : 'bg-black/65 hover:bg-black/85 text-white border-white/20'
-            }`}
-            title={rotation !== 0 ? 'Back to Portrait (0°)' : 'Rotate 90°'}
-          >
-            <RotateCw className={`w-3.5 h-3.5 shrink-0 ${rotation !== 0 ? 'rotate-180 text-white' : ''}`} />
-            <span>{rotation !== 0 ? 'Reset' : 'Rotate'}</span>
-          </button>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* 2. DESKTOP TOP FLOATING CONTROL BAR                                       */}
@@ -1313,27 +1239,10 @@ export function UniversalMediaPlayerModal({
                       style={{
                         transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom * dismissOffset.scale}) rotate(${rotation}deg)`,
                         transformOrigin: 'center center',
-                        width: rotation % 180 !== 0
-                          ? 'calc(min(98dvh, 98dvw * 16 / 9))'
-                          : isDeviceLandscape
-                          ? 'calc(min(98dvw, 96dvh * 16 / 9))'
-                          : undefined,
-                        height: rotation % 180 !== 0
-                          ? 'calc(min(98dvw, 98dvh * 9 / 16))'
-                          : isDeviceLandscape
-                          ? '94dvh'
-                          : undefined,
-                        maxWidth: rotation % 180 !== 0
-                          ? 'calc(min(98dvh, 98dvw * 16 / 9))'
-                          : isDeviceLandscape
-                          ? 'calc(min(98dvw, 96dvh * 16 / 9))'
-                          : '100%',
-                        maxHeight: rotation % 180 !== 0
-                          ? 'calc(min(98dvw, 98dvh * 9 / 16))'
-                          : isDeviceLandscape
-                          ? '94dvh'
-                          : '100%',
-                        aspectRatio: rotation % 180 !== 0 || isDeviceLandscape ? '16 / 9' : undefined,
+                        maxWidth: 'calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px)',
+                        maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 32px)',
+                        width: rotation % 180 !== 0 ? 'auto' : undefined,
+                        height: rotation % 180 !== 0 ? 'auto' : undefined,
                         objectFit: 'contain',
                         borderRadius: dismissOffset.y > 10 ? '24px' : undefined,
                         transition: isInteracting || isDismissing
@@ -1341,7 +1250,7 @@ export function UniversalMediaPlayerModal({
                           : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease',
                       }}
                       draggable={false}
-                      className="object-contain sm:rounded-2xl shadow-2xl pointer-events-auto select-none will-change-transform"
+                      className="object-contain z-10 select-none m-auto pointer-events-auto will-change-transform"
                     />
                   )
                 ) : isItemVideo ? (
@@ -1355,14 +1264,13 @@ export function UniversalMediaPlayerModal({
                     src={mediaUrl}
                     alt={item.filename || 'Photo'}
                     style={{
-                      width: isDeviceLandscape ? 'calc(min(98dvw, 96dvh * 16 / 9))' : undefined,
-                      height: isDeviceLandscape ? '94dvh' : undefined,
-                      maxWidth: '100%',
-                      maxHeight: '100%',
+                      maxWidth: 'calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px)',
+                      maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 32px)',
+                      objectFit: 'contain',
                     }}
                     loading="eager"
                     draggable={false}
-                    className="object-contain sm:rounded-2xl shadow-2xl select-none pointer-events-none"
+                    className="object-contain z-10 select-none m-auto pointer-events-none"
                   />
                 )}
               </div>
