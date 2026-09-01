@@ -273,15 +273,6 @@ export function MediaGalleryUploader({ entityId, mediaItems, userRole = 'ADMIN' 
                           >
                             <Play className="h-3 w-3" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 text-muted-foreground hover:text-primary"
-                            onClick={() => window.open(vid.secureUrl || vid.url, '_blank')}
-                            title="Open in Browser's Native Player"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
                           {isAdmin && (
                             <Button
                               size="icon"

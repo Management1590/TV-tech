@@ -18,7 +18,6 @@ import {
   VolumeX,
   Film,
   Image as ImageIcon,
-  ExternalLink,
 } from 'lucide-react';
 
 export interface UniversalMediaItem {
@@ -100,6 +99,7 @@ export function UniversalMediaPlayerModal({
   const filmstripRef = useRef<HTMLDivElement>(null);
 
   // Image ref & container ref
+  const modalRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
@@ -284,22 +284,52 @@ export function UniversalMediaPlayerModal({
     }
   }, [isOpen, initialIndex, items.length, resetTransform]);
 
-  // Dynamic Apple & Mobile Status Bar Theme Synchronization
+  // Stop and completely silence all video playback across all elements
+  const stopAllVideos = useCallback(() => {
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      } catch {}
+    }
+    if (typeof document !== 'undefined') {
+      const allVids = document.querySelectorAll('video');
+      allVids.forEach((v: HTMLVideoElement) => {
+        try {
+          v.pause();
+          v.currentTime = 0;
+        } catch {}
+      });
+    }
+    setIsPlaying(false);
+  }, []);
+
+  // Dynamic Apple & Mobile Status Bar Theme Synchronization (Android Chrome + iOS Safari)
   useEffect(() => {
     if (!isOpen || typeof document === 'undefined') return;
 
-    // 1. Dynamic theme-color meta tag (colors the iOS Safari and Android status bar pitch black)
-    let metaThemeColor = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
-    const originalThemeColor = metaThemeColor ? metaThemeColor.getAttribute('content') : null;
+    // 1. Force all theme-color tags to pure pitch black (#000000) and remove media query restrictions
+    const existingMetas = Array.from(document.querySelectorAll('meta[name="theme-color"]')) as HTMLMetaElement[];
+    const originalThemes = existingMetas.map((m) => ({
+      element: m,
+      content: m.getAttribute('content'),
+      media: m.getAttribute('media'),
+    }));
 
-    if (!metaThemeColor) {
-      metaThemeColor = document.createElement('meta');
-      metaThemeColor.setAttribute('name', 'theme-color');
-      document.head.appendChild(metaThemeColor);
+    existingMetas.forEach((m) => {
+      m.removeAttribute('media');
+      m.setAttribute('content', '#000000');
+    });
+
+    let createdMeta: HTMLMetaElement | null = null;
+    if (existingMetas.length === 0) {
+      createdMeta = document.createElement('meta');
+      createdMeta.name = 'theme-color';
+      createdMeta.content = '#000000';
+      document.head.appendChild(createdMeta);
     }
-    metaThemeColor.setAttribute('content', '#000000');
 
-    // 2. Dynamic apple-mobile-web-app-status-bar-style (allows full notch immersion)
+    // 2. iOS full notch immersion
     let metaAppleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement | null;
     const originalAppleStatus = metaAppleStatus ? metaAppleStatus.getAttribute('content') : null;
     if (!metaAppleStatus) {
@@ -309,18 +339,18 @@ export function UniversalMediaPlayerModal({
     }
     metaAppleStatus.setAttribute('content', 'black-translucent');
 
-    // 3. Set root HTML and body background to deep pitch black so letterboxes and notch are seamless
+    // 3. Set root HTML and body background to deep pitch black
     const originalHtmlBg = document.documentElement.style.backgroundColor;
     const originalBodyBg = document.body.style.backgroundColor;
     document.documentElement.style.backgroundColor = '#000000';
     document.body.style.backgroundColor = '#000000';
 
     return () => {
-      if (originalThemeColor !== null) {
-        metaThemeColor?.setAttribute('content', originalThemeColor);
-      } else {
-        metaThemeColor?.remove();
-      }
+      originalThemes.forEach(({ element, content, media }) => {
+        if (content) element.setAttribute('content', content);
+        if (media) element.setAttribute('media', media);
+      });
+      if (createdMeta) createdMeta.remove();
 
       if (originalAppleStatus !== null) {
         metaAppleStatus?.setAttribute('content', originalAppleStatus);
@@ -335,13 +365,10 @@ export function UniversalMediaPlayerModal({
 
   // Video Auto-Play & Resume Lifecycle Engine
   useEffect(() => {
-    if (!isOpen) {
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      setIsPlaying(false);
-      return;
-    }
+    // Whenever index changes or modal closes, stop previous video immediately
+    stopAllVideos();
+
+    if (!isOpen) return;
 
     const current = items[currentIndex];
     if (current?.mediaType === 'VIDEO') {
@@ -360,14 +387,8 @@ export function UniversalMediaPlayerModal({
             .catch(() => setIsPlaying(false));
         }
       }
-    } else {
-      // Swiped away to a photo -> pause any playing video
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      setIsPlaying(false);
     }
-  }, [isOpen, currentIndex, items]);
+  }, [isOpen, currentIndex, items, stopAllVideos]);
 
   const currentItem = items[currentIndex];
 
@@ -375,30 +396,33 @@ export function UniversalMediaPlayerModal({
   const handleIndexChange = useCallback(
     (newIndex: number) => {
       if (newIndex === currentIndex) return;
+      stopAllVideos();
       const boundedIndex = Math.max(0, Math.min(newIndex, items.length - 1));
       setIsInteracting(false);
       setSlideOffset(0);
       setCurrentIndex(boundedIndex);
       resetTransform();
     },
-    [currentIndex, items.length, resetTransform]
+    [currentIndex, items.length, resetTransform, stopAllVideos]
   );
 
   const handleNext = useCallback(() => {
     if (items.length <= 1 || currentIndex >= items.length - 1) return;
+    stopAllVideos();
     setIsInteracting(false);
     setSlideOffset(0);
     setCurrentIndex((prev) => prev + 1);
     resetTransform();
-  }, [currentIndex, items.length, resetTransform]);
+  }, [currentIndex, items.length, resetTransform, stopAllVideos]);
 
   const handlePrev = useCallback(() => {
     if (items.length <= 1 || currentIndex <= 0) return;
+    stopAllVideos();
     setIsInteracting(false);
     setSlideOffset(0);
     setCurrentIndex((prev) => prev - 1);
     resetTransform();
-  }, [currentIndex, items.length, resetTransform]);
+  }, [currentIndex, items.length, resetTransform, stopAllVideos]);
 
   // Lock body scroll
   useEffect(() => {
@@ -809,10 +833,12 @@ export function UniversalMediaPlayerModal({
             const shouldPrev = (dx > 60 || velocityX > 0.35) && currentIndex > 0;
 
             if (shouldNext) {
+              stopAllVideos();
               setSlideOffset(0);
               setCurrentIndex((prev) => prev + 1);
               resetTransform();
             } else if (shouldPrev) {
+              stopAllVideos();
               setSlideOffset(0);
               setCurrentIndex((prev) => prev - 1);
               resetTransform();
@@ -824,6 +850,7 @@ export function UniversalMediaPlayerModal({
             const shouldDismiss = dy > 110 || (dy > 45 && velocityY > 0.45);
 
             if (shouldDismiss) {
+              stopAllVideos();
               // Smoothly glide out down and close
               setIsDismissing(true);
               setDismissOffset({
@@ -923,69 +950,7 @@ export function UniversalMediaPlayerModal({
     setVideoRotation((prev) => (prev + 90) % 360);
   };
 
-  // Open the video directly in the browser's own dedicated player
-  const openNativeBrowserPlayer = (e?: React.SyntheticEvent) => {
-    if (e) e.stopPropagation();
-    if (!currentItem) return;
-    const mediaUrl = currentItem.secureUrl || currentItem.url;
-    window.open(mediaUrl, '_blank');
-  };
 
-  // Launch the browser's native fullscreen video player
-  const requestBrowserFullscreen = (e?: React.SyntheticEvent) => {
-    if (e) e.stopPropagation();
-    const vid = videoRef.current;
-    if (!vid) return;
-    if ((vid as any).webkitEnterFullscreen) {
-      (vid as any).webkitEnterFullscreen();
-    } else if (vid.requestFullscreen) {
-      vid.requestFullscreen();
-    } else if ((vid as any).webkitRequestFullscreen) {
-      (vid as any).webkitRequestFullscreen();
-    }
-  };
-
-  // Video Tap Handler: Single-tap toggles UI, Double-tap plays/pauses cleanly
-  const handleVideoTapOrClick = (e: React.SyntheticEvent) => {
-    e.stopPropagation();
-    const now = Date.now();
-    const timeSinceLast = now - lastTapTimeRef.current;
-    lastTapTimeRef.current = now;
-
-    if (timeSinceLast < 300) {
-      // DOUBLE TAP DETECTED: Pause / Resume video without appearing any buttons
-      if (singleTapTimerRef.current) {
-        clearTimeout(singleTapTimerRef.current);
-        singleTapTimerRef.current = null;
-      }
-      if (videoRef.current) {
-        if (videoRef.current.paused) {
-          videoRef.current.play().catch(() => {});
-          setIsPlaying(true);
-          triggerPlayFeedback('play');
-        } else {
-          videoRef.current.pause();
-          setIsPlaying(false);
-          triggerPlayFeedback('pause');
-        }
-      }
-    } else {
-      // SINGLE TAP CANDIDATE -> Wait 300ms to verify not double tap
-      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = setTimeout(() => {
-        singleTapTimerRef.current = null;
-        setIsUiVisible((prev) => {
-          const nextState = !prev;
-          if (nextState) {
-            schedule3sAutoHide();
-          } else {
-            if (uiTimerRef.current) clearTimeout(uiTimerRef.current);
-          }
-          return nextState;
-        });
-      }, 300);
-    }
-  };
 
   if (!isOpen || !currentItem || !mounted) return null;
 
@@ -1010,65 +975,44 @@ export function UniversalMediaPlayerModal({
       onMouseUp={handleMouseUp}
     >
       {/* ========================================================================= */}
-      {/* 0. DYNAMIC ISLAND & STATUS BAR NOTCH AMBIENT BACKDROP                      */}
+      {/* 1. MOBILE TOP BAR (For Photos Only - Completely Hidden When Video Is Open) */}
       {/* ========================================================================= */}
-      <div
-        className="pointer-events-none absolute top-0 inset-x-0 z-40 bg-gradient-to-b from-black/95 via-black/55 to-transparent transition-opacity duration-300"
-        style={{
-          height: 'calc(env(safe-area-inset-top, 0px) + 70px)',
-        }}
-      />
+      {!isVideoCurrent && (
+        <div
+          className={`sm:hidden absolute inset-x-0 z-50 flex items-center justify-between pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isMobileHeaderVisible
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 -translate-y-6'
+          }`}
+          style={{
+            top: 'max(env(safe-area-inset-top, 0px), 14px)',
+            paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+            paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+            paddingTop: '6px',
+          }}
+        >
+          {/* Left: Compact Media Counter Indicator */}
+          <div className="pointer-events-auto px-3.5 py-1.5 rounded-full bg-black/65 hover:bg-black/80 backdrop-blur-2xl border border-white/20 text-white text-xs font-bold shadow-2xl flex items-center gap-1.5 tracking-tight">
+            <span className="text-white/95">{currentIndex + 1}</span>
+            <span className="text-white/40 font-normal">/</span>
+            <span className="text-white/70">{items.length}</span>
+          </div>
 
-      {/* ========================================================================= */}
-      {/* 1. MOBILE TOP BAR (Close Button & Photo Index Badge)                      */}
-      {/* ========================================================================= */}
-      <div
-        className={`sm:hidden absolute inset-x-0 z-50 flex items-center justify-between pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          isMobileHeaderVisible
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 -translate-y-6'
-        }`}
-        style={{
-          top: 'max(env(safe-area-inset-top, 0px), 14px)',
-          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
-          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
-          paddingTop: '6px',
-        }}
-      >
-        {/* Left: Compact Media Counter Indicator */}
-        <div className="pointer-events-auto px-3.5 py-1.5 rounded-full bg-black/65 hover:bg-black/80 backdrop-blur-2xl border border-white/20 text-white text-xs font-bold shadow-2xl flex items-center gap-1.5 tracking-tight">
-          <span className="text-white/95">{currentIndex + 1}</span>
-          <span className="text-white/40 font-normal">/</span>
-          <span className="text-white/70">{items.length}</span>
-        </div>
-
-        {/* Right: Actions (Browser Player + Close Button) */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {isVideo && (
-            <button
-              type="button"
-              onClick={openNativeBrowserPlayer}
-              className="h-9 px-3 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center gap-1.5 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
-              title="Open in Browser's Native Player"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-white" />
-              <span className="text-[11px] font-bold">Browser Player</span>
-            </button>
-          )}
-
+          {/* Right: Close Button */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              stopAllVideos();
               onClose();
             }}
-            className="w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            className="pointer-events-auto w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
             title="Close Viewer"
           >
             <X className="w-4 h-4 text-white" />
           </button>
         </div>
-      </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MOBILE BOTTOM LEFT ROTATE BUTTON                                         */}
@@ -1222,19 +1166,6 @@ export function UniversalMediaPlayerModal({
             </div>
           )}
 
-          {/* Open in Browser Native Player Button */}
-          {isVideo && (
-            <button
-              type="button"
-              onClick={openNativeBrowserPlayer}
-              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xl rounded-2xl text-white transition-all shadow-lg cursor-pointer flex items-center gap-1.5 text-xs font-bold"
-              title="Open in Browser's Native Player"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Browser Player</span>
-            </button>
-          )}
-
           {/* Download Button */}
           <a
             href={currentMediaUrl}
@@ -1250,7 +1181,10 @@ export function UniversalMediaPlayerModal({
           {/* Close Button */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              stopAllVideos();
+              onClose();
+            }}
             className="p-2 bg-red-600/80 hover:bg-red-600 border border-red-500/50 backdrop-blur-xl rounded-2xl text-white transition-all shadow-lg cursor-pointer active:scale-95"
             title="Close Viewer (Esc)"
           >
@@ -1318,6 +1252,11 @@ export function UniversalMediaPlayerModal({
                       ref={videoContainerRef}
                       className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black select-none"
                       style={{
+                        paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)',
+                        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)',
+                        paddingLeft: 'max(env(safe-area-inset-left, 0px), 12px)',
+                        paddingRight: 'max(env(safe-area-inset-right, 0px), 12px)',
+                        boxSizing: 'border-box',
                         transform: `scale(${dismissOffset.scale})`,
                         borderRadius: dismissOffset.y > 10 ? '24px' : undefined,
                         transition: isInteracting || isDismissing ? (isDismissing ? 'transform 0.22s ease-out' : 'none') : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease',
@@ -1356,27 +1295,10 @@ export function UniversalMediaPlayerModal({
                         }}
                         style={{
                           transform: videoRotation ? `rotate(${videoRotation}deg)` : undefined,
-                          width: videoRotation % 180 !== 0
-                            ? 'calc(min(98dvh, 98dvw * 16 / 9))'
-                            : isDeviceLandscape
-                            ? 'calc(min(98dvw, 96dvh * 16 / 9))'
-                            : '100%',
-                          height: videoRotation % 180 !== 0
-                            ? 'calc(min(98dvw, 98dvh * 9 / 16))'
-                            : isDeviceLandscape
-                            ? '96dvh'
-                            : '100%',
-                          maxWidth: videoRotation % 180 !== 0
-                            ? 'calc(min(98dvh, 98dvw * 16 / 9))'
-                            : isDeviceLandscape
-                            ? 'calc(min(98dvw, 96dvh * 16 / 9))'
-                            : '100%',
-                          maxHeight: videoRotation % 180 !== 0
-                            ? 'calc(min(98dvw, 98dvh * 9 / 16))'
-                            : isDeviceLandscape
-                            ? '96dvh'
-                            : '100%',
-                          aspectRatio: videoRotation % 180 !== 0 || isDeviceLandscape ? '16 / 9' : undefined,
+                          maxWidth: '100%',
+                          maxHeight: '100%',
+                          width: videoRotation % 180 !== 0 ? 'auto' : undefined,
+                          height: videoRotation % 180 !== 0 ? 'auto' : undefined,
                           objectFit: 'contain',
                           transition: 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
                         }}
@@ -1423,15 +1345,9 @@ export function UniversalMediaPlayerModal({
                     />
                   )
                 ) : isItemVideo ? (
-                  <div className="relative w-full h-full flex items-center justify-center bg-black/40 pointer-events-none">
-                    <video
-                      src={mediaUrl}
-                      className="object-contain max-w-full max-h-full opacity-60"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-14 h-14 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white shadow-xl">
-                        <Play className="w-7 h-7 fill-white ml-0.5" />
-                      </div>
+                  <div className="relative w-full h-full flex items-center justify-center bg-black/80 pointer-events-none select-none">
+                    <div className="w-16 h-16 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white shadow-2xl">
+                      <Play className="w-8 h-8 fill-white ml-0.5 opacity-80" />
                     </div>
                   </div>
                 ) : (
