@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useEffect, useId, useMemo } from 'react';
+import React, { useState, useTransition, useEffect, useId, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Monitor, Loader2, Plus, Sparkles, CheckCircle2, Tv, AlertTriangle, AlertCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,14 +57,16 @@ export function CreateTvModelDialog({
   const [modelNumber, setModelNumber] = useState(initialModelNumber);
   const [screenSize, setScreenSize] = useState('');
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
+  const modelInputRef = useRef<HTMLInputElement>(null);
 
   // Sync initialModelNumber when dialog opens
   useEffect(() => {
     if (open) {
       if (initialModelNumber) {
-        setModelNumber(initialModelNumber);
-        const cleaned = initialModelNumber.trim();
-        const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[a-zA-Z]{0,4}[-_]?)(\d{2})/);
+        const upper = initialModelNumber.toUpperCase();
+        setModelNumber(upper);
+        const cleaned = upper.trim();
+        const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[A-Z]{0,4}[-_]?)(\d{2})/);
         if (match && match[1]) {
           setScreenSize(match[1]);
           setAutoDetectedSize(match[1]);
@@ -72,6 +74,30 @@ export function CreateTvModelDialog({
       }
     }
   }, [open, initialModelNumber]);
+
+  // Preserve cursor position at the very end when refocusing or returning from other applications
+  useEffect(() => {
+    if (!open) return;
+    const handleAppResume = () => {
+      if (document.visibilityState === 'visible') {
+        setTimeout(() => {
+          if (modelInputRef.current) {
+            const input = modelInputRef.current;
+            const len = input.value.length;
+            input.focus();
+            input.setSelectionRange(len, len);
+          }
+        }, 120);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleAppResume);
+    window.addEventListener('focus', handleAppResume);
+    return () => {
+      document.removeEventListener('visibilitychange', handleAppResume);
+      window.removeEventListener('focus', handleAppResume);
+    };
+  }, [open]);
 
   // Real-time duplicate & similarity checking
   const similarityResult = useMemo(() => {
@@ -93,12 +119,13 @@ export function CreateTvModelDialog({
   // Selected brand object
   const selectedBrand = brands.find((b) => b.id === brandId);
 
-  // Auto-detect starting 2 numeric digits for screen size
+  // Auto-detect starting 2 numeric digits for screen size and always convert to capital letters
   const handleModelNumberChange = (value: string) => {
-    setModelNumber(value);
+    const upper = value.toUpperCase();
+    setModelNumber(upper);
 
-    const cleaned = value.trim();
-    const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[a-zA-Z]{0,4}[-_]?)(\d{2})/);
+    const cleaned = upper.trim();
+    const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[A-Z]{0,4}[-_]?)(\d{2})/);
 
     if (match && match[1]) {
       const detected = match[1];
@@ -216,14 +243,21 @@ export function CreateTvModelDialog({
                   )}
                 </div>
                 <Input
+                  ref={modelInputRef}
                   id="model-number"
                   value={modelNumber}
                   onChange={(e) => handleModelNumberChange(e.target.value)}
+                  onFocus={(e) => {
+                    const len = e.target.value.length;
+                    requestAnimationFrame(() => {
+                      e.target.setSelectionRange(len, len);
+                    });
+                  }}
                   placeholder="e.g. 55NU7100, 32LM563, OLED65C1"
                   required
                   autoFocus
                   disabled={isPending}
-                  className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
+                  className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold uppercase font-mono tracking-wider transition-all focus-visible:ring-2 ${
                     similarityResult.level === 'BLOCK'
                       ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
                       : similarityResult.level === 'WARN_11'

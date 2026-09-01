@@ -84,22 +84,8 @@ export function CommandPalette() {
       };
     }
 
-    // Inside /knowledge-base/brands/[id]
-    const brandMatch = pathname.match(/^\/knowledge-base\/brands\/([^\/]+)/);
-    if (brandMatch) {
-      return {
-        isKbRoute: true,
-        isSearchDisabled: false,
-        scope: 'models',
-        brandId: brandMatch[1],
-        scopeTitle: 'Brand Directory • Models Search',
-        placeholderText: 'Search models under this brand (e.g. 55NU7100, OLED)...',
-      };
-    }
-
-    // Inside /knowledge-base/models/[id] (Technical Folders - Search Disabled)
-    const modelMatch = pathname.match(/^\/knowledge-base\/models\/([^\/]+)/);
-    if (modelMatch) {
+    // Inside Knowledge Base subroutes (model folder, technical folder, etc.) - header search disabled
+    if (pathname !== '/knowledge-base') {
       return {
         isKbRoute: true,
         isSearchDisabled: true,
@@ -110,13 +96,13 @@ export function CommandPalette() {
       };
     }
 
-    // Root Knowledge Base: /knowledge-base
+    // Root Knowledge Base: /knowledge-base (Brand Directory)
     return {
       isKbRoute: true,
       isSearchDisabled: false,
       scope: 'brands',
       brandId: undefined,
-      scopeTitle: 'Root Directory • TV Brands Search',
+      scopeTitle: 'Brand Directory • TV Brands Search',
       placeholderText: 'Search TV brands (e.g. Samsung, LG, Sony)...',
     };
   }, [pathname]);
@@ -172,12 +158,15 @@ export function CommandPalette() {
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams({
+        const searchObj: Record<string, string> = {
           q: query,
           scope,
           limit: '50',
-          ...(brandId ? { brandId } : {}),
-        });
+        };
+        if (brandId) {
+          searchObj.brandId = brandId;
+        }
+        const params = new URLSearchParams(searchObj);
 
         const res = await fetch(`/api/search?${params.toString()}`);
         if (res.ok) {

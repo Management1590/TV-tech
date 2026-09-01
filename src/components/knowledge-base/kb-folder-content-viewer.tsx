@@ -1010,28 +1010,38 @@ export function KbFolderContentViewer({
         )}
 
         {photoVideoList.length === 0 ? (
-          <div className="p-10 sm:p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-center mx-auto text-primary">
-              <ImageIcon className="w-6 h-6" />
+          <div
+            onClick={() => {
+              if (!isGlobalEditMode) setIsGlobalEditMode(true);
+              setIsUploadDialogOpen(true);
+            }}
+            className="p-8 sm:p-12 text-center bg-gradient-to-b from-blue-50/40 via-muted/30 to-muted/50 border-2 border-primary/30 border-dashed rounded-3xl space-y-3.5 hover:border-primary/60 hover:bg-blue-50/50 transition-all cursor-pointer group shadow-xs"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600/15 via-indigo-600/15 to-primary/10 border border-primary/25 flex items-center justify-center mx-auto text-primary group-hover:scale-110 group-hover:shadow-md transition-all">
+              <UploadCloud className="w-7 h-7" />
             </div>
-            <div>
-              <p className="text-sm font-bold text-foreground">No photos or videos uploaded yet</p>
+            <div className="space-y-1">
+              <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight">
+                Upload Photos & Videos
+              </p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                {isGlobalEditMode
-                  ? 'Upload repair schematics, panel photos, and high-definition video demonstrations to this model.'
-                  : 'Clean View Mode active. Switch to Edit Mode to upload photos or videos.'}
+                Tap here or drag & drop repair schematics, panel photos, or diagnostic videos for this model.
               </p>
             </div>
-            {isAdmin && isGlobalEditMode && (
+            <div className="pt-1">
               <Button
                 type="button"
-                onClick={() => setIsUploadDialogOpen(true)}
-                className="h-9 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-sm cursor-pointer inline-flex items-center gap-1.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isGlobalEditMode) setIsGlobalEditMode(true);
+                  setIsUploadDialogOpen(true);
+                }}
+                className="h-10 px-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:to-primary text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-2"
               >
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>Upload Photo / Video</span>
+                <UploadCloud className="w-4 h-4" />
+                <span>Upload Media Now</span>
               </Button>
-            )}
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -1250,16 +1260,18 @@ export function KbFolderContentViewer({
               </Button>
             )}
 
-            {/* Direct Voice Recorder Widget (Always accessible!) */}
-            <div className="w-full sm:w-auto">
-              <VoiceRecorderWidget
-                entityId={entityId}
-                onRecordingComplete={(newMedia) => {
-                  setMediaList((prev) => [...prev, newMedia]);
-                }}
-                disabled={isUploadingMedia}
-              />
-            </div>
+            {/* Direct Voice Recorder Widget (Only visible in Edit Mode!) */}
+            {isAdmin && isGlobalEditMode && (
+              <div className="w-full sm:w-auto animate-in fade-in duration-150">
+                <VoiceRecorderWidget
+                  entityId={entityId}
+                  onRecordingComplete={(newMedia) => {
+                    setMediaList((prev) => [...prev, newMedia]);
+                  }}
+                  disabled={isUploadingMedia}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -1304,20 +1316,26 @@ export function KbFolderContentViewer({
               <Mic className="w-7 h-7" />
             </div>
             <div className="space-y-1">
-              <p className="text-base font-extrabold text-foreground tracking-tight">Record Diagnostic Voice Notes</p>
+              <p className="text-base font-extrabold text-foreground tracking-tight">
+                {isGlobalEditMode ? 'Record Diagnostic Voice Notes' : 'No Voice Notes Recorded'}
+              </p>
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Record diagnostic audio, chime patterns, component beep codes, or verbal repair instructions directly from your browser.
+                {isGlobalEditMode
+                  ? 'Record diagnostic audio, chime patterns, component beep codes, or verbal repair instructions directly from your browser.'
+                  : 'No audio logs or voice notes have been recorded for this folder yet.'}
               </p>
             </div>
-            <div className="inline-flex justify-center pt-1">
-              <VoiceRecorderWidget
-                entityId={entityId}
-                onRecordingComplete={(newMedia) => {
-                  setMediaList((prev) => [...prev, newMedia]);
-                }}
-                disabled={isUploadingMedia}
-              />
-            </div>
+            {isAdmin && isGlobalEditMode && (
+              <div className="inline-flex justify-center pt-1 animate-in fade-in duration-150">
+                <VoiceRecorderWidget
+                  entityId={entityId}
+                  onRecordingComplete={(newMedia) => {
+                    setMediaList((prev) => [...prev, newMedia]);
+                  }}
+                  disabled={isUploadingMedia}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">

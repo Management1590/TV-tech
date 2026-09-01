@@ -169,27 +169,27 @@ export function KbBrandViewContainer({
         </div>
 
         {/* Segmented Filter Control */}
-        <div className="grid grid-cols-2 sm:inline-flex items-center p-1 bg-white border border-border/80 rounded-xl sm:rounded-2xl shadow-xs w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:inline-flex items-center p-1 bg-muted/60 border border-border/80 rounded-xl sm:rounded-2xl shadow-2xs w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setSortBy('most-opened')}
-            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               sortBy === 'most-opened'
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-xs'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
             }`}
           >
-            <Flame className={`w-3.5 h-3.5 ${sortBy === 'most-opened' ? 'text-amber-300' : 'text-amber-500'}`} />
+            <Flame className={`w-3.5 h-3.5 ${sortBy === 'most-opened' ? 'text-amber-400' : 'text-amber-500'}`} />
             <span>Most Opened</span>
           </button>
 
           <button
             type="button"
             onClick={() => setSortBy('name')}
-            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               sortBy === 'name'
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-xs'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
             }`}
           >
             <ArrowDownAZ className="w-3.5 h-3.5" />

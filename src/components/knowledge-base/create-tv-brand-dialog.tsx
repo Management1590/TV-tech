@@ -242,6 +242,12 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                   id="create-brand-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  onFocus={(e) => {
+                    const len = e.target.value.length;
+                    requestAnimationFrame(() => {
+                      e.target.setSelectionRange(len, len);
+                    });
+                  }}
                   placeholder="e.g. Samsung, LG, Sony, TCL"
                   required
                   autoFocus
@@ -258,7 +264,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                   id="create-brand-desc"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. Major Korean manufacturer, panel voltage guidelines, common chassis..."
+                  placeholder="Optional technical notes or chassis guidelines..."
                   rows={2}
                   disabled={isPending}
                   className="rounded-xl bg-muted/50 border-border/80 text-sm"

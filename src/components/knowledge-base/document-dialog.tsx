@@ -97,10 +97,10 @@ export function DocumentDialog({
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Power Supply Inverter Standby 3.3V Fault Specs"
+              placeholder="e.g. Inverter 3.3V Specs"
               autoFocus
               disabled={isSaving}
-              className="h-11 rounded-2xl text-sm font-bold border-border/80 focus-visible:ring-emerald-500 shadow-2xs"
+              className="h-11 rounded-2xl text-sm font-bold border-border/80 focus-visible:ring-emerald-500 shadow-2xs placeholder:text-muted-foreground/35 placeholder:font-normal placeholder:italic"
             />
           </div>
 
@@ -113,11 +113,14 @@ export function DocumentDialog({
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter fault symptoms, voltage test measurements, replaced capacitor/IC numbers, diagnostic steps, or repair instructions..."
+              placeholder="Write your technical notes here..."
               disabled={isSaving}
               rows={6}
-              className="rounded-2xl text-sm leading-relaxed border-border/80 focus-visible:ring-emerald-500 shadow-2xs resize-y min-h-[140px]"
+              className="rounded-2xl text-sm leading-relaxed border-border/80 focus-visible:ring-emerald-500 shadow-2xs resize-y min-h-[140px] placeholder:text-muted-foreground/35 placeholder:font-normal placeholder:italic"
             />
+            <p className="text-[11px] text-muted-foreground/75 font-normal pt-0.5">
+              Tip: Include fault symptoms, voltages, component part numbers, or repair steps.
+            </p>
           </div>
 
           <DialogFooter className="pt-3 flex flex-row items-center justify-end gap-2">

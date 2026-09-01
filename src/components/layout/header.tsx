@@ -94,6 +94,14 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
     });
   };
 
+  const isBrandDirectory = pathname === '/knowledge-base';
+  const isKbSubroute = pathname.startsWith('/knowledge-base') && !isBrandDirectory;
+
+  // Top bar is strictly visible in Brand Directory (/knowledge-base) and hidden in model folder, technical folder, and anywhere else in Knowledge Base
+  if (isKbSubroute) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/70 shadow-2xs transition-all" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">

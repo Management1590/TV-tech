@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Monitor } from 'lucide-react';
+import { ChevronRight, Monitor, ArrowLeft } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { Badge } from '@/components/ui/badge';
@@ -38,14 +38,18 @@ export default async function TvBrandDetailPage({
   const cleanBrandName = brand.name.replace(/_\d{10,}$/, '');
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4 max-w-7xl mx-auto">
+    <div
+      className="space-y-4 sm:space-y-6 p-2 sm:p-4 max-w-7xl mx-auto"
+      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.25rem)' }}
+    >
       {/* Breadcrumb Navigation - Touch-Friendly Pill Track with Smooth Horizontal Scroll */}
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
         <Link
           href="/knowledge-base"
-          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
         >
-          Knowledge Base
+          <ArrowLeft className="w-3.5 h-3.5 text-primary" />
+          <span>Knowledge Base</span>
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         <span className="px-2.5 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1">

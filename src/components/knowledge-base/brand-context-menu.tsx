@@ -546,7 +546,7 @@ export function BrandContextMenu({
               <Textarea
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="e.g. Major Korean manufacturer, panel voltage conventions, common chassis..."
+                placeholder="Optional notes or chassis guidelines..."
                 rows={4}
                 className="rounded-xl bg-muted/50 border-border/80 text-sm"
                 autoFocus

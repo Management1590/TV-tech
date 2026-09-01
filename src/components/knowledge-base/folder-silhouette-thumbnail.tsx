@@ -65,7 +65,10 @@ export function FolderSilhouetteThumbnail({
               src={parsedThumb.url}
               alt={name}
               style={{
-                transform: `translate(${effectiveX}px, ${effectiveY}px) scale(${parsedThumb.scale})`,
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: `translate(calc(-50% + ${effectiveX}px), calc(-50% + ${effectiveY}px)) scale(${parsedThumb.scale})`,
                 transformOrigin: 'center center',
               }}
               className="w-full h-full object-cover"

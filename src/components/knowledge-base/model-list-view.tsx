@@ -72,6 +72,27 @@ export function ModelListView({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const handleSearchFocus = useCallback(() => {
+    setIsSearchFocused(true);
+    // Smoothly scroll search bar to top of mobile viewport so results are visible above keyboard
+    setTimeout(() => {
+      if (searchContainerRef.current) {
+        const rect = searchContainerRef.current.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const targetY = rect.top + scrollTop - 10;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      }
+    }, 120);
+  }, []);
+
+  const handleSearchBlur = useCallback(() => {
+    setTimeout(() => {
+      setIsSearchFocused(false);
+    }, 200);
+  }, []);
 
   useEffect(() => {
     setOpenCounts(getModelOpenCounts());
@@ -184,69 +205,91 @@ export function ModelListView({
 
   return (
     <div className="space-y-4">
-      {/* Real-time Contextual Model Search Bar + Filter Segmented Control */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
-        {/* In-Place Search Bar */}
-        <div className="relative w-full sm:w-80 md:w-96">
-          <div className="relative flex items-center">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 pointer-events-none transition-colors group-focus-within:text-primary" />
-            <Input
-              ref={inputRef}
-              type="text"
-              placeholder={`Search ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'brand'} models...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-14 h-10.5 bg-white border-border/80 rounded-2xl shadow-2xs text-xs sm:text-sm focus-visible:ring-2 focus-visible:ring-primary/30"
-            />
+      {/* Sticky Real-time Contextual Model Search Bar + Filter Segmented Control */}
+      <div
+        ref={searchContainerRef}
+        className={`transition-all duration-300 ${
+          isSearchFocused || searchQuery.trim()
+            ? 'sticky top-1 sm:top-2 z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl p-2 sm:p-2.5 rounded-2xl shadow-md border border-border/80'
+            : 'relative'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-wrap">
+          {/* In-Place Search Bar with Premium Theme Highlight */}
+          <div className="relative flex-1 min-w-0 group">
+            <div className="relative flex items-center">
+              {/* Premium Theme Icon Badge */}
+              <div className="absolute left-2.5 z-10 w-7 h-7 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs pointer-events-none group-focus-within:border-primary/50 group-focus-within:scale-105 transition-all">
+                <Search className="w-3.5 h-3.5" />
+              </div>
 
-            {/* Clear Button */}
-            <div className="absolute right-2 flex items-center gap-1">
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                  title="Clear search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              ) : null}
+              <Input
+                ref={inputRef}
+                type="text"
+                placeholder={`Search ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'brand'} models...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
+                className="pl-12 pr-14 h-11 bg-white/95 dark:bg-slate-900 border-2 border-primary/25 hover:border-primary/45 focus-visible:border-primary rounded-2xl shadow-xs hover:shadow-sm focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-primary/15 text-xs sm:text-sm font-semibold transition-all duration-200"
+              />
+
+              {/* Clear / Dismiss Button or Quick Tag */}
+              <div className="absolute right-2.5 flex items-center gap-1.5 z-10">
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      inputRef.current?.focus();
+                    }}
+                    className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground/70 border border-border/80">
+                    Search
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Filter Segmented Control Bar */}
-        <div className="inline-flex items-center p-1 bg-white/90 backdrop-blur-md border border-border/80 rounded-2xl shadow-2xs self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setSortBy('most-opened')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              sortBy === 'most-opened'
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-sm shadow-blue-500/20'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-          >
-            <Flame className={`w-3.5 h-3.5 ${sortBy === 'most-opened' ? 'text-amber-300' : 'text-amber-500'}`} />
-            <span>Open Many Times</span>
-            {sortBy === 'most-opened' && (
-              <span className="ml-0.5 text-[10px] bg-white/20 px-1.5 py-0.2 rounded-md font-extrabold">
-                Default
-              </span>
-            )}
-          </button>
+          {/* Filter Segmented Control Bar */}
+          <div className="inline-flex items-center p-1 bg-muted/60 border border-border/80 rounded-2xl shadow-2xs self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => setSortBy('most-opened')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                sortBy === 'most-opened'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+              }`}
+            >
+              <Flame className={`w-3.5 h-3.5 ${sortBy === 'most-opened' ? 'text-amber-400' : 'text-amber-500'}`} />
+              <span>Open Many Times</span>
+              {sortBy === 'most-opened' && (
+                <span className="ml-0.5 text-[10px] bg-white/20 dark:bg-black/20 px-1.5 py-0.2 rounded-md font-extrabold">
+                  Default
+                </span>
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setSortBy('name')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              sortBy === 'name'
-                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white shadow-sm shadow-blue-500/20'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-          >
-            <ArrowDownAZ className="w-3.5 h-3.5" />
-            <span>By Name</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setSortBy('name')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                sortBy === 'name'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+              }`}
+            >
+              <ArrowDownAZ className="w-3.5 h-3.5" />
+              <span>By Name</span>
+            </button>
+          </div>
         </div>
       </div>
 

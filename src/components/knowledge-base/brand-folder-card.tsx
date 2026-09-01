@@ -32,6 +32,24 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
   const parsedThumb = parseThumbnailUrl(brand.logoUrl);
   const cleanName = brand.name.replace(/_\d{10,}$/, '');
 
+  const cardContainerRef = React.useRef<HTMLDivElement>(null);
+  const [scaleRatio, setScaleRatio] = React.useState(0.5);
+
+  React.useEffect(() => {
+    const updateRatio = () => {
+      if (cardContainerRef.current) {
+        const width = cardContainerRef.current.clientWidth || 170;
+        setScaleRatio(width / 340);
+      }
+    };
+    updateRatio();
+    window.addEventListener('resize', updateRatio);
+    return () => window.removeEventListener('resize', updateRatio);
+  }, []);
+
+  const effectiveX = parsedThumb.x * scaleRatio;
+  const effectiveY = parsedThumb.y * scaleRatio;
+
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [isPressing, setIsPressing] = React.useState(false);
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -138,7 +156,8 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
         >
           {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK */}
           <div
-            className="relative w-full h-full min-h-[155px] xs:min-h-[175px] sm:min-h-[220px] bg-muted/90 overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
+            ref={cardContainerRef}
+            className="relative w-full aspect-[3/2] bg-muted/90 overflow-hidden transition-shadow duration-300 flex flex-col justify-end group-hover:shadow-2xl"
             style={{
               clipPath: `url(#brand-folder-clip-${clipId})`,
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
@@ -151,7 +170,10 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
                   src={parsedThumb.url}
                   alt={brand.name}
                   style={{
-                    transform: `translate(${parsedThumb.x}px, ${parsedThumb.y}px) scale(${parsedThumb.scale})`,
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: `translate(calc(-50% + ${effectiveX}px), calc(-50% + ${effectiveY}px)) scale(${parsedThumb.scale})`,
                     transformOrigin: 'center center',
                   }}
                   className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-105 transition-all duration-500"
