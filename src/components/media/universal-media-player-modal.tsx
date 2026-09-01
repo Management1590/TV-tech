@@ -964,8 +964,13 @@ export function UniversalMediaPlayerModal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[99999] bg-black flex flex-col h-screen w-screen min-h-[100dvh] select-none overflow-hidden"
+      ref={modalRef}
+      className="fixed inset-0 z-[99999] bg-black flex flex-col select-none overflow-hidden"
       style={{
+        height: '100dvh',
+        maxHeight: '100dvh',
+        width: '100vw',
+        maxWidth: '100vw',
         backgroundColor: `rgba(0, 0, 0, ${dismissOffset.opacity})`,
         transition: isInteracting ? 'none' : 'background-color 0.28s ease-out',
       }}
@@ -1252,11 +1257,6 @@ export function UniversalMediaPlayerModal({
                       ref={videoContainerRef}
                       className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black select-none"
                       style={{
-                        paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)',
-                        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)',
-                        paddingLeft: 'max(env(safe-area-inset-left, 0px), 12px)',
-                        paddingRight: 'max(env(safe-area-inset-right, 0px), 12px)',
-                        boxSizing: 'border-box',
                         transform: `scale(${dismissOffset.scale})`,
                         borderRadius: dismissOffset.y > 10 ? '24px' : undefined,
                         transition: isInteracting || isDismissing ? (isDismissing ? 'transform 0.22s ease-out' : 'none') : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease',
@@ -1295,14 +1295,14 @@ export function UniversalMediaPlayerModal({
                         }}
                         style={{
                           transform: videoRotation ? `rotate(${videoRotation}deg)` : undefined,
-                          maxWidth: '100%',
-                          maxHeight: '100%',
+                          maxWidth: 'calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px)',
+                          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 32px)',
                           width: videoRotation % 180 !== 0 ? 'auto' : undefined,
                           height: videoRotation % 180 !== 0 ? 'auto' : undefined,
                           objectFit: 'contain',
                           transition: 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
                         }}
-                        className="object-contain max-h-full max-w-full z-10 select-none"
+                        className="z-10 select-none m-auto"
                       />
                     </div>
                   ) : (
