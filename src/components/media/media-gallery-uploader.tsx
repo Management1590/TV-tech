@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { uploadMediaAction, deleteMediaAction, setPrimaryMediaAction } from '@/features/media/actions/media.actions';
+import { uploadMediaWithProgress } from '@/lib/media-upload-client';
 import { UniversalMediaPlayerModal, UniversalMediaItem } from '@/components/media/universal-media-player-modal';
 
 export interface MediaItem {
@@ -53,38 +54,19 @@ export function MediaGalleryUploader({ entityId, mediaItems, userRole = 'ADMIN' 
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('entityId', entityId);
-      formData.append('purpose', mediaItems.length === 0 && i === 0 ? 'PRIMARY' : 'GALLERY');
+      const purpose = mediaItems.length === 0 && i === 0 ? 'PRIMARY' : 'GALLERY';
 
-      try {
-        const response = await fetch('/api/media/upload', {
-          method: 'POST',
-          body: formData,
-        });
+      const result = await uploadMediaWithProgress(
+        file,
+        entityId,
+        purpose
+      );
 
-        const result = await response.json();
-        if (result.success) {
-          successCount++;
-        } else {
-          failCount++;
-          toast.error(`Failed to upload ${file.name}: ${result.error || 'Upload error'}`);
-        }
-      } catch (err: any) {
-        // Fallback to Server Action if fetch fails
-        try {
-          const actionResult = await uploadMediaAction(formData);
-          if (actionResult.success) {
-            successCount++;
-          } else {
-            failCount++;
-            toast.error(`Failed to upload ${file.name}: ${actionResult.error}`);
-          }
-        } catch {
-          failCount++;
-          toast.error(`Error uploading ${file.name}`);
-        }
+      if (result.success) {
+        successCount++;
+      } else {
+        failCount++;
+        toast.error(`Failed to upload ${file.name}: ${result.error || 'Upload error'}`);
       }
     }
 

@@ -63,21 +63,28 @@ export async function POST(req: NextRequest) {
       if (mediaType === MediaType.AUDIO) {
         uploadOptions.format = 'mp3';
       } else if (mediaType === MediaType.VIDEO) {
-        uploadOptions.chunk_size = 20 * 1024 * 1024; // 20MB chunks
+        uploadOptions.chunk_size = 6 * 1024 * 1024;
       }
 
-      const uploadStream = cloudinary.uploader.upload_stream(
-        uploadOptions,
-        (error, result) => {
-          if (error) {
-            console.error('[CLOUDINARY_API_UPLOAD_ERROR]', error);
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        }
-      );
-      uploadStream.end(buffer);
+      const uploadHandler = mediaType === MediaType.VIDEO
+        ? cloudinary.uploader.upload_chunked_stream(uploadOptions, (error, result) => {
+            if (error) {
+              console.error('[CLOUDINARY_API_CHUNKED_ERROR]', error);
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          })
+        : cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+            if (error) {
+              console.error('[CLOUDINARY_API_UPLOAD_ERROR]', error);
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          });
+
+      uploadHandler.end(buffer);
     });
 
     // If purpose is PRIMARY, demote previous PRIMARY for this entity

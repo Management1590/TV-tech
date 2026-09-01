@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { uploadMediaAction } from '@/features/media/actions/media.actions';
+import { uploadMediaWithProgress } from '@/lib/media-upload-client';
 import { detectMediaKind } from '@/lib/media-detect';
 
 interface UploadItemMediaDialogProps {
@@ -138,56 +139,38 @@ export function UploadItemMediaDialog({
     }
 
     setIsUploading(true);
-    setUploadProgress(15);
+    setUploadProgress(5);
     setUploadStatusText('Reading and preparing media payload...');
 
     try {
-      let fileToUpload: File | Blob;
+      let fileToUpload: File;
 
       if (mode === 'upload' && selectedFile) {
         fileToUpload = selectedFile;
       } else {
         // Fetch URL as blob
         setUploadStatusText('Fetching image from URL...');
-        setUploadProgress(30);
+        setUploadProgress(15);
         try {
           const res = await fetch(imageUrl.trim());
           const blob = await res.blob();
           fileToUpload = new File([blob], `url_media_${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
-        } catch (fetchErr) {
+        } catch {
           toast.error('Could not load image from provided URL. Please check the link or upload directly.');
           setIsUploading(false);
           return;
         }
       }
 
-      setUploadProgress(45);
-      setUploadStatusText('Uploading to Cloudinary CDN...');
-
-      // Animate progress gracefully
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => (prev < 85 ? prev + 10 : prev));
-      }, 400);
-
-      const formData = new FormData();
-      formData.append('file', fileToUpload);
-      formData.append('entityId', entityId);
-      formData.append('purpose', isPrimary ? 'PRIMARY' : 'GALLERY');
-
-      let result: any;
-      try {
-        const response = await fetch('/api/media/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        result = await response.json();
-      } catch {
-        result = await uploadMediaAction(formData);
-      }
-
-      clearInterval(interval);
-      setUploadProgress(100);
-      setUploadStatusText('Finalizing registration...');
+      const result = await uploadMediaWithProgress(
+        fileToUpload,
+        entityId,
+        isPrimary ? 'PRIMARY' : 'GALLERY',
+        (pct, status) => {
+          setUploadProgress(pct);
+          setUploadStatusText(status);
+        }
+      );
 
       if (result.success && result.media) {
         toast.success(`Media uploaded successfully for "${itemName}"`);

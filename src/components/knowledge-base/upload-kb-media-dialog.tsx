@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { uploadMediaAction } from '@/features/media/actions/media.actions';
+import { uploadMediaWithProgress } from '@/lib/media-upload-client';
 import { detectMediaKind } from '@/lib/media-detect';
 
 interface SelectedFileItem {
@@ -159,7 +160,7 @@ export function UploadKbMediaDialog({
     }
 
     setIsUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(5);
     setUploadStatusText('Preparing media payload...');
 
     try {
@@ -171,52 +172,35 @@ export function UploadKbMediaDialog({
         for (let i = 0; i < total; i++) {
           const item = selectedFiles[i];
           const currentFileNum = i + 1;
-          const baseProgress = Math.round((i / total) * 80) + 10;
-          setUploadProgress(baseProgress);
-          
           const rawName = item.file.name;
           const ext = rawName.split('.').pop() || '';
           const baseName = rawName.substring(0, rawName.lastIndexOf('.')) || rawName;
           const shortBase = baseName.length > 18 ? baseName.slice(0, 15) + '..' : baseName;
           const displayName = ext ? `${shortBase}.${ext}` : shortBase;
-          setUploadStatusText(`Uploading ${currentFileNum}/${total}: ${displayName}`);
 
-          const formData = new FormData();
-          formData.append('file', item.file);
-          formData.append('entityId', entityId);
-          formData.append('purpose', 'GALLERY');
+          const uploadResult = await uploadMediaWithProgress(
+            item.file,
+            entityId,
+            'GALLERY',
+            (filePct, status) => {
+              const fileWeight = 100 / total;
+              const overallPct = Math.round((i * fileWeight) + (filePct * fileWeight / 100));
+              setUploadProgress(Math.min(99, Math.max(5, overallPct)));
+              setUploadStatusText(`[${currentFileNum}/${total}] ${displayName} — ${status}`);
+            }
+          );
 
-          try {
-            const res = await fetch('/api/media/upload', {
-              method: 'POST',
-              body: formData,
-            });
-            const json = await res.json();
-            if (json.success && json.media) {
-              onMediaUploaded(json.media);
-              successCount++;
-            } else {
-              // Fallback to server action
-              const actionRes = await uploadMediaAction(formData);
-              if (actionRes.success && actionRes.media) {
-                onMediaUploaded(actionRes.media);
-                successCount++;
-              } else {
-                toast.error(json.error || actionRes.error || `Failed to upload ${item.file.name}`);
-              }
-            }
-          } catch {
-            const actionRes = await uploadMediaAction(formData);
-            if (actionRes.success && actionRes.media) {
-              onMediaUploaded(actionRes.media);
-              successCount++;
-            }
+          if (uploadResult.success && uploadResult.media) {
+            onMediaUploaded(uploadResult.media);
+            successCount++;
+          } else {
+            toast.error(uploadResult.error || `Failed to upload ${item.file.name}`);
           }
         }
       } else {
         // Mode: URL
         setUploadStatusText('Fetching image from URL...');
-        setUploadProgress(35);
+        setUploadProgress(15);
 
         try {
           const res = await fetch(imageUrl.trim());
@@ -225,30 +209,21 @@ export function UploadKbMediaDialog({
             type: blob.type || 'image/jpeg',
           });
 
-          setUploadProgress(65);
-          setUploadStatusText('Optimizing and storing image...');
+          const uploadResult = await uploadMediaWithProgress(
+            fileToUpload,
+            entityId,
+            'GALLERY',
+            (pct, status) => {
+              setUploadProgress(pct);
+              setUploadStatusText(status);
+            }
+          );
 
-          const formData = new FormData();
-          formData.append('file', fileToUpload);
-          formData.append('entityId', entityId);
-          formData.append('purpose', 'GALLERY');
-
-          let result: any;
-          try {
-            const response = await fetch('/api/media/upload', {
-              method: 'POST',
-              body: formData,
-            });
-            result = await response.json();
-          } catch {
-            result = await uploadMediaAction(formData);
-          }
-
-          if (result.success && result.media) {
-            onMediaUploaded(result.media);
+          if (uploadResult.success && uploadResult.media) {
+            onMediaUploaded(uploadResult.media);
             successCount++;
           } else {
-            toast.error(result.error || 'Upload failed');
+            toast.error(uploadResult.error || 'Upload failed');
           }
         } catch {
           toast.error('Could not fetch image from the provided URL.');
