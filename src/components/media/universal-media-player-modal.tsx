@@ -18,6 +18,7 @@ import {
   VolumeX,
   Film,
   Image as ImageIcon,
+  ExternalLink,
 } from 'lucide-react';
 
 export interface UniversalMediaItem {
@@ -922,6 +923,28 @@ export function UniversalMediaPlayerModal({
     setVideoRotation((prev) => (prev + 90) % 360);
   };
 
+  // Open the video directly in the browser's own dedicated player
+  const openNativeBrowserPlayer = (e?: React.SyntheticEvent) => {
+    if (e) e.stopPropagation();
+    if (!currentItem) return;
+    const mediaUrl = currentItem.secureUrl || currentItem.url;
+    window.open(mediaUrl, '_blank');
+  };
+
+  // Launch the browser's native fullscreen video player
+  const requestBrowserFullscreen = (e?: React.SyntheticEvent) => {
+    if (e) e.stopPropagation();
+    const vid = videoRef.current;
+    if (!vid) return;
+    if ((vid as any).webkitEnterFullscreen) {
+      (vid as any).webkitEnterFullscreen();
+    } else if (vid.requestFullscreen) {
+      vid.requestFullscreen();
+    } else if ((vid as any).webkitRequestFullscreen) {
+      (vid as any).webkitRequestFullscreen();
+    }
+  };
+
   // Video Tap Handler: Single-tap toggles UI, Double-tap plays/pauses cleanly
   const handleVideoTapOrClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
@@ -1019,18 +1042,32 @@ export function UniversalMediaPlayerModal({
           <span className="text-white/70">{items.length}</span>
         </div>
 
-        {/* Right: Mobile Close / Cancel Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="pointer-events-auto w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
-          title="Close Viewer"
-        >
-          <X className="w-4 h-4 text-white" />
-        </button>
+        {/* Right: Actions (Browser Player + Close Button) */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {isVideo && (
+            <button
+              type="button"
+              onClick={openNativeBrowserPlayer}
+              className="h-9 px-3 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center gap-1.5 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
+              title="Open in Browser's Native Player"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-white" />
+              <span className="text-[11px] font-bold">Browser Player</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            title="Close Viewer"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -1185,6 +1222,19 @@ export function UniversalMediaPlayerModal({
             </div>
           )}
 
+          {/* Open in Browser Native Player Button */}
+          {isVideo && (
+            <button
+              type="button"
+              onClick={openNativeBrowserPlayer}
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xl rounded-2xl text-white transition-all shadow-lg cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+              title="Open in Browser's Native Player"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Browser Player</span>
+            </button>
+          )}
+
           {/* Download Button */}
           <a
             href={currentMediaUrl}
@@ -1263,11 +1313,10 @@ export function UniversalMediaPlayerModal({
               >
                 {isCurrent ? (
                   isItemVideo ? (
-                    /* Expansive Full-Stage Video Player Container */
+                    /* Expansive Full-Stage Video Player Container with Browser's Native Player */
                     <div
                       ref={videoContainerRef}
                       className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black select-none"
-                      onClick={handleVideoTapOrClick}
                       style={{
                         transform: `scale(${dismissOffset.scale})`,
                         borderRadius: dismissOffset.y > 10 ? '24px' : undefined,
@@ -1277,7 +1326,10 @@ export function UniversalMediaPlayerModal({
                       <video
                         ref={videoRef}
                         src={mediaUrl}
+                        controls
                         playsInline
+                        autoPlay
+                        preload="auto"
                         onLoadedMetadata={() => {
                           if (!videoRef.current || !currentItem) return;
                           const dur = videoRef.current.duration || 1;
@@ -1328,133 +1380,8 @@ export function UniversalMediaPlayerModal({
                           objectFit: 'contain',
                           transition: 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
                         }}
-                        className="object-contain cursor-pointer select-none"
+                        className="object-contain max-h-full max-w-full z-10 select-none"
                       />
-
-                      {/* Subtle Double-Tap Play/Pause Feedback Bubble */}
-                      {feedbackIcon && (
-                        <div className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl animate-in zoom-in-75 fade-in duration-150 pointer-events-none z-30">
-                          {feedbackIcon === 'play' ? (
-                            <Play className="w-8 h-8 fill-white ml-0.5" />
-                          ) : (
-                            <Pause className="w-8 h-8 fill-white" />
-                          )}
-                        </div>
-                      )}
-
-                      {/* Sleek Floating Video Controls (Smooth bottom-down transition & Large Clickable Touch Targets) */}
-                      <div
-                        className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/90 to-transparent px-4 py-4 sm:px-6 sm:py-5 flex flex-col gap-3 transition-all duration-300 ease-in-out z-20 ${
-                          isUiVisible
-                            ? 'opacity-100 translate-y-0 pointer-events-auto'
-                            : 'opacity-0 translate-y-full pointer-events-none'
-                        }`}
-                        style={{
-                          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-                          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
-                          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          showControlsTemporarily();
-                        }}
-                        onTouchStart={(e) => {
-                          e.stopPropagation();
-                        }}
-                        onTouchMove={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        {/* Progress Bar Scrubber */}
-                        <div className="py-1">
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={videoProgress}
-                            onChange={(e) => {
-                              handleSeek(e);
-                              showControlsTemporarily();
-                            }}
-                            className="w-full h-2.5 sm:h-3 bg-white/30 hover:bg-white/40 rounded-full appearance-none cursor-pointer accent-blue-500 transition-all"
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between text-white flex-wrap gap-2.5">
-                          {/* Left Controls: Play/Pause, Volume, Time */}
-                          <div className="flex items-center gap-2.5 sm:gap-3.5">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                togglePlay();
-                                showControlsTemporarily();
-                              }}
-                              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/25 backdrop-blur-md flex items-center justify-center text-white shadow-lg active:scale-90 transition-all cursor-pointer"
-                              title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-                            >
-                              {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-white" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleMute();
-                                showControlsTemporarily();
-                              }}
-                              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/25 backdrop-blur-md flex items-center justify-center text-white shadow-lg active:scale-90 transition-all cursor-pointer"
-                              title={isMuted ? 'Unmute' : 'Mute'}
-                            >
-                              {isMuted ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
-                            </button>
-
-                            <span className="font-mono text-xs sm:text-sm font-bold text-white/95 px-1 tracking-wide">
-                              {formatTime(currentTime)} / {formatTime(duration)}
-                            </span>
-                          </div>
-
-                          {/* Right Controls: Large Rotate Video Button + Speed Selector */}
-                          <div className="flex items-center gap-2 sm:gap-2.5">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRotateVideo();
-                                showControlsTemporarily();
-                              }}
-                              className={`h-11 px-4 rounded-2xl text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-90 cursor-pointer border shadow-lg ${
-                                videoRotation !== 0
-                                  ? 'bg-amber-500 hover:bg-amber-600 border-amber-400/60 ring-2 ring-amber-400/40'
-                                  : 'bg-white/20 hover:bg-white/30 border-white/25 backdrop-blur-md'
-                              }`}
-                              title="Rotate Video 90°"
-                            >
-                              <RotateCw className={`w-4 h-4 ${videoRotation !== 0 ? 'rotate-180 text-white' : ''}`} />
-                              <span>{videoRotation ? `${videoRotation}°` : 'Rotate'}</span>
-                            </button>
-
-                            <select
-                              value={playbackRate}
-                              onChange={(e) => {
-                                const rate = parseFloat(e.target.value);
-                                setPlaybackRate(rate);
-                                if (videoRef.current) videoRef.current.playbackRate = rate;
-                                showControlsTemporarily();
-                              }}
-                              className="hidden sm:inline-block h-11 bg-white/20 border border-white/25 backdrop-blur-md text-white rounded-2xl text-xs sm:text-sm px-3.5 font-bold outline-none cursor-pointer hover:bg-white/30 transition-colors shadow-lg"
-                              title="Playback Speed"
-                            >
-                              <option value="0.5" className="bg-foreground">0.5x</option>
-                              <option value="1" className="bg-foreground">1.0x</option>
-                              <option value="1.25" className="bg-foreground">1.25x</option>
-                              <option value="1.5" className="bg-foreground">1.5x</option>
-                              <option value="2" className="bg-foreground">2.0x</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   ) : (
                     <img

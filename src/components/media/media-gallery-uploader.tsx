@@ -4,7 +4,7 @@ import React, { useState, useTransition, useRef } from 'react';
 import Image from 'next/image';
 import { 
   ImagePlus, Film, Music, Star, Trash2, Loader2, Play, Eye, 
-  UploadCloud, CheckCircle2, AlertCircle, Volume2
+  UploadCloud, CheckCircle2, AlertCircle, Volume2, ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -272,6 +272,15 @@ export function MediaGalleryUploader({ entityId, mediaItems, userRole = 'ADMIN' 
                             title="Open in Cinema Player"
                           >
                             <Play className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary"
+                            onClick={() => window.open(vid.secureUrl || vid.url, '_blank')}
+                            title="Open in Browser's Native Player"
+                          >
+                            <ExternalLink className="h-3 w-3" />
                           </Button>
                           {isAdmin && (
                             <Button

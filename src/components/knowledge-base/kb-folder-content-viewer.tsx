@@ -1083,6 +1083,20 @@ export function KbFolderContentViewer({
                         <Badge className="absolute top-2 left-2 text-[10px] bg-primary text-white font-bold py-0 px-1.5 shadow-sm pointer-events-none">
                           Video
                         </Badge>
+                        {!isEditMode && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(item.secureUrl || item.url, '_blank');
+                            }}
+                            className="absolute top-2 right-2 px-2 py-1 rounded-xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/25 text-[10px] font-bold flex items-center gap-1 shadow-md z-10 cursor-pointer active:scale-90 transition-all opacity-90 sm:opacity-0 group-hover:opacity-100"
+                            title="Open in Browser's Dedicated Player"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span className="hidden sm:inline">Browser Player</span>
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div
