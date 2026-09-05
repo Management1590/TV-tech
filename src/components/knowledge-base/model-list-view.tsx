@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect, useCallback, useTransition } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,11 +10,6 @@ import {
   FolderOpen,
   ArrowRight,
   Sparkles,
-  ChevronRight,
-  Flame,
-  ArrowDownAZ,
-  SlidersHorizontal,
-  Loader2,
   Plus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +20,11 @@ import { recordModelOpen, getModelOpenCounts } from '@/lib/kb-tracking-utils';
 import { ModelContextMenu } from './model-context-menu';
 import { CreateTvModelDialog } from './create-tv-model-dialog';
 import { ModelRowSkeleton, SearchDropdownRowSkeleton } from './kb-skeletons';
+import {
+  KbSortOption,
+  KbSortButton,
+  KbSortBottomSheet,
+} from './kb-sort-bottom-sheet';
 
 export interface TvModelListItem {
   id: string;
@@ -65,7 +65,8 @@ export function ModelListView({
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [sortBy, setSortBy] = useState<'most-opened' | 'name'>('most-opened');
+  const [sortBy, setSortBy] = useState<KbSortOption>('most-opened');
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [openCounts, setOpenCounts] = useState<Record<string, number>>({});
   const [visibleCount, setVisibleCount] = useState<number>(ITEMS_PER_PAGE);
   const [isLoadingNext, setIsLoadingNext] = useState<boolean>(false);
@@ -93,6 +94,31 @@ export function ModelListView({
       setIsSearchFocused(false);
     }, 200);
   }, []);
+
+  // Dismiss mobile virtual keyboard on touch outside search input or when scrolling
+  useEffect(() => {
+    if (!isSearchFocused) return;
+
+    const handleTouchOutside = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (inputRef.current && target !== inputRef.current && !inputRef.current.contains(target as Node)) {
+        inputRef.current.blur();
+      }
+    };
+
+    const handleScroll = () => {
+      if (inputRef.current && document.activeElement === inputRef.current) {
+        inputRef.current.blur();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchOutside, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', handleTouchOutside);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isSearchFocused]);
 
   useEffect(() => {
     setOpenCounts(getModelOpenCounts());
@@ -152,7 +178,7 @@ export function ModelListView({
         .map((item) => item.model);
     }
 
-    // Apply Sort By: "Most Opened" (Default) or "Name A-Z"
+    // Apply Sort By: "Most Opened" (Default), "Name A-Z", "Recently Added", "Oldest Added"
     if (sortBy === 'most-opened') {
       return [...list].sort((a, b) => {
         const countA = (openCounts[a.id] || 0) * 100 + (a._count?.knowledgeFolders || 0);
@@ -166,12 +192,41 @@ export function ModelListView({
       });
     }
 
-    // Sort by Name (A-Z)
-    return [...list].sort((a, b) => {
-      const nameA = a.modelNumber.replace(/_\d{10,}$/, '');
-      const nameB = b.modelNumber.replace(/_\d{10,}$/, '');
-      return nameA.localeCompare(nameB);
-    });
+    if (sortBy === 'name') {
+      return [...list].sort((a, b) => {
+        const nameA = a.modelNumber.replace(/_\d{10,}$/, '');
+        const nameB = b.modelNumber.replace(/_\d{10,}$/, '');
+        return nameA.localeCompare(nameB);
+      });
+    }
+
+    if (sortBy === 'recently-added') {
+      return [...list].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeB !== timeA) {
+          return timeB - timeA;
+        }
+        const nameA = a.modelNumber.replace(/_\d{10,}$/, '');
+        const nameB = b.modelNumber.replace(/_\d{10,}$/, '');
+        return nameA.localeCompare(nameB);
+      });
+    }
+
+    if (sortBy === 'oldest-added') {
+      return [...list].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) {
+          return timeA - timeB;
+        }
+        const nameA = a.modelNumber.replace(/_\d{10,}$/, '');
+        const nameB = b.modelNumber.replace(/_\d{10,}$/, '');
+        return nameA.localeCompare(nameB);
+      });
+    }
+
+    return list;
   }, [models, debouncedQuery, sortBy, openCounts]);
 
   const visibleModels = useMemo(() => {
@@ -229,6 +284,12 @@ export function ModelListView({
                 placeholder={`Search ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'brand'} models...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    inputRef.current?.blur();
+                  }
+                }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
                 className="pl-12 pr-14 h-11 bg-white/95 dark:bg-slate-900 border-2 border-primary/25 hover:border-primary/45 focus-visible:border-primary rounded-2xl shadow-xs hover:shadow-sm focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-primary/15 text-xs sm:text-sm font-semibold transition-all duration-200"
@@ -257,41 +318,24 @@ export function ModelListView({
             </div>
           </div>
 
-          {/* Filter Segmented Control Bar */}
-          <div className="inline-flex items-center p-1 bg-muted/60 border border-border/80 rounded-2xl shadow-2xs self-start sm:self-auto shrink-0">
-            <button
-              type="button"
-              onClick={() => setSortBy('most-opened')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                sortBy === 'most-opened'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
-              }`}
-            >
-              <Flame className={`w-3.5 h-3.5 ${sortBy === 'most-opened' ? 'text-amber-400' : 'text-amber-500'}`} />
-              <span>Open Many Times</span>
-              {sortBy === 'most-opened' && (
-                <span className="ml-0.5 text-[10px] bg-white/20 dark:bg-black/20 px-1.5 py-0.2 rounded-md font-extrabold">
-                  Default
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSortBy('name')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                sortBy === 'name'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
-              }`}
-            >
-              <ArrowDownAZ className="w-3.5 h-3.5" />
-              <span>By Name</span>
-            </button>
-          </div>
+          {/* Single Ultra-Premium iOS Sort Button Trigger */}
+          <KbSortButton
+            sortBy={sortBy}
+            onClick={() => setIsSortOpen(true)}
+            className="self-start sm:self-auto h-11"
+          />
         </div>
       </div>
+
+      {/* iOS Style Bottom Sheet for Model Sorting */}
+      <KbSortBottomSheet
+        open={isSortOpen}
+        onOpenChange={setIsSortOpen}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        title="Sort TV Models"
+        subtitle={`Choose how models for ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'this brand'} are ordered`}
+      />
 
       {/* Active Search Results Indicator */}
       {debouncedQuery.trim() && !isSearching && (

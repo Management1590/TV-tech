@@ -41,6 +41,9 @@ interface UniversalMediaPlayerModalProps {
   isAdmin?: boolean;
 }
 
+const MAX_ZOOM = 10.0;
+const MIN_ZOOM = 1.0;
+
 export function UniversalMediaPlayerModal({
   isOpen,
   onClose,
@@ -151,6 +154,10 @@ export function UniversalMediaPlayerModal({
     startPanY: 0,
   });
 
+  // Inertia physics animation & velocity tracking refs
+  const inertiaAnimationRef = useRef<number | null>(null);
+  const velocityTrackerRef = useRef<{ x: number; y: number; time: number }[]>([]);
+
   // SSR Safe Mounted Check
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -244,24 +251,192 @@ export function UniversalMediaPlayerModal({
     };
   }, []);
 
-  // Helper: Clamp pan bounds based on zoom with generous margins for smooth multi-directional movement
-  const clampPan = useCallback((targetPan: { x: number; y: number }, targetZoom: number) => {
-    if (targetZoom <= 1.02) {
-      return { x: 0, y: 0 };
-    }
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 1000;
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const maxX = Math.max(0, ((targetZoom - 1) * vw) / 2 + 120);
-    const maxY = Math.max(0, ((targetZoom - 1) * vh) / 2 + 120);
+  // Helper: Compute exact unscaled rendered dimensions of current photo
+  const getImageBounds = useCallback(() => {
+    const img = imgRef.current;
+    const container = imageContainerRef.current;
 
-    return {
-      x: Math.max(-maxX, Math.min(maxX, targetPan.x)),
-      y: Math.max(-maxY, Math.min(maxY, targetPan.y)),
-    };
+    const vw = container?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1000);
+    const vh = container?.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 800);
+
+    // Padding & safe-area margins applied in style: 16px horizontal, 32px vertical
+    const availW = Math.max(10, vw - 16);
+    const availH = Math.max(10, vh - 32);
+
+    let baseW = availW;
+    let baseH = availH;
+
+    if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      let natW = img.naturalWidth;
+      let natH = img.naturalHeight;
+
+      // Invert natural aspect ratio when rotated 90 or 270 degrees
+      if (rotation % 180 !== 0) {
+        const temp = natW;
+        natW = natH;
+        natH = temp;
+      }
+
+      const fitScale = Math.min(availW / natW, availH / natH);
+      baseW = natW * fitScale;
+      baseH = natH * fitScale;
+    } else if (img && img.clientWidth > 0 && img.clientHeight > 0) {
+      baseW = rotation % 180 !== 0 ? img.clientHeight : img.clientWidth;
+      baseH = rotation % 180 !== 0 ? img.clientWidth : img.clientHeight;
+    }
+
+    return { vw, vh, availW, availH, baseW, baseH };
+  }, [rotation]);
+
+  // Helper: Compute exact maximum pan bounds so the image corners/edges stay 100% INTACT with viewport edges
+  const getMaxPan = useCallback((targetZoom: number) => {
+    if (targetZoom <= 1.02) {
+      return { maxX: 0, maxY: 0 };
+    }
+
+    const { vw, vh, baseW, baseH } = getImageBounds();
+
+    const scaledW = baseW * targetZoom;
+    const scaledH = baseH * targetZoom;
+
+    // The image can pan so long as its scaled dimension exceeds the viewport (vw / vh).
+    // The maximum travel keeps the edge flush with the viewport edge — NEVER detaching into black void!
+    const maxX = Math.max(0, (scaledW - vw) / 2);
+    const maxY = Math.max(0, (scaledH - vh) / 2);
+
+    return { maxX, maxY };
+  }, [getImageBounds]);
+
+  // Helper: Authentic iOS sublinear elastic rubber-band resistance when forcefully pulled past boundary
+  const applyRubberBand = useCallback((val: number, maxVal: number, dimension = 800) => {
+    if (maxVal <= 0) {
+      // Constrained axis: tighter elastic excursion (max ~45px)
+      const absVal = Math.abs(val);
+      const sign = val >= 0 ? 1 : -1;
+      const c = 0.45;
+      const d = dimension * 0.35;
+      return sign * ((absVal * d * c) / (d + c * absVal));
+    }
+
+    if (val > maxVal) {
+      const overshoot = val - maxVal;
+      const c = 0.55;
+      const d = dimension * 0.5;
+      const rubber = (overshoot * d * c) / (d + c * overshoot);
+      return maxVal + rubber;
+    }
+
+    if (val < -maxVal) {
+      const overshoot = -maxVal - val;
+      const c = 0.55;
+      const d = dimension * 0.5;
+      const rubber = (overshoot * d * c) / (d + c * overshoot);
+      return -maxVal - rubber;
+    }
+
+    return val;
   }, []);
+
+  // Helper: Strictly clamp pan to valid boundary so corners remain 100% attached to viewport edges
+  const clampPan = useCallback((targetPan: { x: number; y: number }, targetZoom: number) => {
+    const { maxX, maxY } = getMaxPan(targetZoom);
+    return {
+      x: maxX > 0 ? Math.max(-maxX, Math.min(maxX, targetPan.x)) : 0,
+      y: maxY > 0 ? Math.max(-maxY, Math.min(maxY, targetPan.y)) : 0,
+    };
+  }, [getMaxPan]);
+
+  // Helper: Inertia glide physics engine (buttery-smooth flick deceleration with elastic boundary cushioning)
+  const startInertiaGlide = useCallback((initialVx: number, initialVy: number, currentZoom: number) => {
+    if (inertiaAnimationRef.current) {
+      cancelAnimationFrame(inertiaAnimationRef.current);
+      inertiaAnimationRef.current = null;
+    }
+
+    const { maxX, maxY } = getMaxPan(currentZoom);
+
+    // If both axes are constrained, snap cleanly to center and finish
+    if (maxX <= 0 && maxY <= 0) {
+      setPan({ x: 0, y: 0 });
+      setIsInteracting(false);
+      return;
+    }
+
+    // Convert velocity (px/ms) to px/frame (~16.6ms at 60fps)
+    let vx = initialVx * 16.6;
+    let vy = initialVy * 16.6;
+
+    // Cap velocity for smooth, controllable feel
+    const maxVelocity = 45;
+    const initialSpeed = Math.hypot(vx, vy);
+    if (initialSpeed > maxVelocity) {
+      vx = (vx / initialSpeed) * maxVelocity;
+      vy = (vy / initialSpeed) * maxVelocity;
+    }
+
+    let px = stateRef.current.pan.x;
+    let py = stateRef.current.pan.y;
+
+    // Keep CSS transition 'none' during physics frame updates
+    setIsInteracting(true);
+
+    const friction = 0.945; // Smooth deceleration curve
+
+    const step = () => {
+      vx *= friction;
+      vy *= friction;
+
+      px += vx;
+      py += vy;
+
+      // Elastic boundary cushioning when momentum hits the edge
+      let hitBoundary = false;
+      if (px > maxX) {
+        px = maxX + (px - maxX) * 0.45;
+        vx *= 0.35;
+        hitBoundary = true;
+      } else if (px < -maxX) {
+        px = -maxX + (px - (-maxX)) * 0.45;
+        vx *= 0.35;
+        hitBoundary = true;
+      }
+
+      if (py > maxY) {
+        py = maxY + (py - maxY) * 0.45;
+        vy *= 0.35;
+        hitBoundary = true;
+      } else if (py < -maxY) {
+        py = -maxY + (py - (-maxY)) * 0.45;
+        vy *= 0.35;
+        hitBoundary = true;
+      }
+
+      const currentSpeed = Math.hypot(vx, vy);
+
+      // Stop condition: settled to low speed or cushioned at boundary -> springs cleanly back to boundary
+      if (currentSpeed < 0.25 || (hitBoundary && currentSpeed < 1.0)) {
+        setIsInteracting(false);
+        setPan({
+          x: maxX > 0 ? Math.max(-maxX, Math.min(maxX, px)) : 0,
+          y: maxY > 0 ? Math.max(-maxY, Math.min(maxY, py)) : 0,
+        });
+        inertiaAnimationRef.current = null;
+        return;
+      }
+
+      setPan({ x: px, y: py });
+      inertiaAnimationRef.current = requestAnimationFrame(step);
+    };
+
+    inertiaAnimationRef.current = requestAnimationFrame(step);
+  }, [getMaxPan]);
 
   // Reset all transform values
   const resetTransform = useCallback(() => {
+    if (inertiaAnimationRef.current) {
+      cancelAnimationFrame(inertiaAnimationRef.current);
+      inertiaAnimationRef.current = null;
+    }
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setRotation(0);
@@ -275,6 +450,15 @@ export function UniversalMediaPlayerModal({
     setIsDismissing(false);
     setVideoRotation(0);
   }, [schedule3sAutoHide]);
+
+  // Cleanup inertia animation on unmount
+  useEffect(() => {
+    return () => {
+      if (inertiaAnimationRef.current) {
+        cancelAnimationFrame(inertiaAnimationRef.current);
+      }
+    };
+  }, []);
 
   // Sync initial index when modal opens
   useEffect(() => {
@@ -446,11 +630,15 @@ export function UniversalMediaPlayerModal({
       } else if (e.key === 'ArrowLeft') {
         handlePrev();
       } else if (e.key === '+' || e.key === '=') {
-        setZoom((z) => Math.min(z + 0.5, 4.5));
+        setZoom((z) => Math.min(z + 0.5, MAX_ZOOM));
       } else if (e.key === '-' || e.key === '_') {
         setZoom((z) => {
-          const next = Math.max(z - 0.5, 1);
-          if (next <= 1) setPan({ x: 0, y: 0 });
+          const next = Math.max(z - 0.5, MIN_ZOOM);
+          if (next <= 1.05) {
+            setPan({ x: 0, y: 0 });
+            return MIN_ZOOM;
+          }
+          setPan((p) => clampPan(p, next));
           return next;
         });
       } else if (e.key === '0') {
@@ -463,7 +651,7 @@ export function UniversalMediaPlayerModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleNext, handlePrev, onClose, currentItem, resetTransform]);
+  }, [isOpen, handleNext, handlePrev, onClose, currentItem, resetTransform, clampPan]);
 
   // Auto-scroll active thumbnail into view in filmstrip
   useEffect(() => {
@@ -478,15 +666,15 @@ export function UniversalMediaPlayerModal({
 
   // Zoom Button Handlers
   const handleZoomIn = () => {
-    setZoom((z) => Math.min(z + 0.5, 4.5));
+    setZoom((z) => Math.min(z + 0.5, MAX_ZOOM));
   };
 
   const handleZoomOut = () => {
     setZoom((z) => {
-      const next = Math.max(z - 0.5, 1);
+      const next = Math.max(z - 0.5, MIN_ZOOM);
       if (next <= 1.05) {
         setPan({ x: 0, y: 0 });
-        return 1;
+        return MIN_ZOOM;
       }
       setPan((p) => clampPan(p, next));
       return next;
@@ -497,19 +685,30 @@ export function UniversalMediaPlayerModal({
     setRotation((r) => (r + 90) % 360);
   };
 
-  // Double Click / Double Tap Handler (Smoothly toggle between 1x and 2.5x for photos)
+  // Double Click / Double Tap Handler (Smoothly toggle between 1x and fill-screen / detail zoom for photos)
   const handleDoubleTap = (clientX?: number, clientY?: number) => {
     if (currentItem?.mediaType === 'VIDEO') {
       return;
     }
+
+    if (inertiaAnimationRef.current) {
+      cancelAnimationFrame(inertiaAnimationRef.current);
+      inertiaAnimationRef.current = null;
+    }
+
+    // Ensure CSS transition handles the smooth double-tap zoom glide
+    setIsInteracting(false);
 
     if (zoom > 1.1) {
       // Zoomed in -> Smoothly reset to original centered position
       setZoom(1);
       setPan({ x: 0, y: 0 });
     } else {
-      // Zoomed out -> Zoom in to 2.5x centered at tap/click point
-      const targetZoom = 2.5;
+      // Zoomed out -> Zoom in to fill screen (so all corners reach edges) or 3x centered at tap/click point
+      const { vw, vh, baseW, baseH } = getImageBounds();
+      const coverScale = Math.max(vw / Math.max(1, baseW), vh / Math.max(1, baseH));
+      const targetZoom = Math.min(MAX_ZOOM, Math.max(3.0, Math.ceil(coverScale * 10) / 10));
+
       if (clientX !== undefined && clientY !== undefined && typeof window !== 'undefined') {
         const cx = window.innerWidth / 2;
         const cy = window.innerHeight / 2;
@@ -530,9 +729,14 @@ export function UniversalMediaPlayerModal({
     if (currentItem?.mediaType === 'VIDEO') return;
     e.preventDefault();
 
+    if (inertiaAnimationRef.current) {
+      cancelAnimationFrame(inertiaAnimationRef.current);
+      inertiaAnimationRef.current = null;
+    }
+
     const delta = e.deltaY < 0 ? 0.35 : -0.35;
     const currentZ = stateRef.current.zoom;
-    const nextZ = Math.min(Math.max(currentZ + delta, 1), 4.5);
+    const nextZ = Math.min(Math.max(currentZ + delta, MIN_ZOOM), MAX_ZOOM);
 
     if (nextZ <= 1.02) {
       setZoom(1);
@@ -561,6 +765,11 @@ export function UniversalMediaPlayerModal({
     if (currentItem?.mediaType === 'VIDEO') return;
     if (zoom <= 1) return;
 
+    if (inertiaAnimationRef.current) {
+      cancelAnimationFrame(inertiaAnimationRef.current);
+      inertiaAnimationRef.current = null;
+    }
+
     if (isDynamicHideMode) {
       hideFloatingControls();
     }
@@ -578,20 +787,21 @@ export function UniversalMediaPlayerModal({
     if (!mouseDragRef.current.isDragging || zoom <= 1) return;
     const dx = e.clientX - mouseDragRef.current.startX;
     const dy = e.clientY - mouseDragRef.current.startY;
-    const nextPan = clampPan(
-      {
-        x: mouseDragRef.current.startPanX + dx,
-        y: mouseDragRef.current.startPanY + dy,
-      },
-      zoom
-    );
-    setPan(nextPan);
+    const rawX = mouseDragRef.current.startPanX + dx;
+    const rawY = mouseDragRef.current.startPanY + dy;
+    const { maxX, maxY } = getMaxPan(zoom);
+    const { vw, vh } = getImageBounds();
+    setPan({
+      x: applyRubberBand(rawX, maxX, vw),
+      y: applyRubberBand(rawY, maxY, vh),
+    });
   };
 
   const handleMouseUp = () => {
     if (mouseDragRef.current.isDragging) {
       mouseDragRef.current.isDragging = false;
       setIsInteracting(false);
+      setPan((p) => clampPan(p, zoom));
       if (isDynamicHideMode) {
         scheduleFloatingControlsReappear();
       }
@@ -615,6 +825,13 @@ export function UniversalMediaPlayerModal({
 
     const onTouchStart = (e: TouchEvent) => {
       if (isTransitioningRef.current) return;
+
+      // Cancel any running inertia animation when new touch begins
+      if (inertiaAnimationRef.current) {
+        cancelAnimationFrame(inertiaAnimationRef.current);
+        inertiaAnimationRef.current = null;
+      }
+
       if (isDynamicHideMode && !isCurrentVideo) {
         hideFloatingControls();
       }
@@ -645,6 +862,13 @@ export function UniversalMediaPlayerModal({
           touch.clientX - touchStateRef.current.lastTap.x,
           touch.clientY - touchStateRef.current.lastTap.y
         );
+
+        // Reset velocity samples
+        velocityTrackerRef.current = [{
+          x: touch.clientX,
+          y: touch.clientY,
+          time: now,
+        }];
 
         // Double tap detection for photos (quick toggle between 1x and 2.5x)
         if (!isCurrentVideo && timeSinceLastTap < 280 && distFromLastTap < 35) {
@@ -694,11 +918,11 @@ export function UniversalMediaPlayerModal({
         const scaleRatio = dist / ts.initialDist;
         let nextZoom = ts.initialZoom * scaleRatio;
 
-        // Fluid resistance when below 0.85x or above 5x
+        // Fluid resistance when below 0.85x or above (MAX_ZOOM + 1)
         if (nextZoom < 0.85) {
           nextZoom = 0.85 - (0.85 - nextZoom) * 0.3;
-        } else if (nextZoom > 5) {
-          nextZoom = 5 + (nextZoom - 5) * 0.3;
+        } else if (nextZoom > MAX_ZOOM + 1) {
+          nextZoom = (MAX_ZOOM + 1) + (nextZoom - (MAX_ZOOM + 1)) * 0.3;
         }
 
         // Adjust pan to zoom into moving pinch midpoint (simultaneous zoom + pan)
@@ -716,8 +940,13 @@ export function UniversalMediaPlayerModal({
           y: fy - (fy - ts.initialPan.y) * factor + deltaCenterY,
         };
 
+        const { maxX, maxY } = getMaxPan(nextZoom);
+        const { vw, vh } = getImageBounds();
         setZoom(nextZoom);
-        setPan(clampPan(nextPan, nextZoom));
+        setPan({
+          x: applyRubberBand(nextPan.x, maxX, vw),
+          y: applyRubberBand(nextPan.y, maxY, vh),
+        });
       } else if (e.touches.length === 1) {
         if (ts.lastTouchesCount === 2) {
           ts.lastTouchesCount = 1;
@@ -726,6 +955,11 @@ export function UniversalMediaPlayerModal({
           ts.gestureType = stateRef.current.zoom > 1.02 ? 'pan' : null;
           ts.initialPan = { ...stateRef.current.pan };
           ts.touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+          velocityTrackerRef.current = [{
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+            time: Date.now(),
+          }];
           return;
         }
 
@@ -733,14 +967,29 @@ export function UniversalMediaPlayerModal({
         const dx = touch.clientX - ts.touchStart.x;
         const dy = touch.clientY - ts.touchStart.y;
 
-        // Fluid 360-degree pan in all directions when zoomed in
+        // Fluid 360-degree pan in all directions when zoomed in with elastic boundary nature
         if (stateRef.current.zoom > 1.02) {
           e.preventDefault();
-          const nextPan = {
-            x: ts.initialPan.x + dx,
-            y: ts.initialPan.y + dy,
-          };
-          setPan(clampPan(nextPan, stateRef.current.zoom));
+
+          // Track velocity positions for momentum glide
+          const now = Date.now();
+          const tracker = velocityTrackerRef.current;
+          tracker.push({ x: touch.clientX, y: touch.clientY, time: now });
+          while (tracker.length > 2 && now - tracker[0].time > 100) {
+            tracker.shift();
+          }
+
+          const rawX = ts.initialPan.x + dx;
+          const rawY = ts.initialPan.y + dy;
+
+          const { maxX, maxY } = getMaxPan(stateRef.current.zoom);
+          const { vw, vh } = getImageBounds();
+
+          // Elastic nature when forcefully moved past boundary
+          setPan({
+            x: applyRubberBand(rawX, maxX, vw),
+            y: applyRubberBand(rawY, maxY, vh),
+          });
           return;
         }
 
@@ -796,11 +1045,15 @@ export function UniversalMediaPlayerModal({
         ts.gestureType = stateRef.current.zoom > 1.02 ? 'pan' : null;
         ts.initialPan = { ...stateRef.current.pan };
         ts.touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+        velocityTrackerRef.current = [{
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          time: Date.now(),
+        }];
         return;
       }
 
       if (e.touches.length === 0) {
-        setIsInteracting(false);
         ts.lastTouchesCount = 0;
 
         // In landscape or zoomed view, smoothly reappear buttons 1 second after touch ends
@@ -810,13 +1063,40 @@ export function UniversalMediaPlayerModal({
 
         // Snap back if pinched beyond limits
         if (stateRef.current.zoom < 1.02) {
+          setIsInteracting(false);
           setZoom(1);
           setPan({ x: 0, y: 0 });
-        } else if (stateRef.current.zoom > 4.5) {
-          setZoom(4.5);
-          setPan((p) => clampPan(p, 4.5));
+        } else if (stateRef.current.zoom > MAX_ZOOM) {
+          setIsInteracting(false);
+          setZoom(MAX_ZOOM);
+          setPan((p) => clampPan(p, MAX_ZOOM));
         } else {
-          setPan((p) => clampPan(p, stateRef.current.zoom));
+          // Zoomed in: Calculate release velocity for buttery-smooth momentum gliding
+          const tracker = velocityTrackerRef.current;
+          let vx = 0;
+          let vy = 0;
+          if (tracker.length >= 2) {
+            const first = tracker[0];
+            const last = tracker[tracker.length - 1];
+            const dt = Math.max(last.time - first.time, 8);
+            vx = (last.x - first.x) / dt;
+            vy = (last.y - first.y) / dt;
+          }
+
+          const speed = Math.hypot(vx, vy);
+          const { maxX, maxY } = getMaxPan(stateRef.current.zoom);
+          const currentPan = stateRef.current.pan;
+          const isOverExtendedX = currentPan.x > maxX || currentPan.x < -maxX;
+          const isOverExtendedY = currentPan.y > maxY || currentPan.y < -maxY;
+
+          if (speed > 0.15 && !isOverExtendedX && !isOverExtendedY && (maxX > 0 || maxY > 0)) {
+            // Trigger buttery-smooth inertia glide with elastic cushioning
+            startInertiaGlide(vx, vy, stateRef.current.zoom);
+          } else {
+            // Spring smoothly and elastically back to exact boundary!
+            setIsInteracting(false);
+            setPan(clampPan(currentPan, stateRef.current.zoom));
+          }
         }
 
         const touch = e.changedTouches[0];
@@ -893,6 +1173,10 @@ export function UniversalMediaPlayerModal({
     currentItem?.mediaType,
     isDynamicHideMode,
     clampPan,
+    getMaxPan,
+    applyRubberBand,
+    startInertiaGlide,
+    handleDoubleTap,
     handleNext,
     handlePrev,
     onClose,
@@ -1042,7 +1326,7 @@ export function UniversalMediaPlayerModal({
               <button
                 type="button"
                 onClick={handleZoomIn}
-                disabled={zoom >= 4.5}
+                disabled={zoom >= MAX_ZOOM}
                 className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-xl transition-all disabled:opacity-40 cursor-pointer"
                 title="Zoom In (+)"
               >
@@ -1247,7 +1531,7 @@ export function UniversalMediaPlayerModal({
                         borderRadius: dismissOffset.y > 10 ? '24px' : undefined,
                         transition: isInteracting || isDismissing
                           ? 'none'
-                          : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease',
+                          : 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease',
                       }}
                       draggable={false}
                       className="object-contain z-10 select-none m-auto pointer-events-auto will-change-transform"

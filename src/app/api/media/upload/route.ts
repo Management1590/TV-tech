@@ -6,6 +6,7 @@ import { MediaType, StorageProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { detectMediaKind } from '@/lib/media-detect';
+import { optimizeCloudinaryVideoUrl } from '@/lib/video-compressor';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max duration for large video uploads
@@ -96,11 +97,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Register in database
+    const rawUrl = uploadResult.url || uploadResult.secure_url;
+    const rawSecureUrl = uploadResult.secure_url || uploadResult.url;
+    const finalUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawUrl) : rawUrl;
+    const finalSecureUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawSecureUrl) : rawSecureUrl;
+
     const media = await createMediaAttachment({
       entityId,
       mediaType,
-      url: uploadResult.url || uploadResult.secure_url,
-      secureUrl: uploadResult.secure_url || uploadResult.url,
+      url: finalUrl,
+      secureUrl: finalSecureUrl,
       publicId: uploadResult.public_id,
       provider: StorageProvider.CLOUDINARY,
       filename: file.name,

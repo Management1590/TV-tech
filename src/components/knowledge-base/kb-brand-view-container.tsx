@@ -6,8 +6,6 @@ import {
   Tv,
   FolderOpen,
   Plus,
-  Flame,
-  ArrowDownAZ,
   SlidersHorizontal,
   Loader2,
 } from 'lucide-react';
@@ -17,6 +15,11 @@ import { CreateTvBrandDialog } from './create-tv-brand-dialog';
 import { BrandFolderCard, BrandFolderData } from './brand-folder-card';
 import { BrandFolderCardSkeleton } from './kb-skeletons';
 import { getBrandOpenCounts } from '@/lib/kb-tracking-utils';
+import {
+  KbSortOption,
+  KbSortButton,
+  KbSortBottomSheet,
+} from './kb-sort-bottom-sheet';
 
 interface KbBrandViewContainerProps {
   initialBrands: (BrandFolderData & {
@@ -33,8 +36,9 @@ export function KbBrandViewContainer({
   initialBrands,
   userRole = 'STAFF',
 }: KbBrandViewContainerProps) {
-  // Default filter set to "open many times" (most frequently opened)
-  const [sortBy, setSortBy] = useState<'most-opened' | 'name'>('most-opened');
+  // Default filter set to "most-opened"
+  const [sortBy, setSortBy] = useState<KbSortOption>('most-opened');
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [openCounts, setOpenCounts] = useState<Record<string, number>>({});
   const [visibleCount, setVisibleCount] = useState<number>(ITEMS_PER_PAGE);
   const [isLoadingNext, setIsLoadingNext] = useState<boolean>(false);
@@ -65,8 +69,33 @@ export function KbBrandViewContainer({
       });
     }
 
-    // Sort by Name (A - Z)
-    return list.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === 'name') {
+      return list.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    if (sortBy === 'recently-added') {
+      return list.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeB !== timeA) {
+          return timeB - timeA;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    if (sortBy === 'oldest-added') {
+      return list.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) {
+          return timeA - timeB;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    return list;
   }, [initialBrands, sortBy, openCounts]);
 
   const visibleBrands = useMemo(() => {
@@ -160,43 +189,29 @@ export function KbBrandViewContainer({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. ULTRA-PREMIUM FILTER BAR (Most Opened / Name A-Z)                       */}
+      {/* 2. ULTRA-PREMIUM SORT BAR (Single iOS Button Trigger)                      */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-        <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-foreground/80">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-2 text-xs font-bold text-foreground/80">
           <SlidersHorizontal className="w-4 h-4 text-primary" />
-          <span>Sort & Filter:</span>
+          <span>Sort Directory:</span>
         </div>
 
-        {/* Segmented Filter Control */}
-        <div className="grid grid-cols-2 sm:inline-flex items-center p-1 bg-muted/60 border border-border/80 rounded-xl sm:rounded-2xl shadow-2xs w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setSortBy('most-opened')}
-            className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              sortBy === 'most-opened'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
-            }`}
-          >
-            <Flame className={`w-3.5 h-3.5 ${sortBy === 'most-opened' ? 'text-amber-400' : 'text-amber-500'}`} />
-            <span>Most Opened</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSortBy('name')}
-            className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              sortBy === 'name'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
-                : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
-            }`}
-          >
-            <ArrowDownAZ className="w-3.5 h-3.5" />
-            <span>Name (A - Z)</span>
-          </button>
-        </div>
+        {/* Single iOS Sort Menu Trigger */}
+        <KbSortButton
+          sortBy={sortBy}
+          onClick={() => setIsSortOpen(true)}
+        />
       </div>
+
+      <KbSortBottomSheet
+        open={isSortOpen}
+        onOpenChange={setIsSortOpen}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        title="Sort TV Brands"
+        subtitle="Choose how manufacturer brands are ordered"
+      />
 
       {/* ========================================================================= */}
       {/* 3. BRAND FOLDER CARDS GRID WITH CRISPY SKELETON INFINITE SCROLL           */}

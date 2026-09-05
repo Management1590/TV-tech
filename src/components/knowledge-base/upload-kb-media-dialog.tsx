@@ -13,6 +13,8 @@ import {
   Plus,
   Sparkles,
   FileCheck,
+  Camera,
+  FolderOpen,
   X,
 } from 'lucide-react';
 import {
@@ -68,6 +70,9 @@ export function UploadKbMediaDialog({
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const filesInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state on open/close
   useEffect(() => {
@@ -306,8 +311,8 @@ export function UploadKbMediaDialog({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                onClick={() => !isUploading && fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 w-full max-w-full box-border overflow-hidden ${
+                onClick={() => !isUploading && galleryInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2.5 w-full max-w-full box-border overflow-hidden ${
                   isDragging
                     ? 'border-primary bg-primary/5 scale-[0.99]'
                     : 'border-border hover:border-primary/70 bg-muted/50 hover:bg-primary/5'
@@ -318,7 +323,7 @@ export function UploadKbMediaDialog({
                 </div>
                 <div className="space-y-1 w-full max-w-full px-1 text-center">
                   <p className="text-xs sm:text-sm font-bold text-foreground/90 leading-tight">
-                    Click to browse or drag & drop files here
+                    Choose from Gallery or drag & drop files here
                   </p>
                   <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">
                     Photos (JPG, PNG, WebP) & Videos (MP4, MOV, WebM, 3GP, HEVC)
@@ -330,11 +335,68 @@ export function UploadKbMediaDialog({
                   </div>
                 </div>
 
+                {/* Mobile & Desktop Quick Select Options (Gallery, Camera, Files) */}
+                <div
+                  className="grid grid-cols-3 gap-2 w-full pt-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl bg-background/90 hover:bg-background border border-border/80 shadow-2xs text-[11px] sm:text-xs font-semibold text-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
+                  >
+                    <ImageIcon className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="truncate">Gallery</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl bg-background/90 hover:bg-background border border-border/80 shadow-2xs text-[11px] sm:text-xs font-semibold text-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="truncate">Camera</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => filesInputRef.current?.click()}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl bg-background/90 hover:bg-background border border-border/80 shadow-2xs text-[11px] sm:text-xs font-semibold text-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
+                  >
+                    <FolderOpen className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="truncate">Files</span>
+                  </button>
+                </div>
+
+                {/* 1. Main Gallery Input (Pure MIME types: triggers Samsung Gallery / iOS Photos) */}
                 <input
-                  ref={fileInputRef}
+                  ref={galleryInputRef}
                   type="file"
                   multiple
-                  accept="image/*,video/*,.mp4,.mov,.mkv,.avi,.webm,.3gp,.3gpp,.hevc,.jpg,.jpeg,.png,.webp,.heic"
+                  accept="image/*,video/*"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+
+                {/* 2. Direct Camera Capture Input */}
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  capture="environment"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+
+                {/* 3. System File Manager Input (for users wanting to browse folder storage) */}
+                <input
+                  ref={filesInputRef}
+                  type="file"
+                  multiple
+                  accept="*/*"
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
@@ -377,13 +439,20 @@ export function UploadKbMediaDialog({
                           <p className="text-xs font-bold text-foreground/90 truncate block" title={item.file.name}>
                             {item.file.name}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                             <span className="text-[10px] font-mono text-muted-foreground">
                               {item.sizeFormatted}
                             </span>
-                            <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
-                              <CheckCircle2 className="w-3 h-3" /> Ready
-                            </span>
+                            {item.isVideo && item.file.size > 25 * 1024 * 1024 ? (
+                              <span className="text-[9px] px-1.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-md font-semibold flex items-center gap-0.5">
+                                <Sparkles className="w-2.5 h-2.5 text-blue-600 shrink-0" />
+                                Balanced Compress (~30-40MB)
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                                <CheckCircle2 className="w-3 h-3" /> Ready
+                              </span>
+                            )}
                           </div>
                         </div>
 

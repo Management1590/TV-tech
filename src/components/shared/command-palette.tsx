@@ -335,6 +335,40 @@ export function CommandPalette() {
     [router]
   );
 
+  const dismissKeyboard = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, []);
+
+  // Dismiss mobile virtual keyboard on touch outside search input or when scrolling
+  useEffect(() => {
+    if (!open) return;
+
+    const handleTouchOutside = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (inputRef.current && target !== inputRef.current && !inputRef.current.contains(target as Node)) {
+        dismissKeyboard();
+      }
+    };
+
+    const handleScroll = () => {
+      if (inputRef.current && document.activeElement === inputRef.current) {
+        dismissKeyboard();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchOutside, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', handleTouchOutside);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [open, dismissKeyboard]);
+
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -343,9 +377,16 @@ export function CommandPalette() {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === 'Enter' && flatVisibleResults[selectedIndex]) {
-      e.preventDefault();
-      navigateToResult(flatVisibleResults[selectedIndex]);
+    } else if (e.key === 'Enter') {
+      // Dismiss mobile virtual keyboard immediately on Enter
+      dismissKeyboard();
+
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+      // On desktop, navigate to highlighted result; on mobile, dismiss keyboard so user can see all results
+      if (!isMobile && flatVisibleResults[selectedIndex]) {
+        e.preventDefault();
+        navigateToResult(flatVisibleResults[selectedIndex]);
+      }
     }
   };
 
@@ -447,7 +488,15 @@ export function CommandPalette() {
           </div>
 
           {/* Results List with 5/5/5 Section Grouping */}
-          <div className="max-h-[62vh] sm:max-h-[420px] overflow-y-auto divide-y divide-border/40">
+          <div
+            className="max-h-[62vh] sm:max-h-[420px] overflow-y-auto divide-y divide-border/40"
+            onTouchStart={(e) => {
+              if (e.target !== inputRef.current) {
+                dismissKeyboard();
+              }
+            }}
+            onScroll={dismissKeyboard}
+          >
             {query.length < 2 && (
               <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                 <p className="font-medium">

@@ -271,7 +271,7 @@ export function UploadItemMediaDialog({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,video/*,audio/*,.mp4,.mov,.mkv,.avi,.webm,.3gp,.3gpp,.hevc,.jpg,.jpeg,.png,.webp,.heic,.mp3,.wav,.m4a"
+                    accept="image/*,video/*,audio/*"
                     onChange={handleFileInputChange}
                     className="hidden"
                   />

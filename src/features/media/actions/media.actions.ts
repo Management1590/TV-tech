@@ -23,6 +23,7 @@ const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
  * Supports unlimited image sizes and all common image formats.
  */
 import { detectMediaKind } from '@/lib/media-detect';
+import { optimizeCloudinaryVideoUrl } from '@/lib/video-compressor';
 
 export async function uploadMediaAction(formData: FormData): Promise<UploadMediaResult> {
   const user = await getCurrentUser();
@@ -100,14 +101,19 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
       });
     }
 
+    const rawUrl = uploadResult.url || uploadResult.secure_url;
+    const rawSecureUrl = uploadResult.secure_url || uploadResult.url;
+    const finalUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawUrl) : rawUrl;
+    const finalSecureUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawSecureUrl) : rawSecureUrl;
+
     // Register in database
     const media = await createMediaAttachment({
       entityId,
       mediaType,
       provider: StorageProvider.CLOUDINARY,
       publicId: uploadResult.public_id || `upload_${Date.now()}`,
-      url: uploadResult.url || uploadResult.secure_url,
-      secureUrl: uploadResult.secure_url || uploadResult.url,
+      url: finalUrl,
+      secureUrl: finalSecureUrl,
       filename: file.name,
       mimeType: normalizedMime,
       sizeBytes: size,

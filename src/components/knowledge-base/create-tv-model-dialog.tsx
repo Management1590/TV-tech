@@ -99,6 +99,40 @@ export function CreateTvModelDialog({
     };
   }, [open]);
 
+  // Dismiss mobile virtual keyboard on touch outside inputs or scrolling
+  useEffect(() => {
+    if (!open) return;
+
+    const handleTouchOutside = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') &&
+        target !== activeEl
+      ) {
+        if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') {
+          return;
+        }
+        activeEl.blur();
+      }
+    };
+
+    const handleScroll = () => {
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        activeEl.blur();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchOutside, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', handleTouchOutside);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [open]);
+
   // Real-time duplicate & similarity checking
   const similarityResult = useMemo(() => {
     if (!modelNumber.trim() || !existingModels || existingModels.length === 0) {
@@ -189,7 +223,15 @@ export function CreateTvModelDialog({
       )}
 
       <Dialog open={open} onOpenChange={isPending ? undefined : setOpen}>
-        <DialogContent className="sm:max-w-[440px] p-4 sm:p-5 bg-white border border-border/80 text-foreground shadow-2xl rounded-3xl overflow-hidden">
+        <DialogContent
+          onScroll={() => {
+            const activeEl = document.activeElement as HTMLElement | null;
+            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+              activeEl.blur();
+            }
+          }}
+          className="sm:max-w-[440px] p-4 sm:p-5 bg-white border border-border/80 text-foreground shadow-2xl rounded-3xl overflow-hidden"
+        >
           <form onSubmit={handleSubmit} className="space-y-3.5">
             {/* Header */}
             <DialogHeader className="space-y-0.5 pb-2 border-b border-border/60">
@@ -247,6 +289,12 @@ export function CreateTvModelDialog({
                   id="model-number"
                   value={modelNumber}
                   onChange={(e) => handleModelNumberChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
                   onFocus={(e) => {
                     const len = e.target.value.length;
                     requestAnimationFrame(() => {
@@ -345,6 +393,12 @@ export function CreateTvModelDialog({
                     onChange={(e) => {
                       setScreenSize(e.target.value);
                       setAutoDetectedSize(null); // User manually modified
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
                     }}
                     placeholder="e.g. 55"
                     disabled={isPending}

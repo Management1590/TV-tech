@@ -6,6 +6,7 @@
 
 import { detectMediaKind } from './media-detect';
 import { uploadMediaAction } from '@/features/media/actions/media.actions';
+import { compressVideoIfNeeded, optimizeCloudinaryVideoUrl } from './video-compressor';
 
 export type UploadProgressFn = (percentage: number, statusText: string) => void;
 
@@ -251,15 +252,37 @@ export async function uploadMediaWithProgress(
   onProgress?: UploadProgressFn
 ): Promise<UploadResult> {
   const { mediaType, resourceType, normalizedMime } = detectMediaKind(file.name, file.type);
-  const sizeFormatted = formatBytes(file.size);
-  const isLargeVideo = mediaType === 'VIDEO' || file.size > CHUNK_THRESHOLD;
+  let activeFile = file;
+
+  // 1. Balanced In-Browser Video Compression (~60-70% size reduction, 100MB -> 30-40MB)
+  // Only applies to videos (images and audio remain untouched)
+  if (mediaType === 'VIDEO' && file.size > 25 * 1024 * 1024) {
+    try {
+      const comp = await compressVideoIfNeeded(file, (pct, status) => {
+        if (onProgress) {
+          // Allocate first 35% of progress bar to video compression
+          const compPct = Math.round(pct * 0.35);
+          onProgress(compPct, status);
+        }
+      });
+
+      if (comp.wasCompressed) {
+        activeFile = comp.file;
+      }
+    } catch (compErr) {
+      console.warn('Video compression skipped due to error, proceeding with original:', compErr);
+    }
+  }
+
+  const sizeFormatted = formatBytes(activeFile.size);
+  const isLargeVideo = mediaType === 'VIDEO' || activeFile.size > CHUNK_THRESHOLD;
 
   if (onProgress) {
-    onProgress(5, `Preparing ${file.name} (${sizeFormatted})...`);
+    onProgress(38, `Preparing ${activeFile.name} (${sizeFormatted})...`);
   }
 
   try {
-    // 1. Obtain signed token for direct upload
+    // 2. Obtain signed token for direct upload
     let signData: CloudinarySignResponse | null = null;
     try {
       signData = await getCloudinarySignature(resourceType);
@@ -268,21 +291,21 @@ export async function uploadMediaWithProgress(
     }
 
     if (signData && signData.success) {
-      // 2. Perform Direct Signed Upload to Cloudinary
+      // 3. Perform Direct Signed Upload to Cloudinary
       let cloudResult: any = null;
 
-      if (isLargeVideo && file.size > CHUNK_THRESHOLD) {
+      if (isLargeVideo && activeFile.size > CHUNK_THRESHOLD) {
         if (onProgress) {
-          onProgress(10, `Streaming ${sizeFormatted} video in reliable chunks...`);
+          onProgress(40, `Streaming ${sizeFormatted} video in reliable chunks...`);
         }
 
         cloudResult = await uploadChunkedDirect(
-          file,
+          activeFile,
           signData,
           resourceType,
           (pct, loaded, total) => {
             if (onProgress) {
-              const displayPct = Math.min(94, Math.max(10, pct));
+              const displayPct = Math.min(94, Math.max(40, Math.round(40 + pct * 0.55)));
               onProgress(
                 displayPct,
                 `Uploading: ${displayPct}% (${formatBytes(loaded)} / ${formatBytes(total)})`
@@ -292,16 +315,16 @@ export async function uploadMediaWithProgress(
         );
       } else {
         if (onProgress) {
-          onProgress(10, `Uploading ${sizeFormatted} directly to cloud...`);
+          onProgress(40, `Uploading ${sizeFormatted} directly to cloud...`);
         }
 
         cloudResult = await uploadSingleDirect(
-          file,
+          activeFile,
           signData,
           resourceType,
           (pct, loaded, total) => {
             if (onProgress) {
-              const displayPct = Math.min(94, Math.max(10, pct));
+              const displayPct = Math.min(94, Math.max(40, Math.round(40 + pct * 0.55)));
               onProgress(
                 displayPct,
                 `Uploading: ${displayPct}% (${formatBytes(loaded)} / ${formatBytes(total)})`
@@ -315,16 +338,20 @@ export async function uploadMediaWithProgress(
         onProgress(96, 'Optimizing media & registering in database...');
       }
 
-      // 3. Register completed asset in PostgreSQL
+      // 4. Register completed asset in PostgreSQL with Cloudinary URL optimization
+      const finalUrl = mediaType === 'VIDEO'
+        ? optimizeCloudinaryVideoUrl(cloudResult.secure_url || cloudResult.url)
+        : (cloudResult.secure_url || cloudResult.url);
+
       const savedMedia = await registerMediaAsset({
         entityId,
         mediaType,
-        url: cloudResult.secure_url || cloudResult.url,
-        secureUrl: cloudResult.secure_url || cloudResult.url,
+        url: finalUrl,
+        secureUrl: finalUrl,
         publicId: cloudResult.public_id,
-        filename: file.name,
+        filename: activeFile.name,
         mimeType: normalizedMime,
-        sizeBytes: cloudResult.bytes || file.size,
+        sizeBytes: cloudResult.bytes || activeFile.size,
         width: cloudResult.width || undefined,
         height: cloudResult.height || undefined,
         purpose,
@@ -339,19 +366,19 @@ export async function uploadMediaWithProgress(
   } catch (directErr: any) {
     console.warn('Direct cloud upload failed, attempting fallback:', directErr);
     if (onProgress) {
-      onProgress(25, 'Retrying via fallback server upload...');
+      onProgress(45, 'Retrying via fallback server upload...');
     }
   }
 
-  // 4. Fallback: Server Route or Server Action
+  // 5. Fallback: Server Route or Server Action
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', activeFile);
     formData.append('entityId', entityId);
     formData.append('purpose', purpose);
 
     if (onProgress) {
-      onProgress(45, `Processing ${file.name} via server fallback...`);
+      onProgress(50, `Processing ${activeFile.name} via server fallback...`);
     }
 
     let result: any = null;
