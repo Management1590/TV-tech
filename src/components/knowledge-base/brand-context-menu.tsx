@@ -99,8 +99,8 @@ export function BrandContextMenu({
   const renameSheetRef = useRef<HTMLDivElement>(null);
   const descSheetRef = useRef<HTMLDivElement>(null);
 
-  // Lock background scroll when mobile menu or delete modal is open
-  useScrollLock(mobileOpen || isDeleteOpen);
+  // Lock background scroll when mobile menu, delete modal, rename sheet, or description sheet is open
+  useScrollLock(mobileOpen || isDeleteOpen || isRenameOpen || isDescriptionOpen);
 
   const persistentRenameBlur = useMemo(
     () => createPersistentBlurHandler(isRenameOpen, isPending),
@@ -140,6 +140,28 @@ export function BrandContextMenu({
       return () => clearTimeout(timer);
     }
   }, [isDescriptionOpen, currentDescription]);
+
+  const handleCloseRename = () => {
+    if (isPending) return;
+    if (renameInputRef.current) {
+      renameInputRef.current.blur();
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setIsRenameOpen(false);
+  };
+
+  const handleCloseDesc = () => {
+    if (isPending) return;
+    if (descTextareaRef.current) {
+      descTextareaRef.current.blur();
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setIsDescriptionOpen(false);
+  };
 
   const handleRename = (e: React.FormEvent) => {
     e.preventDefault();
@@ -524,7 +546,7 @@ export function BrandContextMenu({
               style={renameViewport.containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
-                  setIsRenameOpen(false);
+                  handleCloseRename();
                 }
               }}
             >
@@ -535,7 +557,7 @@ export function BrandContextMenu({
                 transition={{ duration: 0.25 }}
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
                 onClick={() => {
-                  if (!isPending) setIsRenameOpen(false);
+                  if (!isPending) handleCloseRename();
                 }}
               />
               <motion.div
@@ -548,12 +570,12 @@ export function BrandContextMenu({
                 dragElastic={{ top: 0, bottom: 0.2 }}
                 onDragEnd={(_, info) => {
                   if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
-                    setIsRenameOpen(false);
+                    handleCloseRename();
                   }
                 }}
                 ref={renameSheetRef}
                 style={{
-                  maxHeight: '100%',
+                  maxHeight: renameViewport.isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
                   paddingBottom: renameViewport.isKeyboardOpen ? '380px' : undefined,
                   marginBottom: renameViewport.isKeyboardOpen ? '-380px' : undefined,
                 }}
@@ -579,7 +601,7 @@ export function BrandContextMenu({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsRenameOpen(false)}
+                    onClick={handleCloseRename}
                     disabled={isPending}
                     className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
                   >
@@ -610,14 +632,14 @@ export function BrandContextMenu({
                   </div>
 
                   <div
-                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0 ${
+                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
                       renameViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
                     }`}
                   >
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setIsRenameOpen(false)}
+                      onClick={handleCloseRename}
                       className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
                     >
                       Cancel
@@ -648,7 +670,7 @@ export function BrandContextMenu({
               style={descViewport.containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
-                  setIsDescriptionOpen(false);
+                  handleCloseDesc();
                 }
               }}
             >
@@ -659,7 +681,7 @@ export function BrandContextMenu({
                 transition={{ duration: 0.25 }}
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
                 onClick={() => {
-                  if (!isPending) setIsDescriptionOpen(false);
+                  if (!isPending) handleCloseDesc();
                 }}
               />
               <motion.div
@@ -672,12 +694,12 @@ export function BrandContextMenu({
                 dragElastic={{ top: 0, bottom: 0.2 }}
                 onDragEnd={(_, info) => {
                   if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
-                    setIsDescriptionOpen(false);
+                    handleCloseDesc();
                   }
                 }}
                 ref={descSheetRef}
                 style={{
-                  maxHeight: '100%',
+                  maxHeight: descViewport.isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
                   paddingBottom: descViewport.isKeyboardOpen ? '380px' : undefined,
                   marginBottom: descViewport.isKeyboardOpen ? '-380px' : undefined,
                 }}
@@ -703,7 +725,7 @@ export function BrandContextMenu({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsDescriptionOpen(false)}
+                    onClick={handleCloseDesc}
                     disabled={isPending}
                     className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
                   >
@@ -727,14 +749,14 @@ export function BrandContextMenu({
                   </div>
 
                   <div
-                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0 ${
+                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
                       descViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
                     }`}
                   >
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setIsDescriptionOpen(false)}
+                      onClick={handleCloseDesc}
                       className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
                     >
                       Cancel

@@ -57,8 +57,9 @@ export function useScrollLock(isActive: boolean = true) {
 }
 
 export function useKeyboardViewport(isActive: boolean = true): KeyboardViewportState {
-  // Lock background scrolling whenever this viewport is active
-  useScrollLock(isActive);
+  // NOTE: Do NOT call useScrollLock here — callers handle scroll-locking themselves.
+  // Calling it here causes a double-lock (two separate effect cleanups) which
+  // leaves the touchmove block attached permanently after dialogs close.
 
   const [state, setState] = useState<KeyboardViewportState>(() => ({
     isKeyboardOpen: false,
@@ -250,7 +251,15 @@ export function createPersistentBlurHandler(
     }
     const target = e.target;
     requestAnimationFrame(() => {
-      if (shouldPersist && !isExiting && target) {
+      // Only refocus if the element is still mounted inside the document
+      // and the modal hasn't been closed (shouldPersist is captured by closure —
+      // but if the component unmounted, the element won't be in the DOM)
+      if (
+        shouldPersist &&
+        !isExiting &&
+        target &&
+        document.body.contains(target)
+      ) {
         target.focus();
       }
     });

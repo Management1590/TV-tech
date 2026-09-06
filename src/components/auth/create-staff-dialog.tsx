@@ -74,13 +74,17 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
 
   const handleClose = () => {
     if (isPending) return;
+    // Blur ALL inputs immediately so persistentBlur cannot refocus during exit animation
+    [nameInputRef, emailInputRef, passwordInputRef].forEach((ref) => {
+      if (ref.current) ref.current.blur();
+    });
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
     onOpenChange(false);
     setTimeout(() => {
       resetForm();
-    }, 250);
+    }, 300);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -171,7 +175,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                   }}
                   ref={sheetRef}
                   style={{
-                    maxHeight: '100%',
+                    maxHeight: isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
                     paddingBottom: isKeyboardOpen ? '380px' : undefined,
                     marginBottom: isKeyboardOpen ? '-380px' : undefined,
                   }}
@@ -336,7 +340,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
 
                     {/* Footer Actions */}
                     <div
-                      className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-2.5 shrink-0 ${
+                      className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-2.5 shrink-0 ${
                         isKeyboardOpen ? 'pb-2.5' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
                       }`}
                     >

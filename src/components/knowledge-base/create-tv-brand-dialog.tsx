@@ -29,6 +29,7 @@ import { createTvBrandAction } from '@/features/knowledge-base/actions/kb.action
 import { formatThumbnailUrl } from '@/lib/thumbnail-utils';
 import {
   useKeyboardViewport,
+  useScrollLock,
   handleProximityTouch,
   createPersistentBlurHandler,
 } from '@/lib/use-keyboard-viewport';
@@ -79,6 +80,7 @@ export function CreateTvBrandDialog({
   const dragControls = useDragControls();
 
   const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
+  useScrollLock(open); // Lock background scroll when sheet is open
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const persistentBlur = useMemo(
@@ -365,7 +367,7 @@ export function CreateTvBrandDialog({
                 }}
                 ref={sheetRef}
                 style={{
-                  maxHeight: '100%',
+                  maxHeight: isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
                   paddingBottom: isKeyboardOpen ? '380px' : undefined,
                   marginBottom: isKeyboardOpen ? '-380px' : undefined,
                 }}
@@ -898,7 +900,7 @@ export function CreateTvBrandDialog({
 
                   {/* Footer Navigation Buttons with iOS Safe Area Padding */}
                   <div
-                    className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 ${
+                    className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
                       isKeyboardOpen ? 'pb-3' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
                     }`}
                   >

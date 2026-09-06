@@ -83,8 +83,8 @@ export function ModelContextMenu({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const renameSheetRef = useRef<HTMLDivElement>(null);
 
-  // Lock background scroll when mobile menu or delete modal is open
-  useScrollLock(mobileOpen || isDeleteOpen);
+  // Lock background scroll when mobile menu, delete modal, or rename sheet is open
+  useScrollLock(mobileOpen || isDeleteOpen || isRenameOpen);
 
   const [isPending, startTransition] = useTransition();
 
@@ -116,6 +116,21 @@ export function ModelContextMenu({
     }
     return validateNameSimilarity(newModelNumber, otherModels, 'Model');
   }, [newModelNumber, otherModels]);
+
+  const handleCloseRename = () => {
+    if (isPending) return;
+    if (renameInputRef.current) {
+      renameInputRef.current.blur();
+    }
+    const sizeInput = document.getElementById('rename-screen-size');
+    if (sizeInput instanceof HTMLElement) {
+      sizeInput.blur();
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setIsRenameOpen(false);
+  };
 
   React.useEffect(() => {
     if (isRenameOpen) {
@@ -423,7 +438,7 @@ export function ModelContextMenu({
                 style={renameViewport.containerStyle}
                 onClick={(e) => {
                   if (e.target === e.currentTarget && !isPending) {
-                    setIsRenameOpen(false);
+                    handleCloseRename();
                   }
                 }}
               >
@@ -434,7 +449,7 @@ export function ModelContextMenu({
                   transition={{ duration: 0.25 }}
                   className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
                   onClick={() => {
-                    if (!isPending) setIsRenameOpen(false);
+                    if (!isPending) handleCloseRename();
                   }}
                 />
                 <motion.div
@@ -447,12 +462,12 @@ export function ModelContextMenu({
                   dragElastic={{ top: 0, bottom: 0.2 }}
                   onDragEnd={(_, info) => {
                     if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
-                      setIsRenameOpen(false);
+                      handleCloseRename();
                     }
                   }}
                   ref={renameSheetRef}
                   style={{
-                    maxHeight: '100%',
+                    maxHeight: renameViewport.isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
                     paddingBottom: renameViewport.isKeyboardOpen ? '380px' : undefined,
                     marginBottom: renameViewport.isKeyboardOpen ? '-380px' : undefined,
                   }}
@@ -482,18 +497,17 @@ export function ModelContextMenu({
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!isPending) setIsRenameOpen(false);
-                      }}
+                      onClick={handleCloseRename}
+                      disabled={isPending}
                       className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* Form Body */}
-                  <form onSubmit={handleRename} className="flex flex-col flex-1 min-h-0">
-                    <div data-modal-scrollable="true" className="overflow-y-auto px-5 sm:px-6 py-4 space-y-4 no-scrollbar flex-1">
+                  {/* Form Body — Non-scrollable, compact, keyboard-fixed */}
+                  <form onSubmit={handleRename} className="flex flex-col shrink-0">
+                    <div className="px-5 sm:px-6 py-3 space-y-2.5">
                       {/* Model Number Input */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
@@ -636,30 +650,30 @@ export function ModelContextMenu({
 
                     {/* Footer */}
                     <div
-                      className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0 ${
-                        renameViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
+                      className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
+                        renameViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
                       }`}
                     >
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setIsRenameOpen(false)}
+                        onClick={handleCloseRename}
                         disabled={isPending}
-                        className="rounded-xl text-xs h-9.5 px-3.5"
+                        className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
                         disabled={isPending || !newModelNumber.trim() || similarityResult.level === 'BLOCK'}
-                        className={`rounded-xl text-xs h-9.5 px-4 text-white font-bold gap-1.5 shadow-sm transition-all cursor-pointer ${
+                        className={`rounded-2xl text-xs h-10 px-5 text-white font-bold gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
                           similarityResult.level === 'WARN_11'
                             ? 'bg-gradient-to-r from-red-700 via-rose-700 to-red-800 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-600/30 border border-red-400/40 font-black'
                             : similarityResult.level === 'WARN_8'
                             ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20'
                             : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
                             ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20'
-                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-sm shadow-blue-500/20'
+                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-md shadow-blue-500/20'
                         }`}
                       >
                         {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

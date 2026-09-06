@@ -30,6 +30,7 @@ import { createTvModelAction } from '@/features/knowledge-base/actions/kb.action
 import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
 import {
   useKeyboardViewport,
+  useScrollLock,
   handleProximityTouch,
   createPersistentBlurHandler,
 } from '@/lib/use-keyboard-viewport';
@@ -65,6 +66,7 @@ export function CreateTvModelDialog({
   }, []);
 
   const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
+  useScrollLock(open); // Lock background scroll when sheet is open
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const [isPending, startTransition] = useTransition();
@@ -96,6 +98,13 @@ export function CreateTvModelDialog({
 
   const handleClose = () => {
     if (isPending) return;
+    if (modelInputRef.current) {
+      modelInputRef.current.blur();
+    }
+    const sizeInput = document.getElementById('screen-size');
+    if (sizeInput instanceof HTMLElement) {
+      sizeInput.blur();
+    }
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -247,7 +256,7 @@ export function CreateTvModelDialog({
           <AnimatePresence>
             {open && (
               <div
-                className="fixed inset-x-0 z-[100] flex flex-col justify-end items-center select-none"
+                className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
                 style={containerStyle}
                 onClick={(e) => {
                   if (e.target === e.currentTarget && !isPending) {
@@ -290,7 +299,7 @@ export function CreateTvModelDialog({
                   }}
                   ref={sheetRef}
                   style={{
-                    maxHeight: '100%',
+                    maxHeight: isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
                     paddingBottom: isKeyboardOpen ? '380px' : undefined,
                     marginBottom: isKeyboardOpen ? '-380px' : undefined,
                   }}
@@ -342,9 +351,9 @@ export function CreateTvModelDialog({
                     </button>
                   </div>
 
-                  {/* Form */}
-                  <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                    <div data-modal-scrollable="true" className="overflow-y-auto px-5 sm:px-6 py-4 space-y-3.5 no-scrollbar flex-1">
+                  {/* Form — Non-scrollable, compact, keyboard-fixed */}
+                  <form onSubmit={handleSubmit} className="flex flex-col shrink-0">
+                    <div className="px-5 sm:px-6 py-4 space-y-3.5">
                       {/* Optional Brand Selector (Only if multiple brands exist and not preselected) */}
                       {!preselectedBrandId && brands.length > 1 && (
                         <div className="space-y-1">
@@ -415,7 +424,7 @@ export function CreateTvModelDialog({
                               : 'border-border/80 focus-visible:ring-primary/30'
                           }`}
                         />
-                        
+
                         {/* Exact Duplicate Match Restriction Banner */}
                         {similarityResult.level === 'BLOCK' && (
                           <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2 animate-in fade-in">
@@ -514,7 +523,7 @@ export function CreateTvModelDialog({
 
                     {/* Footer Actions */}
                     <div
-                      className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 ${
+                      className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
                         isKeyboardOpen ? 'pb-3' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
                       }`}
                     >
@@ -543,17 +552,17 @@ export function CreateTvModelDialog({
                         {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                         {similarityResult.level === 'WARN_11' ? (
                           <>
-                            <span>Proceed & Create (11+ Match)</span>
+                            <span>Proceed &amp; Create (11+ Match)</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </>
                         ) : similarityResult.level === 'WARN_8' ? (
                           <>
-                            <span>Proceed & Create (8+ Match)</span>
+                            <span>Proceed &amp; Create (8+ Match)</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </>
                         ) : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN' ? (
                           <>
-                            <span>Proceed & Create Model</span>
+                            <span>Proceed &amp; Create Model</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </>
                         ) : (
