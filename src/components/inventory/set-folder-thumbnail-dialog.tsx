@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
   ImagePlus,
@@ -53,6 +53,7 @@ export function SetFolderThumbnailDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentThumbnailUrl || null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragControls = useDragControls();
 
   // Positioning & Zoom state
   const [scale, setScale] = useState<number>(1);
@@ -287,6 +288,8 @@ export function SetFolderThumbnailDialog({
                 mass: 0.8,
               }}
               drag="y"
+              dragControls={dragControls}
+              dragListener={false}
               dragConstraints={{ top: 0 }}
               dragElastic={{ top: 0, bottom: 0.2 }}
               onDragEnd={(_, info) => {
@@ -298,12 +301,22 @@ export function SetFolderThumbnailDialog({
               onClick={(e) => e.stopPropagation()}
             >
               {/* Drag Handle */}
-              <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+              >
                 <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
               </div>
 
               {/* Header */}
-              <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+              <div
+                onPointerDown={(e) => {
+                  const target = e.target as HTMLElement | null;
+                  if (target?.closest('button') || target?.closest('a') || target?.closest('input')) return;
+                  dragControls.start(e);
+                }}
+                className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+              >
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                     <ImagePlus className="w-4 h-4" />
@@ -499,6 +512,7 @@ export function SetFolderThumbnailDialog({
                       {/* 1. CLIPPED FOLDER SILHOUETTE */}
                       <div
                         ref={previewContainerRef}
+                        onPointerDown={(e) => e.stopPropagation()}
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           handleMouseDown(e);

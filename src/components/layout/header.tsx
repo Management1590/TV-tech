@@ -103,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/70 shadow-2xs transition-all" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <header className="relative z-40 bg-background/95 backdrop-blur-xl border-b border-border/70 shadow-2xs transition-all" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Top-Left Back Button / Logo Branding */}
         {shouldShowBackButton ? (
@@ -159,13 +159,45 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           </Link>
         )}
 
-        {/* Command Palette Search */}
-        <div className="flex-1 max-w-xl flex justify-center">
-          <CommandPalette />
-        </div>
+        {/* Middle Area: Command Palette Search for non-KB, or User Full Name & Status for KB */}
+        {isKbRoute ? (
+          <div className="flex-1 flex items-center justify-start sm:justify-center min-w-0 px-1 sm:px-2">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-card/90 hover:bg-muted/90 active:bg-muted border border-border/80 text-foreground transition-all duration-200 min-w-0 max-w-full cursor-pointer text-left group shadow-2xs"
+              title="View account details & permissions"
+            >
+              <div
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs flex items-center justify-center text-white shadow-xs shrink-0 ${
+                  isAdmin
+                    ? 'bg-gradient-to-tr from-primary to-blue-600'
+                    : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
+                }`}
+              >
+                {initials}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs sm:text-sm font-extrabold text-foreground truncate group-hover:text-primary transition-colors leading-none">
+                    {displayName}
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" title="Active Session" />
+                </div>
+                <span className="text-[10px] text-muted-foreground font-semibold mt-0.5 leading-none truncate">
+                  {isAdmin ? 'Super Admin' : 'Staff Technician'}
+                </span>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <div className="flex-1 max-w-xl flex justify-center">
+            <CommandPalette />
+          </div>
+        )}
 
         {/* User Profile & Actions Toolbar */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Admin-only: Create New Staff Account Button */}
           {isAdmin && (
             <Button
@@ -173,173 +205,174 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               variant="outline"
               size="sm"
               onClick={() => setIsCreateStaffOpen(true)}
-              className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-2xl text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200/80 shadow-2xs transition-all gap-1.5 cursor-pointer"
+              className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 rounded-xl sm:rounded-2xl text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200/80 shadow-2xs transition-all gap-1.5 cursor-pointer shrink-0 flex items-center justify-center"
               title="Create new Staff account"
             >
-              <UserPlus className="w-4 h-4 text-indigo-600" />
+              <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
               <span className="hidden sm:inline">Add Staff</span>
             </Button>
           )}
 
-          {/* ========================================================================= */}
-          {/* DESKTOP VIEW: Interactive Dropdown Card                                    */}
-          {/* ========================================================================= */}
-          <div className="hidden sm:block">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-muted/90 hover:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group"
-                aria-label="User profile menu"
-              >
-                <div
-                  className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center text-white shadow-2xs ${
-                    isAdmin
-                      ? 'bg-gradient-to-tr from-primary to-blue-600'
-                      : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
-                  }`}
-                >
-                  {initials}
-                </div>
-                <div className="hidden md:flex flex-col text-left">
-                  <span className="text-xs font-bold text-foreground leading-none group-hover:text-primary transition-colors">
-                    {displayName}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                    {isAdmin ? 'Super Admin' : 'Staff Technician'}
-                  </span>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-transform group-data-[state=open]:rotate-180 ml-0.5" />
-              </DropdownMenuTrigger>
+          {/* Dedicated Direct Sign Out Button for Knowledge Base Brand Directory */}
+          {isKbRoute && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              disabled={isPending}
+              className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl sm:rounded-2xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs transition-all gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0"
+              title="Sign out of TV Tech OS"
+            >
+              {isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+              ) : (
+                <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+              )}
+              <span>Sign Out</span>
+            </Button>
+          )}
 
-              <DropdownMenuContent
-                align="end"
-                sideOffset={8}
-                className="w-80 rounded-3xl bg-card border border-border shadow-2xl p-4 z-50"
-              >
-                {/* Profile Header Card */}
-                <div className="flex items-start gap-3 pb-3 border-b border-border/70">
+          {/* DESKTOP VIEW: Interactive Dropdown Card for non-KB routes */}
+          {!isKbRoute && (
+            <div className="hidden sm:block">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-muted/90 hover:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group"
+                  aria-label="User profile menu"
+                >
                   <div
-                    className={`w-12 h-12 rounded-2xl font-black text-sm flex items-center justify-center text-white shadow-md shrink-0 ${
+                    className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center text-white shadow-2xs ${
                       isAdmin
-                        ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
+                        ? 'bg-gradient-to-tr from-primary to-blue-600'
                         : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
                     }`}
                   >
                     {initials}
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-extrabold text-sm text-foreground break-words leading-tight">
+                  <div className="hidden md:flex flex-col text-left">
+                    <span className="text-xs font-bold text-foreground leading-none group-hover:text-primary transition-colors">
                       {displayName}
-                    </h3>
-
-                    {/* User Email */}
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium mt-1 break-all">
-                      <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
-                      <span>{userEmail}</span>
-                    </div>
-
-                    {/* Role Badge */}
-                    <div className="mt-2">
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                          isAdmin
-                            ? 'bg-primary/5 text-primary border-primary/20'
-                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                        }`}
-                      >
-                        <Shield className="w-3 h-3 mr-1" />
-                        {isAdmin ? 'Super Admin' : 'Staff Technician'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Account Status */}
-                <div className="py-2.5 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between text-muted-foreground px-1">
-                    <span className="text-[11px] font-medium">Session Status</span>
-                    <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Active (Live)
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                      {isAdmin ? 'Super Admin' : 'Staff Technician'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-muted-foreground px-1">
-                    <span className="text-[11px] font-medium">Permissions</span>
-                    <span className="text-[11px] font-semibold text-foreground">
-                      {isAdmin ? 'Full System Privileges' : 'Inventory & Repairs'}
-                    </span>
-                  </div>
-                </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-transform group-data-[state=open]:rotate-180 ml-0.5" />
+                </DropdownMenuTrigger>
 
-                <DropdownMenuSeparator className="my-1 border-border/70" />
-
-                {/* Admin Quick Action: Add Staff */}
-                {isAdmin && (
-                  <DropdownMenuItem
-                    onClick={() => setIsCreateStaffOpen(true)}
-                    className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted text-foreground"
-                  >
-                    <UserPlus className="w-4 h-4 text-indigo-600" />
-                    <span>Create Staff Account</span>
-                  </DropdownMenuItem>
-                )}
-
-                {/* Sign Out Action */}
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  disabled={isPending}
-                  className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold rounded-xl cursor-pointer text-red-600 hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600"
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-80 rounded-3xl bg-card border border-border shadow-2xl p-4 z-50"
                 >
-                  {isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-red-600" />
-                  ) : (
-                    <LogOut className="w-4 h-4 text-red-600" />
+                  {/* Profile Header Card */}
+                  <div className="flex items-start gap-3 pb-3 border-b border-border/70">
+                    <div
+                      className={`w-12 h-12 rounded-2xl font-black text-sm flex items-center justify-center text-white shadow-md shrink-0 ${
+                        isAdmin
+                          ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
+                          : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
+                      }`}
+                    >
+                      {initials}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-extrabold text-sm text-foreground break-words leading-tight">
+                        {displayName}
+                      </h3>
+
+                      {/* User Email */}
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium mt-1 break-all">
+                        <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span>{userEmail}</span>
+                      </div>
+
+                      {/* Role Badge */}
+                      <div className="mt-2">
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            isAdmin
+                              ? 'bg-primary/5 text-primary border-primary/20'
+                              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                          }`}
+                        >
+                          <Shield className="w-3 h-3 mr-1" />
+                          {isAdmin ? 'Super Admin' : 'Staff Technician'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Status */}
+                  <div className="py-2.5 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between text-muted-foreground px-1">
+                      <span className="text-[11px] font-medium">Session Status</span>
+                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Active (Live)
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-muted-foreground px-1">
+                      <span className="text-[11px] font-medium">Permissions</span>
+                      <span className="text-[11px] font-semibold text-foreground">
+                        {isAdmin ? 'Full System Privileges' : 'Inventory & Repairs'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <DropdownMenuSeparator className="my-1 border-border/70" />
+
+                  {/* Admin Quick Action: Add Staff */}
+                  {isAdmin && (
+                    <DropdownMenuItem
+                      onClick={() => setIsCreateStaffOpen(true)}
+                      className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted text-foreground"
+                    >
+                      <UserPlus className="w-4 h-4 text-indigo-600" />
+                      <span>Create Staff Account</span>
+                    </DropdownMenuItem>
                   )}
-                  <span>Sign Out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
 
-          {/* ========================================================================= */}
-          {/* MOBILE VIEW: Touch Trigger Pill                                           */}
-          {/* ========================================================================= */}
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open profile details"
-            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-2xl bg-muted/90 active:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer shadow-2xs"
-          >
-            <div
-              className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center text-white shadow-xs ${
-                isAdmin
-                  ? 'bg-gradient-to-tr from-primary to-blue-600'
-                  : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
-              }`}
-            >
-              {initials}
+                  {/* Sign Out Action */}
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    disabled={isPending}
+                    className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold rounded-xl cursor-pointer text-red-600 hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600"
+                  >
+                    {isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                    ) : (
+                      <LogOut className="w-4 h-4 text-red-600" />
+                    )}
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </button>
+          )}
 
-          <div className="h-6 w-px bg-border/80 hidden sm:block mx-0.5" />
-
-          {/* Desktop Logout Button */}
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleLogout}
-            disabled={isPending}
-            className="hidden sm:flex h-10 px-3 sm:px-3.5 rounded-2xl text-xs font-semibold text-muted-foreground hover:text-red-600 hover:bg-red-50/80 border border-border/60 hover:border-red-200/80 transition-all duration-200 cursor-pointer gap-2"
-            title="Sign out of TV Tech OS"
-          >
-            {isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin text-red-600" />
-            ) : (
-              <LogOut className="w-4 h-4 text-muted-foreground group-hover:text-red-600 transition-colors" />
-            )}
-            <span>Logout</span>
-          </Button>
+          {/* Mobile Profile Trigger (only for non-KB routes) */}
+          {!isKbRoute && (
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open profile details"
+              className="sm:hidden flex items-center justify-center w-9 h-9 rounded-2xl bg-muted/90 active:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer shadow-2xs"
+            >
+              <div
+                className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center text-white shadow-xs ${
+                  isAdmin
+                    ? 'bg-gradient-to-tr from-primary to-blue-600'
+                    : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
+                }`}
+              >
+                {initials}
+              </div>
+            </button>
+          )}
         </div>
       </div>
 

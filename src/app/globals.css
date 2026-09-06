@@ -434,3 +434,17 @@ body {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* iOS Slide to Confirm Shimmer Animation */
+@keyframes iosShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.animate-ios-shimmer {
+  background-size: 200% 100%;
+  animation: iosShimmer 2.2s infinite linear;
+}

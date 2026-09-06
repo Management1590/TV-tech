@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition, useRef, useId, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
   Tv,
   Loader2,
@@ -14,7 +14,6 @@ import {
   RotateCcw,
   Link as LinkIcon,
   Sparkles,
-  MoreVertical,
   ArrowRight,
   ArrowLeft,
   Trash2,
@@ -28,17 +27,29 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { createTvBrandAction } from '@/features/knowledge-base/actions/kb.actions';
 import { formatThumbnailUrl } from '@/lib/thumbnail-utils';
+import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
 
 export interface CreateTvBrandDialogProps {
   trigger?: React.ReactNode;
+  initialBrandName?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) {
+export function CreateTvBrandDialog({
+  trigger,
+  initialBrandName = '',
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+}: CreateTvBrandDialogProps = {}) {
   const clipId = useId().replace(/:/g, '');
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? setControlledOpen! : setInternalOpen;
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialBrandName);
   const [description, setDescription] = useState('');
   const [logoMode, setLogoMode] = useState<'upload' | 'url'>('upload');
   const [logoUrl, setLogoUrl] = useState('');
@@ -58,78 +69,73 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imageAspect, setImageAspect] = useState<number | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const lastFocusTimeRef = useRef<number>(0);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const dragControls = useDragControls();
 
-  // Dismiss mobile virtual keyboard on touch outside inputs or scrolling
+  const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
+
+  // Lock body scroll on iOS without letting window.scrollY displace fixed overlays
   useEffect(() => {
-    if (!open) return;
+    if (open) {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const prevPosition = document.body.style.position;
+      const prevTop = document.body.style.top;
+      const prevWidth = document.body.style.width;
+      const prevOverflow = document.body.style.overflow;
 
-    const handleFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-        lastFocusTimeRef.current = Date.now();
-      }
-    };
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
 
-    const handleTouchOutside = (e: TouchEvent) => {
-      const target = e.target as HTMLElement | null;
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (
-        activeEl &&
-        (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') &&
-        target !== activeEl
-      ) {
-        if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') {
-          return;
-        }
-        activeEl.blur();
-      }
-    };
-
-    const handleScroll = () => {
-      if (Date.now() - lastFocusTimeRef.current < 500) return;
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-        activeEl.blur();
-      }
-    };
-
-    document.addEventListener('focusin', handleFocusIn, { passive: true });
-    document.addEventListener('touchstart', handleTouchOutside, { passive: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      document.removeEventListener('focusin', handleFocusIn);
-      document.removeEventListener('touchstart', handleTouchOutside);
-      window.removeEventListener('scroll', handleScroll);
-    };
+      return () => {
+        document.body.style.position = prevPosition;
+        document.body.style.top = prevTop;
+        document.body.style.width = prevWidth;
+        document.body.style.overflow = prevOverflow;
+        window.scrollTo(0, scrollY);
+      };
+    }
   }, [open]);
+
+  // Smooth focus on brand name input when opening Step 1 (fix keyboard open)
+  // When advancing to Step 2 (thumbnail adjustments), explicitly blur to dismiss keyboard
+  useEffect(() => {
+    if (open && step === 1) {
+      const timer = setTimeout(() => {
+        if (nameInputRef.current) {
+          nameInputRef.current.focus({ preventScroll: true });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    } else if (open && step === 2) {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }
+  }, [open, step]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when bottom sheet is active
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [open]);
-
-  // Reset step to 1 when dialog opens
+  // Reset step to 1 and sync initialBrandName when dialog opens
   useEffect(() => {
     if (open) {
       setStep(1);
+      if (initialBrandName) {
+        setName(initialBrandName);
+      }
     }
-  }, [open]);
+  }, [open, initialBrandName]);
 
   const handleClose = () => {
     if (isPending) return;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setOpen(false);
     setTimeout(() => {
       setStep(1);
@@ -145,14 +151,6 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
   const handleResetPosition = () => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
-    setImageAspect(null);
-  };
-
-  const handleImageLoaded = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    if (img.naturalWidth && img.naturalHeight) {
-      setImageAspect(img.naturalWidth / img.naturalHeight);
-    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,6 +299,8 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
     handleCreateBrand();
   };
 
+  const cleanName = (name.trim() || 'Brand Name').replace(/_\d{10,}$/, '');
+
   return (
     <>
       {trigger ? (
@@ -325,6 +325,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
           {open && (
             <div
               className="fixed inset-0 z-[100] flex flex-col justify-end items-center select-none"
+              style={containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
                   e.preventDefault();
@@ -333,7 +334,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                 }
               }}
             >
-              {/* Soft Blurred iOS Backdrop Layer */}
+              {/* Soft Blurred iOS Backdrop Layer - Fixed to full screen */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -367,6 +368,8 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                   mass: 0.8,
                 }}
                 drag="y"
+                dragControls={dragControls}
+                dragListener={false}
                 dragConstraints={{ top: 0 }}
                 dragElastic={{ top: 0, bottom: 0.2 }}
                 onDragEnd={(_, info) => {
@@ -374,16 +377,29 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                     handleClose();
                   }
                 }}
-                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                style={{
+                  maxHeight: '100%',
+                }}
+                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Top Drag Indicator Handle */}
-                <div className="pt-2.5 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                <div
+                  onPointerDown={(e) => dragControls.start(e)}
+                  className="pt-2.5 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                >
                   <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                 </div>
 
                 {/* Compact Native Sheet Header */}
-                <div className="px-5 sm:px-6 pt-0.5 pb-2.5 border-b border-border/60 shrink-0">
+                <div
+                  onPointerDown={(e) => {
+                    const target = e.target as HTMLElement | null;
+                    if (target?.closest('button') || target?.closest('a') || target?.closest('input')) return;
+                    dragControls.start(e);
+                  }}
+                  className="px-5 sm:px-6 pt-0.5 pb-2.5 border-b border-border/60 shrink-0 cursor-grab active:cursor-grabbing select-none"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs shrink-0">
@@ -436,14 +452,8 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
 
                 {/* Form & Body */}
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                  {/* Form Content - Non-scrollable in Step 2 */}
+                  {/* Form Content - Non-scrollable in Step 2, smooth scroll in Step 1 */}
                   <div
-                    onScroll={() => {
-                      const activeEl = document.activeElement as HTMLElement | null;
-                      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-                        activeEl.blur();
-                      }
-                    }}
                     className={`flex-1 px-5 sm:px-6 ${
                       step === 2 ? 'py-2 space-y-2 overflow-hidden overscroll-none' : 'py-3 space-y-3 overflow-y-auto no-scrollbar'
                     }`}
@@ -456,7 +466,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -12 }}
                           transition={{ duration: 0.18 }}
-                          className="space-y-3.5 py-1"
+                          className="space-y-3 py-1"
                         >
                           <div className="space-y-1.5">
                             <Label htmlFor="create-brand-name" className="text-xs font-bold text-foreground flex items-center justify-between">
@@ -465,14 +475,17 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                             </Label>
                             <Input
                               id="create-brand-name"
+                              ref={nameInputRef}
                               value={name}
                               onChange={(e) => setName(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  e.currentTarget.blur();
                                   if (name.trim()) {
+                                    if (document.activeElement instanceof HTMLElement) {
+                                      document.activeElement.blur();
+                                    }
                                     setStep(2);
                                   } else {
                                     toast.error('Please enter a brand name');
@@ -489,7 +502,7 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                               required
                               autoFocus
                               disabled={isPending}
-                              className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold transition-all"
+                              className="h-10 sm:h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold transition-all"
                             />
                           </div>
 
@@ -502,21 +515,15 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                               id="create-brand-desc"
                               value={description}
                               onChange={(e) => setDescription(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  e.currentTarget.blur();
-                                }
-                              }}
                               placeholder="Optional technical guidelines, chassis series, or service remarks..."
-                              rows={3}
+                              rows={2}
                               disabled={isPending}
                               className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
                             />
                           </div>
 
-                          {/* Next Step Teaser Card */}
-                          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-primary/5 border border-primary/15 text-xs text-muted-foreground">
+                          {/* Next Step Teaser Card - Hidden on mobile to ensure 100% visibility of all buttons */}
+                          <div className="hidden sm:flex items-center gap-2.5 p-3 rounded-2xl bg-primary/5 border border-primary/15 text-xs text-muted-foreground">
                             <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                               <Sparkles className="w-3.5 h-3.5" />
                             </div>
@@ -721,12 +728,13 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                               </defs>
                             </svg>
 
-                            {/* Folder Silhouette Preview Canvas Container - Sized to fit perfectly on mobile */}
-                            <div className="flex justify-center py-0.5">
-                              <div className="relative w-full max-w-[195px] xs:max-w-[205px] aspect-[3/2] select-none">
+                            {/* Folder Silhouette Preview Canvas Container - Exact 1:1 match to BrandFolderCard */}
+                            <div className="flex justify-center py-1 select-none">
+                              <div className="relative w-[175px] h-[155px] select-none filter drop-shadow-md">
                                 {/* 1. CLIPPED FOLDER SILHOUETTE */}
                                 <div
                                   ref={previewContainerRef}
+                                  onPointerDown={(e) => e.stopPropagation()}
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
                                     handleMouseDown(e);
@@ -748,92 +756,91 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                                   }}
                                   style={{
                                     clipPath: `url(#create-brand-clip-${clipId})`,
+                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
                                     cursor: previewUrl ? (isDragging ? 'grabbing' : 'grab') : 'default',
                                   }}
-                                  className="relative w-full h-full bg-background overflow-hidden shadow-md flex flex-col justify-end border border-border group touch-none select-none"
+                                  className="relative w-full h-full bg-muted overflow-hidden flex flex-col justify-end group touch-none select-none"
                                 >
                                   {previewUrl ? (
-                                    <div className="absolute inset-0 w-full h-full overflow-hidden bg-background flex items-center justify-center">
+                                    <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center pointer-events-none">
                                       <img
                                         ref={imageRef}
                                         src={previewUrl}
-                                        alt={name || 'Brand'}
-                                        onLoad={handleImageLoaded}
+                                        alt={cleanName}
                                         draggable={false}
                                         style={{
-                                          position: 'absolute',
-                                          left: '50%',
-                                          top: '50%',
-                                          transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${scale})`,
+                                          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                                          transformOrigin: 'center center',
                                           transition: isDragging ? 'none' : 'transform 0.15s ease-out',
-                                          maxWidth: 'none',
-                                          maxHeight: 'none',
-                                          width: imageAspect && imageAspect > 1.5 ? `${(imageAspect / 1.5) * 100}%` : '100%',
-                                          height: imageAspect && imageAspect <= 1.5 ? `${(1.5 / imageAspect) * 100}%` : '100%',
-                                          pointerEvents: 'none',
                                         }}
-                                        className="drop-shadow select-none"
+                                        className="w-full h-full object-cover select-none pointer-events-none"
                                       />
-                                      {/* Subtle Vignette Gradient */}
-                                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
+                                      {/* Subtle bottom vignette for text contrast */}
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
                                     </div>
                                   ) : (
-                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/40 flex items-center justify-center">
-                                      <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                                        <Tv className="w-5 h-5" />
+                                    /* Default Icon canvas when no thumbnail - 100% matched to BrandFolderCard */
+                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-indigo-100/60 to-muted/90 flex items-center justify-center overflow-hidden pointer-events-none">
+                                      {/* Soft radial primary ambient glow */}
+                                      <div className="absolute w-40 h-40 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+                                      {/* Geometric pattern */}
+                                      <div
+                                        className="absolute inset-0 opacity-[0.07]"
+                                        style={{
+                                          backgroundImage: 'radial-gradient(oklch(0.40 0.22 260) 1.2px, transparent 1.2px)',
+                                          backgroundSize: '16px 16px',
+                                        }}
+                                      />
+                                      <div className="relative flex flex-col items-center justify-center text-center p-2">
+                                        <div className="w-11 h-11 rounded-xl bg-white/95 border border-primary/30 shadow-md flex items-center justify-center text-primary">
+                                          <Tv className="w-5 h-5 text-primary" />
+                                        </div>
+                                        {description && (
+                                          <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1 max-w-[130px] font-semibold">
+                                            {description}
+                                          </p>
+                                        )}
                                       </div>
                                     </div>
                                   )}
 
-                                  {/* 2. Floating Model Count Badge */}
-                                  <div className="absolute bottom-8 right-2 z-20 pointer-events-none">
+                                  {/* 2. Floating Model Count Badge - 100% matched to BrandFolderCard */}
+                                  <div className="absolute bottom-9 right-2 z-20 pointer-events-none">
                                     <Badge
                                       variant="secondary"
-                                      className="bg-background/90 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[8.5px] py-0 px-1.5 font-semibold shadow-xs"
+                                      className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[10px] py-0.5 px-1.5 font-bold shadow-md"
                                     >
-                                      <Tv className="w-2 h-2 text-primary" />
+                                      <Tv className="w-3 h-3 text-primary" />
                                       0 Models
                                     </Badge>
                                   </div>
 
-                                  {/* 3. Bottom Glass Bar with Centered Brand Name */}
-                                  <div className="absolute bottom-0 inset-x-0 z-20 px-2 py-1 bg-background/90 backdrop-blur-md border-t border-border/60 flex items-center justify-center text-center shadow-md pointer-events-none">
-                                    <h3 className="text-[10px] font-black text-foreground tracking-tight truncate w-full text-center">
-                                      {name || 'Brand Name'}
+                                  {/* 3. Bottom Bar with Centered Brand Name - 100% matched to BrandFolderCard */}
+                                  <div className="relative z-20 px-2 py-2 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm pointer-events-none">
+                                    <h3
+                                      className="text-xs font-bold text-foreground tracking-tight truncate leading-tight w-full text-center"
+                                      title={cleanName}
+                                    >
+                                      {cleanName}
                                     </h3>
                                   </div>
                                 </div>
 
-                                {/* 4. Vector Neon Glow Outline */}
+                                {/* 4. Clean Perimeter Border Contour - 100% matched to BrandFolderCard */}
                                 <svg
                                   className="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible"
                                   viewBox="0 0 100 100"
                                   preserveAspectRatio="none"
                                   aria-hidden="true"
                                 >
-                                  <defs>
-                                    <linearGradient id={`create-brand-neonGrad-${clipId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                      <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.9" />
-                                      <stop offset="40%" stopColor="#3b82f6" stopOpacity="0.6" />
-                                      <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.8" />
-                                    </linearGradient>
-                                  </defs>
                                   <path
                                     d="M 6,100 A 6,8 0 0,1 0,92 L 0,8 A 6,8 0 0,1 6,0 L 30,0 C 34,0 33,13.5 37,13.5 L 94,13.5 A 6,8 0 0,1 100,21.5 L 100,92 A 6,8 0 0,1 94,100 Z"
                                     fill="none"
-                                    stroke={`url(#create-brand-neonGrad-${clipId})`}
-                                    strokeWidth="1.75"
+                                    stroke="rgba(100, 116, 139, 0.4)"
+                                    strokeWidth="1.5"
                                     vectorEffect="non-scaling-stroke"
-                                    className="drop-shadow-[0_0_8px_rgba(59,130,246,0.35)]"
                                   />
                                 </svg>
-
-                                {/* 5. Highlighted 3-Dots Menu Pill Simulation */}
-                                <div className="absolute top-4.5 right-1.5 z-40 pointer-events-none">
-                                  <div className="h-4.5 w-4.5 rounded-md bg-white/90 border border-primary/30 text-primary flex items-center justify-center shadow-xs">
-                                    <MoreVertical className="h-2.5 w-2.5" />
-                                  </div>
-                                </div>
                               </div>
                             </div>
 
@@ -893,7 +900,11 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                   </div>
 
                   {/* Footer Navigation Buttons with iOS Safe Area Padding */}
-                  <div className="px-5 sm:px-6 pt-2.5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+                  <div
+                    className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 ${
+                      isKeyboardOpen ? 'pb-3' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
+                    }`}
+                  >
                     {step === 1 ? (
                       <>
                         <Button
@@ -913,6 +924,9 @@ export function CreateTvBrandDialog({ trigger }: CreateTvBrandDialogProps = {}) 
                             if (!name.trim()) {
                               toast.error('Please enter a brand name');
                               return;
+                            }
+                            if (document.activeElement instanceof HTMLElement) {
+                              document.activeElement.blur();
                             }
                             setStep(2);
                           }}

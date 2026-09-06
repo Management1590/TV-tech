@@ -121,6 +121,16 @@ export function CommandPalette() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
+        if (scope === 'brands') {
+          const onPageBrandInput = document.getElementById('brand-search-input') as HTMLInputElement | null;
+          if (onPageBrandInput) {
+            onPageBrandInput.focus();
+            const headerEl = document.getElementById('brand-directory-header');
+            const targetEl = headerEl || onPageBrandInput;
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+        }
         setOpen((prev) => !prev);
       } else if (
         e.key === '/' &&
@@ -128,12 +138,22 @@ export function CommandPalette() {
         document.activeElement?.tagName !== 'TEXTAREA'
       ) {
         e.preventDefault();
+        if (scope === 'brands') {
+          const onPageBrandInput = document.getElementById('brand-search-input') as HTMLInputElement | null;
+          if (onPageBrandInput) {
+            onPageBrandInput.focus();
+            const headerEl = document.getElementById('brand-directory-header');
+            const targetEl = headerEl || onPageBrandInput;
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+        }
         setOpen(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [scope]);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -401,7 +421,19 @@ export function CommandPalette() {
     <>
       {/* Top Header Trigger Button */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (scope === 'brands') {
+            const onPageBrandInput = document.getElementById('brand-search-input') as HTMLInputElement | null;
+            if (onPageBrandInput) {
+              onPageBrandInput.focus();
+              const headerEl = document.getElementById('brand-directory-header');
+              const targetEl = headerEl || onPageBrandInput;
+              targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              return;
+            }
+          }
+          setOpen(true);
+        }}
         className={`flex items-center justify-between gap-3 px-3.5 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 w-full max-w-md text-xs rounded-xl border transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-sm-2xs ${
           isKbRoute
             ? 'bg-primary/5 hover:bg-primary/5 border-primary/20 hover:border-primary/25 text-primary hover:shadow-sm'

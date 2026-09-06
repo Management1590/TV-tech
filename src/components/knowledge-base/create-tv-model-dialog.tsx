@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition, useEffect, useId, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Monitor, Loader2, Plus, Sparkles, CheckCircle2, Tv, AlertTriangle, AlertCircle, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner';
 import { createTvModelAction } from '@/features/knowledge-base/actions/kb.actions';
 import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
+import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
 
 interface CreateTvModelDialogProps {
   brands: { id: string; name: string }[];
@@ -59,12 +60,28 @@ export function CreateTvModelDialog({
     setMounted(true);
   }, []);
 
-  // Lock body scroll when dialog is active
+  const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
+
+  // Lock body scroll on iOS without letting window.scrollY displace fixed overlays
   useEffect(() => {
     if (open) {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const prevPosition = document.body.style.position;
+      const prevTop = document.body.style.top;
+      const prevWidth = document.body.style.width;
+      const prevOverflow = document.body.style.overflow;
+
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
+
       return () => {
-        document.body.style.overflow = '';
+        document.body.style.position = prevPosition;
+        document.body.style.top = prevTop;
+        document.body.style.width = prevWidth;
+        document.body.style.overflow = prevOverflow;
+        window.scrollTo(0, scrollY);
       };
     }
   }, [open]);
@@ -77,6 +94,32 @@ export function CreateTvModelDialog({
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const lastFocusTimeRef = useRef<number>(0);
+  const dragControls = useDragControls();
+
+  // Smooth focus on model input when opening dialog
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        if (modelInputRef.current) {
+          modelInputRef.current.focus({ preventScroll: true });
+        }
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
+  const handleClose = () => {
+    if (isPending) return;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setOpen(false);
+    setTimeout(() => {
+      setModelNumber('');
+      setScreenSize('');
+      setAutoDetectedSize(null);
+    }, 250);
+  };
 
   // Sync initialModelNumber when dialog opens
   useEffect(() => {
@@ -103,7 +146,7 @@ export function CreateTvModelDialog({
           if (modelInputRef.current) {
             const input = modelInputRef.current;
             const len = input.value.length;
-            input.focus();
+            input.focus({ preventScroll: true });
             input.setSelectionRange(len, len);
           }
         }, 120);
@@ -118,49 +161,7 @@ export function CreateTvModelDialog({
     };
   }, [open]);
 
-  // Dismiss mobile virtual keyboard on touch outside inputs or scrolling
-  useEffect(() => {
-    if (!open) return;
 
-    const handleFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-        lastFocusTimeRef.current = Date.now();
-      }
-    };
-
-    const handleTouchOutside = (e: TouchEvent) => {
-      const target = e.target as HTMLElement | null;
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (
-        activeEl &&
-        (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') &&
-        target !== activeEl
-      ) {
-        if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') {
-          return;
-        }
-        activeEl.blur();
-      }
-    };
-
-    const handleScroll = () => {
-      if (Date.now() - lastFocusTimeRef.current < 500) return;
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-        activeEl.blur();
-      }
-    };
-
-    document.addEventListener('focusin', handleFocusIn, { passive: true });
-    document.addEventListener('touchstart', handleTouchOutside, { passive: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      document.removeEventListener('focusin', handleFocusIn);
-      document.removeEventListener('touchstart', handleTouchOutside);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [open]);
 
   // Real-time duplicate & similarity checking
   const similarityResult = useMemo(() => {
@@ -203,6 +204,10 @@ export function CreateTvModelDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!brandId || !modelNumber.trim() || similarityResult.level === 'BLOCK') return;
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
 
     startTransition(async () => {
       const result = await createTvModelAction({
@@ -257,9 +262,10 @@ export function CreateTvModelDialog({
             {open && (
               <div
                 className="fixed inset-0 z-[100] flex flex-col justify-end items-center select-none"
+                style={containerStyle}
                 onClick={(e) => {
                   if (e.target === e.currentTarget && !isPending) {
-                    setOpen(false);
+                    handleClose();
                   }
                 }}
               >
@@ -271,7 +277,7 @@ export function CreateTvModelDialog({
                   transition={{ duration: 0.25 }}
                   className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
                   onClick={() => {
-                    if (!isPending) setOpen(false);
+                    if (!isPending) handleClose();
                   }}
                 />
 
@@ -287,23 +293,38 @@ export function CreateTvModelDialog({
                     mass: 0.8,
                   }}
                   drag="y"
+                  dragControls={dragControls}
+                  dragListener={false}
                   dragConstraints={{ top: 0 }}
                   dragElastic={{ top: 0, bottom: 0.2 }}
                   onDragEnd={(_, info) => {
                     if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
-                      setOpen(false);
+                      handleClose();
                     }
                   }}
-                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                  style={{
+                    maxHeight: '100%',
+                  }}
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Drag Handle */}
-                  <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                  <div
+                    onPointerDown={(e) => dragControls.start(e)}
+                    className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                  >
                     <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                   </div>
 
                   {/* Header */}
-                  <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                  <div
+                    onPointerDown={(e) => {
+                      const target = e.target as HTMLElement | null;
+                      if (target?.closest('button') || target?.closest('a') || target?.closest('input')) return;
+                      dragControls.start(e);
+                    }}
+                    className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+                  >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
                         <Monitor className="w-4 h-4" />
@@ -323,9 +344,8 @@ export function CreateTvModelDialog({
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!isPending) setOpen(false);
-                      }}
+                      onClick={handleClose}
+                      disabled={isPending}
                       className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
                     >
                       <X className="w-4 h-4" />
@@ -496,27 +516,31 @@ export function CreateTvModelDialog({
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="px-5 sm:px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0">
+                    <div
+                      className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 ${
+                        isKeyboardOpen ? 'pb-3' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
+                      }`}
+                    >
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setOpen(false)}
+                        onClick={handleClose}
                         disabled={isPending}
-                        className="rounded-xl text-xs h-9.5 px-3.5"
+                        className="rounded-2xl text-xs h-9.5 px-4 cursor-pointer font-medium"
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
                         disabled={isPending || !brandId || !modelNumber.trim() || similarityResult.level === 'BLOCK'}
-                        className={`rounded-xl text-xs h-9.5 px-4 text-white font-bold gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer ${
+                        className={`rounded-2xl text-xs h-9.5 px-5 font-bold gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
                           similarityResult.level === 'WARN_11'
-                            ? 'bg-gradient-to-r from-red-700 via-rose-700 to-red-800 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-600/30 border border-red-400/40 font-black'
+                            ? 'bg-gradient-to-r from-red-700 via-rose-700 to-red-800 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-600/30 border border-red-400/40 font-black text-white'
                             : similarityResult.level === 'WARN_8'
-                            ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20'
+                            ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20 text-white'
                             : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
-                            ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20'
-                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-sm shadow-blue-500/20 hover:shadow-md'
+                            ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20 text-white'
+                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white shadow-sm shadow-blue-500/20 hover:shadow-md'
                         }`}
                       >
                         {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

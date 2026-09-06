@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useTransition, useMemo, useEffect } from 'react';
+import React, { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { IosSlideToConfirm } from '@/components/shared/ios-slide-to-confirm';
 import {
   MoreVertical,
   Pencil,
@@ -39,6 +40,7 @@ import {
   deleteTvModelAction,
 } from '@/features/knowledge-base/actions/kb.actions';
 import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
+import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
 
 interface ModelContextMenuProps {
   modelId: string;
@@ -63,6 +65,10 @@ export function ModelContextMenu({
   const [mounted, setMounted] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const deleteDragControls = useDragControls();
+
+  const renameViewport = useKeyboardViewport(isRenameOpen);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -105,6 +111,12 @@ export function ModelContextMenu({
       setNewModelNumber(modelNumber);
       setNewScreenSize(screenSize ? String(screenSize) : '');
       setAutoDetectedSize(null);
+      const timer = setTimeout(() => {
+        if (renameInputRef.current) {
+          renameInputRef.current.focus({ preventScroll: true });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
     }
   }, [isRenameOpen, modelNumber, screenSize]);
 
@@ -393,6 +405,7 @@ export function ModelContextMenu({
             {isRenameOpen && (
               <div
                 className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+                style={renameViewport.containerStyle}
                 onClick={(e) => {
                   if (e.target === e.currentTarget && !isPending) {
                     setIsRenameOpen(false);
@@ -422,7 +435,8 @@ export function ModelContextMenu({
                       setIsRenameOpen(false);
                     }
                   }}
-                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                  style={{ maxHeight: '100%' }}
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Drag Handle */}
@@ -472,6 +486,7 @@ export function ModelContextMenu({
                           )}
                         </div>
                         <Input
+                          ref={renameInputRef}
                           id="rename-model-num"
                           value={newModelNumber}
                           onChange={(e) => handleModelNumberChange(e.target.value)}
@@ -580,7 +595,11 @@ export function ModelContextMenu({
                     </div>
 
                     {/* Footer */}
-                    <div className="px-5 sm:px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0">
+                    <div
+                      className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0 ${
+                        renameViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
+                      }`}
+                    >
                       <Button
                         type="button"
                         variant="outline"
@@ -645,22 +664,27 @@ export function ModelContextMenu({
                   }
                 }}
               >
+                {/* iOS Soft Backdrop with Deep Blur */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10 cursor-pointer"
                   onClick={() => {
                     if (!isPending) setIsDeleteOpen(false);
                   }}
                 />
+
+                {/* iOS Style Bottom Sheet Page */}
                 <motion.div
                   initial={{ y: '100%' }}
                   animate={{ y: 0 }}
                   exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
                   transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
                   drag="y"
+                  dragControls={deleteDragControls}
+                  dragListener={false}
                   dragConstraints={{ top: 0 }}
                   dragElastic={{ top: 0, bottom: 0.2 }}
                   onDragEnd={(_, info) => {
@@ -668,26 +692,36 @@ export function ModelContextMenu({
                       setIsDeleteOpen(false);
                     }
                   }}
-                  className="relative z-10 w-full max-w-md mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Drag Handle */}
-                  <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                  {/* Top Drag Indicator Handle */}
+                  <div
+                    onPointerDown={(e) => deleteDragControls.start(e)}
+                    className="pt-2.5 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                  >
                     <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                   </div>
 
-                  {/* Header */}
-                  <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                  {/* Compact Native Sheet Header */}
+                  <div
+                    onPointerDown={(e) => {
+                      const target = e.target as HTMLElement | null;
+                      if (target?.closest('button') || target?.closest('a')) return;
+                      deleteDragControls.start(e);
+                    }}
+                    className="px-5 sm:px-6 pt-0.5 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+                  >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-800/50 flex items-center justify-center shrink-0">
-                        <AlertTriangle className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </div>
                       <div>
                         <h2 className="text-base sm:text-lg font-bold text-red-600 leading-tight">
                           Delete TV Model
                         </h2>
                         <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">
-                          Review consequences of deleting this model
+                          {brandName ? `${brandName} • ${modelNumber}` : modelNumber}
                         </p>
                       </div>
                     </div>
@@ -696,62 +730,66 @@ export function ModelContextMenu({
                       onClick={() => {
                         if (!isPending) setIsDeleteOpen(false);
                       }}
-                      className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                      aria-label="Close"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Content Body */}
-                  <div className="overflow-y-auto px-5 sm:px-6 py-4 space-y-3.5 no-scrollbar flex-1">
-                    {/* Warning Callout */}
-                    <div className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200/90 flex items-start gap-3 text-red-950">
-                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                      <div className="space-y-1 text-xs">
-                        <p className="font-bold">This action is permanent and cannot be undone.</p>
-                        <p className="text-red-800 leading-relaxed">
-                          Deleting model <strong className="font-bold text-red-950">{modelNumber}</strong> will permanently remove all associated technical folders, schematics, backlight compatibility links, and service logs.
+                  <div className="p-5 sm:px-6 space-y-3.5 flex-1 overflow-y-auto no-scrollbar">
+                    {/* Model Item Preview Card */}
+                    <div className="p-3.5 bg-muted/40 border border-border/70 rounded-2xl flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Monitor className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm sm:text-base font-black text-foreground tracking-tight truncate">
+                            {modelNumber}
+                          </h3>
+                          {screenSize && (
+                            <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-background">
+                              {screenSize}&quot;
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+                          {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'} Attached
                         </p>
                       </div>
                     </div>
 
-                    {/* Model Summary Badge */}
-                    <div className="p-3 bg-muted/50 border border-border/80 rounded-2xl flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <Monitor className="w-4 h-4 text-primary" />
-                        <span className="font-bold text-foreground">{modelNumber}</span>
-                        {screenSize && (
-                          <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-white">
-                            {screenSize}&quot;
-                          </Badge>
-                        )}
+                    {/* Warning Callout */}
+                    <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-2xl space-y-1.5">
+                      <div className="flex items-center gap-2 text-red-900 dark:text-red-300 font-bold text-xs">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                        Permanent Action
                       </div>
-                      <span className="text-[11px] font-semibold text-muted-foreground">
-                        {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'} Attached
-                      </span>
+                      <p className="text-[11px] sm:text-xs text-red-800 dark:text-red-400 leading-relaxed">
+                        Deleting model <strong className="font-bold text-red-950 dark:text-red-200">{modelNumber}</strong> will permanently remove all associated technical folders, schematics, backlight compatibility links, and service logs. This action cannot be undone.
+                      </p>
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="px-5 sm:px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0">
+                  {/* Footer with iOS Slide to Delete & Cancel */}
+                  <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex flex-col gap-2.5 shrink-0">
+                    <IosSlideToConfirm
+                      onConfirm={handleDelete}
+                      isLoading={isPending}
+                      label="slide to delete model"
+                      loadingLabel="Deleting Model..."
+                    />
+
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => setIsDeleteOpen(false)}
                       disabled={isPending}
-                      className="rounded-2xl text-xs h-10 px-4"
+                      className="w-full h-10 rounded-full text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
                     >
                       Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={isPending}
-                      className="rounded-2xl text-xs h-10 px-5 bg-red-600 hover:bg-red-700 text-white font-bold gap-2 shadow-md shadow-red-500/20"
-                    >
-                      {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                      Delete Model Permanently
                     </Button>
                   </div>
                 </motion.div>

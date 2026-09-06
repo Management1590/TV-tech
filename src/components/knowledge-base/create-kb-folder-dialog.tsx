@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useTransition } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { FolderPlus, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,17 +20,69 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
   const [mounted, setMounted] = useState(false);
   const [folderName, setFolderName] = useState('');
   const [isPending, startTransition] = useTransition();
+  const dragControls = useDragControls();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when open
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  // Track visualViewport for mobile virtual keyboard height so bottom sheet docks directly on top of keyboard
+  useEffect(() => {
+    if (!open) {
+      setKeyboardHeight(0);
+      return;
+    }
+
+    const updateKeyboard = () => {
+      if (typeof window === 'undefined') return;
+      const vv = window.visualViewport;
+      if (vv) {
+        const offsetFromBottom = window.innerHeight - (vv.height + vv.offsetTop);
+        const kbHeight = offsetFromBottom > 60 ? Math.round(offsetFromBottom) : 0;
+        setKeyboardHeight(kbHeight);
+      }
+    };
+
+    updateKeyboard();
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', updateKeyboard);
+      vv.addEventListener('scroll', updateKeyboard);
+    }
+    window.addEventListener('resize', updateKeyboard);
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', updateKeyboard);
+        vv.removeEventListener('scroll', updateKeyboard);
+      }
+      window.removeEventListener('resize', updateKeyboard);
+    };
+  }, [open]);
+
+  // Lock body scroll on iOS without letting window.scrollY displace fixed overlays
   useEffect(() => {
     if (open) {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const prevPosition = document.body.style.position;
+      const prevTop = document.body.style.top;
+      const prevWidth = document.body.style.width;
+      const prevOverflow = document.body.style.overflow;
+
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
+
       return () => {
-        document.body.style.overflow = '';
+        document.body.style.position = prevPosition;
+        document.body.style.top = prevTop;
+        document.body.style.width = prevWidth;
+        document.body.style.overflow = prevOverflow;
+        window.scrollTo(0, scrollY);
       };
     }
   }, [open]);
@@ -68,6 +120,10 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
             {open && (
               <div
                 className="fixed inset-0 z-[100] flex flex-col justify-end items-center select-none"
+                style={{
+                  bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : 0,
+                  transition: 'bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
                 onClick={(e) => {
                   if (e.target === e.currentTarget && !isPending) {
                     setOpen(false);
@@ -98,6 +154,8 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
                     mass: 0.8,
                   }}
                   drag="y"
+                  dragControls={dragControls}
+                  dragListener={false}
                   dragConstraints={{ top: 0 }}
                   dragElastic={{ top: 0, bottom: 0.2 }}
                   onDragEnd={(_, info) => {
@@ -105,16 +163,29 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
                       setOpen(false);
                     }
                   }}
-                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                  style={{
+                    maxHeight: keyboardHeight > 0 ? `calc(100svh - ${keyboardHeight + 16}px)` : '90dvh',
+                  }}
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Drag Handle */}
-                  <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                  <div
+                    onPointerDown={(e) => dragControls.start(e)}
+                    className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                  >
                     <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                   </div>
 
                   {/* Header */}
-                  <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                  <div
+                    onPointerDown={(e) => {
+                      const target = e.target as HTMLElement | null;
+                      if (target?.closest('button') || target?.closest('a') || target?.closest('input')) return;
+                      dragControls.start(e);
+                    }}
+                    className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+                  >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                         <FolderPlus className="w-4 h-4" />
@@ -163,7 +234,11 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
                     </div>
 
                     {/* Footer */}
-                    <div className="px-5 sm:px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0">
+                    <div
+                      className={`px-5 sm:px-6 pt-2.5 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0 ${
+                        keyboardHeight > 0 ? 'pb-2.5' : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
+                      }`}
+                    >
                       <Button
                         type="button"
                         variant="outline"

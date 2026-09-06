@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
   ImagePlus,
@@ -17,7 +17,6 @@ import {
   ZoomOut,
   RotateCcw,
   Sparkles,
-  MoreVertical,
   X,
 } from 'lucide-react';
 import {
@@ -40,6 +39,8 @@ interface SetBrandThumbnailDialogProps {
   brandId: string;
   brandName: string;
   currentLogoUrl?: string | null;
+  currentDescription?: string | null;
+  modelCount?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -48,11 +49,14 @@ export function SetBrandThumbnailDialog({
   brandId,
   brandName,
   currentLogoUrl,
+  currentDescription,
+  modelCount = 0,
   open,
   onOpenChange,
 }: SetBrandThumbnailDialogProps) {
   const router = useRouter();
   const clipId = useId().replace(/:/g, '');
+  const cleanName = brandName.replace(/_\d{10,}$/, '');
 
   const [mode, setMode] = useState<'upload' | 'url'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -60,6 +64,7 @@ export function SetBrandThumbnailDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLogoUrl || null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragControls = useDragControls();
 
   // Positioning & Zoom state
   const [scale, setScale] = useState<number>(1);
@@ -71,9 +76,6 @@ export function SetBrandThumbnailDialog({
     initX: 0,
     initY: 0,
   });
-
-  // Natural image aspect ratio (width / height)
-  const [imageAspect, setImageAspect] = useState<number | null>(null);
 
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -103,16 +105,8 @@ export function SetBrandThumbnailDialog({
       setSelectedFile(null);
       setScale(parsed.scale);
       setPosition({ x: parsed.x, y: parsed.y });
-      setImageAspect(null);
     }
   }, [open, currentLogoUrl]);
-
-  const handleImageLoaded = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    if (img.naturalWidth && img.naturalHeight) {
-      setImageAspect(img.naturalWidth / img.naturalHeight);
-    }
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,7 +123,6 @@ export function SetBrandThumbnailDialog({
     setThumbnailUrl('');
     setScale(1);
     setPosition({ x: 0, y: 0 });
-    setImageAspect(null);
   };
 
   // Mouse / Touch Drag Handlers
@@ -294,6 +287,8 @@ export function SetBrandThumbnailDialog({
                 mass: 0.8,
               }}
               drag="y"
+              dragControls={dragControls}
+              dragListener={false}
               dragConstraints={{ top: 0 }}
               dragElastic={{ top: 0, bottom: 0.2 }}
               onDragEnd={(_, info) => {
@@ -305,12 +300,22 @@ export function SetBrandThumbnailDialog({
               onClick={(e) => e.stopPropagation()}
             >
               {/* Drag Handle */}
-              <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+              >
                 <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
               </div>
 
               {/* Header */}
-              <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+              <div
+                onPointerDown={(e) => {
+                  const target = e.target as HTMLElement | null;
+                  if (target?.closest('button') || target?.closest('a') || target?.closest('input')) return;
+                  dragControls.start(e);
+                }}
+                className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+              >
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                     <ImagePlus className="w-4 h-4" />
@@ -500,12 +505,13 @@ export function SetBrandThumbnailDialog({
                     </defs>
                   </svg>
 
-                  {/* Folder Silhouette Preview Canvas Container - Centered aspect-[3/2] box */}
-                  <div className="flex justify-center py-0.5">
-                    <div className="relative w-full max-w-[195px] xs:max-w-[205px] aspect-[3/2] select-none">
+                  {/* Folder Silhouette Preview Canvas Container - Exact 1:1 match to BrandFolderCard */}
+                  <div className="flex justify-center py-1 select-none">
+                    <div className="relative w-[175px] h-[155px] select-none filter drop-shadow-md">
                       {/* 1. CLIPPED FOLDER SILHOUETTE */}
                       <div
                         ref={previewContainerRef}
+                        onPointerDown={(e) => e.stopPropagation()}
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           handleMouseDown(e);
@@ -527,93 +533,91 @@ export function SetBrandThumbnailDialog({
                         }}
                         style={{
                           clipPath: `url(#dialog-brand-clip-${clipId})`,
+                          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
                           cursor: previewUrl ? (isDragging ? 'grabbing' : 'grab') : 'default',
                         }}
-                        className="relative w-full h-full bg-background overflow-hidden shadow-md flex flex-col justify-end border border-border group touch-none select-none"
+                        className="relative w-full h-full bg-muted overflow-hidden flex flex-col justify-end group touch-none select-none"
                       >
                         {previewUrl ? (
-                          <div className="absolute inset-0 w-full h-full overflow-hidden bg-background flex items-center justify-center">
+                          <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center pointer-events-none">
                             <img
                               ref={imageRef}
                               src={previewUrl}
-                              alt={brandName}
-                              onLoad={handleImageLoaded}
+                              alt={cleanName}
                               draggable={false}
                               style={{
-                                position: 'absolute',
-                                left: '50%',
-                                top: '50%',
-                                transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${scale})`,
+                                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                                transformOrigin: 'center center',
                                 transition: isDragging ? 'none' : 'transform 0.15s ease-out',
-                                maxWidth: 'none',
-                                maxHeight: 'none',
-                                width: imageAspect && imageAspect > 1.5 ? `${(imageAspect / 1.5) * 100}%` : '100%',
-                                height: imageAspect && imageAspect <= 1.5 ? `${(1.5 / imageAspect) * 100}%` : '100%',
-                                pointerEvents: 'none',
                               }}
-                              className="drop-shadow select-none"
+                              className="w-full h-full object-cover select-none pointer-events-none"
                             />
-                            {/* Subtle Vignette Gradient */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
+                            {/* Subtle bottom vignette for text contrast */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
                           </div>
                         ) : (
-                          /* Default Icon canvas when no thumbnail */
-                          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/40 flex items-center justify-center">
-                            <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                              <Tv className="w-5 h-5" />
+                          /* Default Icon canvas when no thumbnail - 100% matched to BrandFolderCard */
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-indigo-100/60 to-muted/90 flex items-center justify-center overflow-hidden pointer-events-none">
+                            {/* Soft radial primary ambient glow */}
+                            <div className="absolute w-40 h-40 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+                            {/* Geometric pattern */}
+                            <div
+                              className="absolute inset-0 opacity-[0.07]"
+                              style={{
+                                backgroundImage: 'radial-gradient(oklch(0.40 0.22 260) 1.2px, transparent 1.2px)',
+                                backgroundSize: '16px 16px',
+                              }}
+                            />
+                            <div className="relative flex flex-col items-center justify-center text-center p-2">
+                              <div className="w-11 h-11 rounded-xl bg-white/95 border border-primary/30 shadow-md flex items-center justify-center text-primary">
+                                <Tv className="w-5 h-5 text-primary" />
+                              </div>
+                              {currentDescription && (
+                                <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1 max-w-[130px] font-semibold">
+                                  {currentDescription}
+                                </p>
+                              )}
                             </div>
                           </div>
                         )}
 
-                        {/* 2. Floating Model Count Badge */}
-                        <div className="absolute bottom-8 right-2 z-20 pointer-events-none">
+                        {/* 2. Floating Model Count Badge - 100% matched to BrandFolderCard */}
+                        <div className="absolute bottom-9 right-2 z-20 pointer-events-none">
                           <Badge
                             variant="secondary"
-                            className="bg-background/90 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[8.5px] py-0 px-1.5 font-semibold shadow-xs"
+                            className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[10px] py-0.5 px-1.5 font-bold shadow-md"
                           >
-                            <Tv className="w-2 h-2 text-primary" />
-                            Models
+                            <Tv className="w-3 h-3 text-primary" />
+                            {modelCount} {modelCount === 1 ? 'Model' : 'Models'}
                           </Badge>
                         </div>
 
-                        {/* 3. Bottom Glass Bar with Centered Brand Name */}
-                        <div className="absolute bottom-0 inset-x-0 z-20 px-2 py-1 bg-background/90 backdrop-blur-md border-t border-border/60 flex items-center justify-center text-center shadow-md pointer-events-none">
-                          <h3 className="text-[10px] font-black text-foreground tracking-tight truncate w-full text-center">
-                            {brandName}
+                        {/* 3. Bottom Bar with Centered Brand Name - 100% matched to BrandFolderCard */}
+                        <div className="relative z-20 px-2 py-2 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm pointer-events-none">
+                          <h3
+                            className="text-xs font-bold text-foreground tracking-tight truncate leading-tight w-full text-center"
+                            title={cleanName}
+                          >
+                            {cleanName}
                           </h3>
                         </div>
                       </div>
 
-                      {/* 4. Vector Neon Glow Outline */}
+                      {/* 4. Clean Perimeter Border Contour - 100% matched to BrandFolderCard */}
                       <svg
                         className="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible"
                         viewBox="0 0 100 100"
                         preserveAspectRatio="none"
                         aria-hidden="true"
                       >
-                        <defs>
-                          <linearGradient id={`dialog-neonGrad-${clipId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.9" />
-                            <stop offset="40%" stopColor="#3b82f6" stopOpacity="0.6" />
-                            <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.8" />
-                          </linearGradient>
-                        </defs>
                         <path
                           d="M 6,100 A 6,8 0 0,1 0,92 L 0,8 A 6,8 0 0,1 6,0 L 30,0 C 34,0 33,13.5 37,13.5 L 94,13.5 A 6,8 0 0,1 100,21.5 L 100,92 A 6,8 0 0,1 94,100 Z"
                           fill="none"
-                          stroke={`url(#dialog-neonGrad-${clipId})`}
-                          strokeWidth="1.75"
+                          stroke="rgba(100, 116, 139, 0.4)"
+                          strokeWidth="1.5"
                           vectorEffect="non-scaling-stroke"
-                          className="drop-shadow-[0_0_8px_rgba(59,130,246,0.35)]"
                         />
                       </svg>
-
-                      {/* 5. Highlighted 3-Dots Menu Pill Simulation */}
-                      <div className="absolute top-4.5 right-1.5 z-40 pointer-events-none">
-                        <div className="h-4.5 w-4.5 rounded-md bg-white/90 border border-primary/30 text-primary flex items-center justify-center shadow-xs">
-                          <MoreVertical className="h-2.5 w-2.5" />
-                        </div>
-                      </div>
                     </div>
                   </div>
 

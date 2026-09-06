@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useTransition, useId } from 'react';
+import React, { useState, useEffect, useTransition, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import { IosSlideToConfirm } from '@/components/shared/ios-slide-to-confirm';
 import {
   MoreVertical,
   Pencil,
@@ -42,6 +43,7 @@ import {
 } from '@/features/knowledge-base/actions/kb.actions';
 import { SetBrandThumbnailDialog } from './set-brand-thumbnail-dialog';
 import { parseThumbnailUrl } from '@/lib/thumbnail-utils';
+import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
 
 interface BrandContextMenuProps {
   brandId: string;
@@ -79,28 +81,50 @@ export function BrandContextMenu({
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
 
+  const deleteDragControls = useDragControls();
+  const renameViewport = useKeyboardViewport(isRenameOpen);
+  const descViewport = useKeyboardViewport(isDescriptionOpen);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when mobile overlay is active
+  // Lock body scroll when mobile overlay or any sheet is active
   useEffect(() => {
-    if (mobileOpen) {
+    if (mobileOpen || isDeleteOpen || isRenameOpen || isDescriptionOpen) {
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = '';
       };
     }
-  }, [mobileOpen]);
+  }, [mobileOpen, isDeleteOpen, isRenameOpen, isDescriptionOpen]);
 
   const isAdmin = !!userRole;
 
   React.useEffect(() => {
-    if (isRenameOpen) setNewName(brandName);
+    if (isRenameOpen) {
+      setNewName(brandName);
+      const timer = setTimeout(() => {
+        if (renameInputRef.current) {
+          renameInputRef.current.focus({ preventScroll: true });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
   }, [isRenameOpen, brandName]);
 
   React.useEffect(() => {
-    if (isDescriptionOpen) setNewDescription(currentDescription || '');
+    if (isDescriptionOpen) {
+      setNewDescription(currentDescription || '');
+      const timer = setTimeout(() => {
+        if (descTextareaRef.current) {
+          descTextareaRef.current.focus({ preventScroll: true });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
   }, [isDescriptionOpen, currentDescription]);
 
   const handleRename = (e: React.FormEvent) => {
@@ -279,7 +303,7 @@ export function BrandContextMenu({
                   className="overflow-y-auto px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4 no-scrollbar flex flex-col items-center w-full"
                 >
                   {/* Authentic Brand Folder Preview Inside Sheet */}
-                  <div className="relative w-[175px] h-[148px] my-1 shrink-0 filter drop-shadow-md">
+                  <div className="relative w-[175px] h-[155px] my-1 shrink-0 filter drop-shadow-md">
                     <div className="relative w-full h-full flex flex-col">
                       {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK */}
                       <div
@@ -475,6 +499,7 @@ export function BrandContextMenu({
           {isRenameOpen && (
             <div
               className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+              style={renameViewport.containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
                   setIsRenameOpen(false);
@@ -504,7 +529,8 @@ export function BrandContextMenu({
                     setIsRenameOpen(false);
                   }
                 }}
-                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                style={{ maxHeight: '100%' }}
+                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Drag Handle */}
@@ -537,6 +563,7 @@ export function BrandContextMenu({
                   <div className="p-5 sm:p-6 space-y-3">
                     <Label className="text-xs font-bold text-foreground">Brand Name</Label>
                     <Input
+                      ref={renameInputRef}
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       required
@@ -545,7 +572,11 @@ export function BrandContextMenu({
                     />
                   </div>
 
-                  <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0">
+                  <div
+                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0 ${
+                      renameViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
+                    }`}
+                  >
                     <Button
                       type="button"
                       variant="outline"
@@ -577,6 +608,7 @@ export function BrandContextMenu({
           {isDescriptionOpen && (
             <div
               className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+              style={descViewport.containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
                   setIsDescriptionOpen(false);
@@ -606,7 +638,8 @@ export function BrandContextMenu({
                     setIsDescriptionOpen(false);
                   }
                 }}
-                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                style={{ maxHeight: '100%' }}
+                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Drag Handle */}
@@ -639,16 +672,21 @@ export function BrandContextMenu({
                   <div className="p-5 sm:p-6 space-y-3">
                     <Label className="text-xs font-bold text-foreground">Description / Notes</Label>
                     <Textarea
+                      ref={descTextareaRef}
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
                       placeholder="Optional technical guidelines, chassis series, or service remarks..."
-                      rows={4}
+                      rows={3}
                       className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
                       autoFocus
                     />
                   </div>
 
-                  <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0">
+                  <div
+                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0 ${
+                      descViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
+                    }`}
+                  >
                     <Button
                       type="button"
                       variant="outline"
@@ -679,6 +717,8 @@ export function BrandContextMenu({
         brandId={brandId}
         brandName={brandName}
         currentLogoUrl={currentLogoUrl}
+        currentDescription={currentDescription}
+        modelCount={modelCount}
         open={isThumbnailOpen}
         onOpenChange={setIsThumbnailOpen}
       />
@@ -695,22 +735,27 @@ export function BrandContextMenu({
                 }
               }}
             >
+              {/* iOS Soft Backdrop with Deep Blur */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10 cursor-pointer"
                 onClick={() => {
                   if (!isPending) setIsDeleteOpen(false);
                 }}
               />
+
+              {/* iOS Style Bottom Sheet Page */}
               <motion.div
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
                 transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
                 drag="y"
+                dragControls={deleteDragControls}
+                dragListener={false}
                 dragConstraints={{ top: 0 }}
                 dragElastic={{ top: 0, bottom: 0.2 }}
                 onDragEnd={(_, info) => {
@@ -721,20 +766,30 @@ export function BrandContextMenu({
                 className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Drag Handle */}
-                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                {/* Top Drag Indicator Handle */}
+                <div
+                  onPointerDown={(e) => deleteDragControls.start(e)}
+                  className="pt-2.5 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                >
                   <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                 </div>
 
-                {/* Header */}
-                <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                {/* Compact Native Sheet Header */}
+                <div
+                  onPointerDown={(e) => {
+                    const target = e.target as HTMLElement | null;
+                    if (target?.closest('button') || target?.closest('a')) return;
+                    deleteDragControls.start(e);
+                  }}
+                  className="px-5 sm:px-6 pt-0.5 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+                >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-800/50 flex items-center justify-center shrink-0">
-                      <AlertTriangle className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-800/50 flex items-center justify-center shrink-0">
+                      <Trash2 className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-base sm:text-lg font-bold text-red-600">Delete Brand Folder</h2>
-                      <p className="text-[11px] text-muted-foreground">Are you sure you want to delete &ldquo;{brandName}&rdquo;?</p>
+                      <h2 className="text-base sm:text-lg font-bold text-red-600 leading-tight">Delete Brand Folder</h2>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground">Permanent removal from Knowledge Base</p>
                     </div>
                   </div>
                   <button
@@ -742,47 +797,97 @@ export function BrandContextMenu({
                     onClick={() => setIsDeleteOpen(false)}
                     disabled={isPending}
                     className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Close"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="p-5 sm:p-6 space-y-3 flex-1 overflow-y-auto">
+                {/* Body Content */}
+                <div className="p-5 sm:px-6 space-y-3.5 flex-1 overflow-y-auto no-scrollbar">
+                  {/* Brand Item Preview Card */}
+                  <div className="p-3.5 bg-muted/40 border border-border/70 rounded-2xl flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-border/80 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+                      {currentLogoUrl ? (
+                        (() => {
+                          const { url, scale, x, y } = parseThumbnailUrl(currentLogoUrl);
+                          return (
+                            <img
+                              src={url}
+                              alt={brandName}
+                              className="w-full h-full object-cover transition-transform"
+                              style={{
+                                transform: `translate(${x}%, ${y}%) scale(${scale})`,
+                              }}
+                            />
+                          );
+                        })()
+                      ) : (
+                        <Tv className="w-6 h-6 text-muted-foreground/60" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-base font-black text-foreground tracking-tight truncate">
+                        {brandName}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Badge
+                          variant={modelCount > 0 ? 'outline' : 'secondary'}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            modelCount > 0
+                              ? 'border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950/30'
+                              : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {modelCount} {modelCount === 1 ? 'Model' : 'Models'} Attached
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Warning / Explanation Alert */}
                   {modelCount > 0 ? (
-                    <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-2">
-                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/50 rounded-2xl space-y-1.5">
+                      <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 font-bold text-xs">
                         <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                         Deletion Blocked: Brand Contains {modelCount} Model(s)
                       </div>
-                      <p className="text-[11px] text-amber-800 leading-relaxed">
-                        As per system safety rules, you cannot delete a brand folder that still contains registered TV models. Please open this brand and delete all inside models first.
+                      <p className="text-[11px] sm:text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
+                        As per system safety rules, you cannot delete a brand folder that still contains registered TV models. Please open this brand and delete or move all inside models first.
                       </p>
                     </div>
                   ) : (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 leading-relaxed">
-                      This brand folder is empty (0 models). Deleting it will permanently remove the brand category from the TV Knowledge Base. This action cannot be undone.
+                    <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-2xl space-y-1.5">
+                      <div className="flex items-center gap-2 text-red-900 dark:text-red-300 font-bold text-xs">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                        Permanent Action
+                      </div>
+                      <p className="text-[11px] sm:text-xs text-red-800 dark:text-red-400 leading-relaxed">
+                        This brand folder is empty (0 models). Deleting it will permanently remove the brand category from the TV Knowledge Base. This action cannot be undone.
+                      </p>
                     </div>
                   )}
                 </div>
 
-                <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0">
+                {/* Footer with iOS Slide to Delete & Cancel */}
+                <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex flex-col gap-2.5 shrink-0">
+                  <IosSlideToConfirm
+                    onConfirm={handleDelete}
+                    isLoading={isPending}
+                    disabled={modelCount > 0}
+                    disabledReason="Cannot Delete: Models Exist"
+                    label="slide to delete brand"
+                    loadingLabel="Deleting Brand..."
+                  />
+
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => setIsDeleteOpen(false)}
-                    className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                    disabled={isPending}
+                    className="w-full h-10 rounded-full text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
                   >
                     Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={handleDelete}
-                    disabled={isPending || modelCount > 0}
-                    className="rounded-2xl text-xs h-10 px-5 font-bold gap-2 cursor-pointer shadow-md shadow-red-500/20 active:scale-95 transition-all"
-                  >
-                    {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Delete Brand Permanently
                   </Button>
                 </div>
               </motion.div>

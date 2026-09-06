@@ -33,13 +33,13 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
   const cleanName = brand.name.replace(/_\d{10,}$/, '');
 
   const cardContainerRef = React.useRef<HTMLDivElement>(null);
-  const [scaleRatio, setScaleRatio] = React.useState(0.5);
+  const [scaleRatio, setScaleRatio] = React.useState(1);
 
   React.useEffect(() => {
     if (!cardContainerRef.current) return;
     const update = (w: number) => {
       if (w > 0) {
-        setScaleRatio(w / 340);
+        setScaleRatio(w / 175);
       }
     };
     update(cardContainerRef.current.clientWidth);

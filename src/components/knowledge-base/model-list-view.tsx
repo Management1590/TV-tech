@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Sparkles,
   Plus,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -324,19 +325,19 @@ export function ModelListView({
 
   return (
     <div className={`space-y-4 min-h-[calc(100dvh-180px)] transition-all duration-300 ${isSearchFocused ? 'pb-32' : 'pb-16'}`}>
-      {/* Sticky Real-time Contextual Model Search Bar + Filter Segmented Control */}
+      {/* Real-time Contextual Model Search Bar + Filter Segmented Control */}
       <div
         ref={searchContainerRef}
-        className={`sticky top-1 sm:top-2 z-30 transition-all duration-200 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl p-2 sm:p-2.5 rounded-2xl border border-border/80 ${
+        className={`transition-all duration-200 bg-white/95 dark:bg-slate-950/95 p-2.5 sm:p-3.5 rounded-2xl sm:rounded-3xl border border-border/80 ${
           isSearchFocused || searchQuery.trim()
-            ? 'shadow-md ring-2 ring-primary/20'
+            ? 'shadow-md ring-2 ring-primary/20 border-primary/40'
             : 'shadow-xs hover:shadow-sm'
         }`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-wrap">
-          {/* In-Place Search Bar with Premium Theme Highlight */}
+        <div className="space-y-2.5 sm:space-y-3">
+          {/* Row 1: Real-time In-Place Search Bar with Premium Badge */}
           <div
-            className="relative flex-1 min-w-0 group cursor-text"
+            className="relative w-full group cursor-text"
             onClick={() => {
               inputRef.current?.focus();
               moveSearchBarToTop();
@@ -344,8 +345,8 @@ export function ModelListView({
           >
             <div className="relative flex items-center">
               {/* Premium Theme Icon Badge */}
-              <div className="absolute left-2.5 z-10 w-7 h-7 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs pointer-events-none group-focus-within:border-primary/50 group-focus-within:scale-105 transition-all">
-                <Search className="w-3.5 h-3.5" />
+              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs pointer-events-none group-focus-within:border-primary/50 group-focus-within:scale-105 transition-all">
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
               </div>
 
               <Input
@@ -365,7 +366,7 @@ export function ModelListView({
                 }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
-                className="pl-12 pr-14 h-11 bg-white/95 dark:bg-slate-900 border-2 border-primary/25 hover:border-primary/45 focus-visible:border-primary rounded-2xl shadow-xs hover:shadow-sm focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-primary/15 text-xs sm:text-sm font-semibold transition-all duration-200"
+                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-white/95 dark:bg-slate-900 border-2 border-primary/25 hover:border-primary/45 focus-visible:border-primary rounded-xl sm:rounded-2xl shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-primary/15 text-xs sm:text-sm font-semibold transition-all duration-200"
               />
 
               {/* Clear / Dismiss Button or Quick Tag */}
@@ -378,13 +379,13 @@ export function ModelListView({
                       setSearchQuery('');
                       inputRef.current?.focus();
                     }}
-                    className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
                     title="Clear search"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground/70 border border-border/80">
+                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground/70 border border-border/80">
                     Search
                   </span>
                 )}
@@ -392,15 +393,33 @@ export function ModelListView({
             </div>
           </div>
 
-          {/* Single Ultra-Premium iOS Sort Button Trigger */}
-          <KbSortButton
-            sortBy={sortBy}
-            onClick={() => {
-              inputRef.current?.blur();
-              setIsSortOpen(true);
-            }}
-            className="self-start sm:self-auto h-11"
-          />
+          {/* Row 2: Sort Directory Control Bar (Title on Left, Sort Button Shifted to Right) */}
+          <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/60">
+            {/* Left: Explicit "Sort Directory" Title */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs sm:text-sm font-extrabold text-foreground tracking-tight whitespace-nowrap">
+                  Sort Directory
+                </span>
+                <span className="text-[11px] text-muted-foreground font-medium hidden xs:inline truncate">
+                  • {filteredModels.length} {filteredModels.length === 1 ? 'model' : 'models'}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Ultra-Premium iOS Sort Button Trigger (Shifted to Right) */}
+            <KbSortButton
+              sortBy={sortBy}
+              onClick={() => {
+                inputRef.current?.blur();
+                setIsSortOpen(true);
+              }}
+              className="h-9 sm:h-9.5 shrink-0 ml-auto shadow-2xs hover:shadow-xs"
+            />
+          </div>
         </div>
       </div>
 
