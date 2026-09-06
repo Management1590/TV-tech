@@ -328,14 +328,14 @@ export function ModelListView({
       {/* Real-time Contextual Model Search Bar + Filter Segmented Control */}
       <div
         ref={searchContainerRef}
-        className={`transition-all duration-200 bg-white/95 dark:bg-slate-950/95 p-2.5 sm:p-3.5 rounded-2xl sm:rounded-3xl border border-border/80 ${
+        className={`transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
           isSearchFocused || searchQuery.trim()
-            ? 'shadow-md ring-2 ring-primary/20 border-primary/40'
-            : 'shadow-xs hover:shadow-sm'
+            ? 'shadow-md ring-2 ring-blue-500/20 border-blue-400/50'
+            : 'border-border/80 shadow-xs hover:shadow-sm'
         }`}
       >
         <div className="space-y-2.5 sm:space-y-3">
-          {/* Row 1: Real-time In-Place Search Bar with Premium Badge */}
+          {/* Row 1: Real-time In-Place Search Bar */}
           <div
             className="relative w-full group cursor-text"
             onClick={() => {
@@ -345,8 +345,8 @@ export function ModelListView({
           >
             <div className="relative flex items-center">
               {/* Premium Theme Icon Badge */}
-              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs pointer-events-none group-focus-within:border-primary/50 group-focus-within:scale-105 transition-all">
-                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-2xs pointer-events-none group-focus-within:border-blue-500/50 group-focus-within:scale-105 transition-all">
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
               </div>
 
               <Input
@@ -366,7 +366,7 @@ export function ModelListView({
                 }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
-                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-white/95 dark:bg-slate-900 border-2 border-primary/25 hover:border-primary/45 focus-visible:border-primary rounded-xl sm:rounded-2xl shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-primary/15 text-xs sm:text-sm font-semibold transition-all duration-200"
+                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-slate-50/80 dark:bg-slate-900 border-2 border-slate-200 hover:border-blue-400/50 focus-visible:border-blue-500 rounded-xl sm:rounded-2xl shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-blue-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
               />
 
               {/* Clear / Dismiss Button or Quick Tag */}
@@ -385,7 +385,7 @@ export function ModelListView({
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground/70 border border-border/80">
+                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-muted-foreground/70 border border-border/80">
                     Search
                   </span>
                 )}
@@ -393,24 +393,24 @@ export function ModelListView({
             </div>
           </div>
 
-          {/* Row 2: Sort Directory Control Bar (Title on Left, Sort Button Shifted to Right) */}
-          <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/60">
+          {/* Row 2: Sort Directory Control Bar */}
+          <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/50">
             {/* Left: Explicit "Sort Directory" Title */}
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
+              <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 shrink-0">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-xs sm:text-sm font-extrabold text-foreground tracking-tight whitespace-nowrap">
                   Sort Directory
                 </span>
-                <span className="text-[11px] text-muted-foreground font-medium hidden xs:inline truncate">
-                  • {filteredModels.length} {filteredModels.length === 1 ? 'model' : 'models'}
+                <span className="text-[11px] text-muted-foreground/70 font-semibold hidden xs:inline truncate">
+                  · {filteredModels.length} {filteredModels.length === 1 ? 'model' : 'models'}
                 </span>
               </div>
             </div>
 
-            {/* Right: Ultra-Premium iOS Sort Button Trigger (Shifted to Right) */}
+            {/* Right: Sort Button */}
             <KbSortButton
               sortBy={sortBy}
               onClick={() => {
@@ -435,14 +435,14 @@ export function ModelListView({
 
       {/* Active Search Results Indicator */}
       {debouncedQuery.trim() && !isSearching && (
-        <div className="flex items-center justify-between text-xs px-1 text-muted-foreground">
-          <span className="font-medium">
-            Showing <strong className="text-foreground">{filteredModels.length}</strong> of {models.length} models matching &ldquo;{debouncedQuery}&rdquo;
+        <div className="flex items-center justify-between text-xs px-1">
+          <span className="font-semibold text-muted-foreground/80">
+            Showing <strong className="text-foreground font-extrabold">{filteredModels.length}</strong> of {models.length} models matching &ldquo;<span className="text-blue-600 font-bold">{debouncedQuery}</span>&rdquo;
           </span>
           <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer"
+            className="text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
           >
             <X className="w-3 h-3" /> Clear filter
           </button>
@@ -459,13 +459,13 @@ export function ModelListView({
         </div>
       ) : filteredModels.length === 0 ? (
         <div className="p-8 sm:p-12 text-center bg-white border border-border/80 border-dashed rounded-3xl shadow-blend">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/30 flex items-center justify-center mx-auto mb-3.5 text-primary shadow-2xs">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-400/30 flex items-center justify-center mx-auto mb-3.5 text-blue-600 shadow-2xs">
             <Monitor className="w-7 h-7" />
           </div>
-          <h3 className="font-bold text-foreground text-base sm:text-lg">
+          <h3 className="font-extrabold text-foreground text-base sm:text-lg tracking-tight">
             {searchQuery ? `No model found matching "${searchQuery}"` : 'No models registered'}
           </h3>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md mx-auto mb-5 leading-relaxed">
+          <p className="text-xs sm:text-sm text-muted-foreground/80 mt-1.5 max-w-md mx-auto mb-5 leading-relaxed font-medium">
             {searchQuery
               ? `This model is not registered under ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'this brand'} yet. Create "${searchQuery.trim().toUpperCase()}" to automatically set up its technical folders (Backlight & More info).`
               : 'Add your first TV model for this brand to start organizing documentation.'}
@@ -504,7 +504,7 @@ export function ModelListView({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="divide-y divide-border/70 bg-white border border-border/80 rounded-3xl shadow-blend overflow-hidden">
+          <div className="divide-y divide-slate-100 bg-white border border-border/70 rounded-3xl shadow-blend overflow-hidden">
             {visibleModels.map((model, idx) => {
               const folderCount = model._count?.knowledgeFolders ?? 0;
               const cleanModelNumber = model.modelNumber.replace(/_\d{10,}$/, '');
@@ -519,22 +519,22 @@ export function ModelListView({
                   <Link
                     href={`/knowledge-base/models/${model.id}`}
                     onClick={() => recordModelOpen(model.id)}
-                    className="group flex items-center justify-between p-4 sm:p-5 hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+                    className="group flex items-center justify-between p-4 sm:p-5 hover:bg-slate-50/80 transition-all duration-200 cursor-pointer"
                   >
                     {/* Left Side: Model Info */}
                     <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-primary/15 to-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-105 group-hover:border-primary/40 group-hover:shadow-sm transition-all shrink-0">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 group-hover:scale-105 group-hover:border-blue-400/40 group-hover:shadow-sm transition-all shrink-0">
                         <Monitor className="w-5 h-5" />
                       </div>
 
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-foreground text-sm sm:text-base tracking-tight group-hover:text-primary transition-colors truncate">
+                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors truncate">
                             {cleanModelNumber}
                           </span>
 
                           {model.screenSize && (
-                            <Badge variant="outline" className="text-[11px] font-bold px-2 py-0.5 bg-muted">
+                            <Badge variant="outline" className="text-[11px] font-extrabold px-2 py-0.5 bg-slate-50 text-slate-700 border-slate-200">
                               {model.screenSize}&quot;
                             </Badge>
                           )}
@@ -542,19 +542,19 @@ export function ModelListView({
                           {model.displayType && (
                             <Badge
                               variant="secondary"
-                              className="text-[10px] uppercase font-bold px-1.5 py-0 bg-primary/5 text-primary border-primary/20"
+                              className="text-[10px] uppercase font-extrabold px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200/60"
                             >
                               {model.displayType}
                             </Badge>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <div className="flex items-center gap-3 text-xs flex-wrap">
                           {model.chassisNo && (
-                            <span className="font-mono text-[11px]">Chassis: {model.chassisNo}</span>
+                            <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md">Chassis: {model.chassisNo}</span>
                           )}
                           {model.notes && (
-                            <span className="truncate max-w-xs text-[11px] italic text-muted-foreground">
+                            <span className="truncate max-w-xs text-[11px] italic text-muted-foreground/70 font-medium">
                               {model.notes}
                             </span>
                           )}
@@ -564,8 +564,8 @@ export function ModelListView({
 
                     {/* Right Side: Folders Count, 3-Dots Menu, & Action Pill */}
                     <div className="flex items-center gap-2.5 shrink-0 ml-4">
-                      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted border border-border/60 text-xs font-semibold text-muted-foreground">
-                        <FolderOpen className="w-3.5 h-3.5 text-primary" />
+                      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
+                        <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
                         <span>
                           {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'}
                         </span>
@@ -592,7 +592,7 @@ export function ModelListView({
                         </div>
                       )}
 
-                      <div className="w-8 h-8 rounded-xl bg-muted group-hover:bg-primary group-hover:text-white flex items-center justify-center text-muted-foreground transition-all duration-200">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center text-slate-500 transition-all duration-200">
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </div>
@@ -613,7 +613,7 @@ export function ModelListView({
 
           {/* Footer count indicator */}
           {filteredModels.length > ITEMS_PER_PAGE && (
-            <div className="flex items-center justify-center pt-2 pb-4 text-xs text-muted-foreground font-medium">
+            <div className="flex items-center justify-center pt-2 pb-4 text-xs text-muted-foreground font-semibold">
               <span>
                 Showing {Math.min(visibleCount, filteredModels.length)} of {filteredModels.length} models
               </span>

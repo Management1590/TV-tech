@@ -124,17 +124,21 @@ export default async function KbFolderDetailPage({
       className="space-y-4 sm:space-y-6 p-2 sm:p-4 max-w-7xl mx-auto"
       style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.25rem)' }}
     >
-      {/* Sleek Breadcrumb & Back Navigation - Touch-Friendly Pill Track with Smooth Horizontal Scroll */}
+      {/* Sleek Breadcrumb & Back Navigation */}
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
         <Link
           href={`/knowledge-base/models/${folder.model.id}`}
-          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-muted hover:text-primary active:bg-muted/80 text-foreground/80 transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-slate-50 hover:text-blue-600 active:bg-muted/80 text-foreground/70 transition-all font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-primary" />
+          <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
           <span>{cleanModelNumber}</span>
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-        <span className="px-2.5 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1">
+        <span className={`px-2.5 py-1.5 rounded-xl font-extrabold shrink-0 min-h-[34px] inline-flex items-center gap-1 ${
+          isBacklight
+            ? 'bg-amber-50 text-amber-700 border border-amber-300/50'
+            : 'bg-indigo-50 text-indigo-700 border border-indigo-300/50'
+        }`}>
           {folder.name}
         </span>
       </nav>
@@ -143,22 +147,22 @@ export default async function KbFolderDetailPage({
       {isBacklight ? (
         <>
           {/* Backlight Folder Header */}
-          <div className="p-4 sm:p-6 bg-white border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+          <div className="p-4 sm:p-6 bg-white border border-border/70 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-3.5 sm:gap-4">
               <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs bg-amber-500/15 border border-amber-300/80 text-amber-600">
                 <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate">
+                  <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 truncate">
                     {folder.name}
                   </h1>
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] sm:text-xs font-bold py-0.5 px-2">
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] sm:text-xs font-extrabold py-0.5 px-2.5 shadow-2xs">
                     Backlight Linker
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
-                  {modelFullName} • Backlight Inventory Linker
+                <p className="text-xs text-muted-foreground/80 mt-0.5 truncate font-semibold">
+                  {modelFullName} · Backlight Inventory Linker
                 </p>
               </div>
             </div>

@@ -56,13 +56,14 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
   const effectiveY = parsedThumb.y * scaleRatio;
 
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [isDeleted, setIsDeleted] = React.useState(false);
   const [isPressing, setIsPressing] = React.useState(false);
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = React.useRef(false);
   const touchStartPosRef = React.useRef<{ x: number; y: number } | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!userRole) return;
+    if (!userRole || isDeleted) return;
     isLongPressRef.current = false;
     setIsPressing(true);
     if (e.touches.length > 0) {
@@ -101,12 +102,23 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    if (isDeleted || menuOpen) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (isLongPressRef.current) {
       e.preventDefault();
       e.stopPropagation();
       isLongPressRef.current = false;
+      return;
     }
+    recordBrandOpen(brand.id);
   };
+
+  if (isDeleted) {
+    return null;
+  }
 
   return (
     <div className="relative group h-full flex flex-col select-none">
@@ -142,18 +154,17 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
               userRole={userRole}
               isOpen={menuOpen}
               onOpenChange={setMenuOpen}
+              onDeleteSuccess={() => {
+                setIsDeleted(true);
+                setMenuOpen(false);
+              }}
             />
           </div>
         )}
 
         <Link
           href={`/knowledge-base/brands/${brand.id}`}
-          onClick={(e) => {
-            handleClick(e);
-            if (!isLongPressRef.current) {
-              recordBrandOpen(brand.id);
-            }
-          }}
+          onClick={handleClick}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -218,7 +229,7 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
             <div className="absolute bottom-9 sm:bottom-12 right-2 sm:right-2 z-20">
               <Badge
                 variant="secondary"
-                className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-bold shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all"
+                className="bg-white/98 text-blue-700 border border-blue-400/40 backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-extrabold shadow-md group-hover:border-blue-500/60 group-hover:shadow-lg transition-all"
               >
                 <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 {modelCount} {modelCount === 1 ? 'Model' : 'Models'}
@@ -226,9 +237,9 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
             </div>
 
             {/* 3. SOLID BOTTOM BAR WITH CENTERED TITLE */}
-            <div className="relative z-20 px-2 sm:px-4 py-2 sm:py-3 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
+            <div className="relative z-20 px-2 sm:px-4 py-2.5 sm:py-3 bg-white border-t border-slate-200/80 flex items-center justify-center text-center">
               <h3
-                className="text-xs sm:text-base font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate leading-tight w-full text-center"
+                className="text-xs sm:text-sm font-black text-slate-800 group-hover:text-blue-600 transition-colors tracking-tight truncate leading-tight w-full text-center"
                 title={cleanName}
               >
                 {cleanName}

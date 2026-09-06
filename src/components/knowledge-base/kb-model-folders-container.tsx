@@ -33,11 +33,12 @@ export function KbModelFoldersContainer({
       {/* Folder Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-primary" />
-            Technical Folders ({displayFolders.length})
+          <h2 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-blue-600" />
+            <span>Technical Folders</span>
+            <span className="text-muted-foreground/70 font-bold">({displayFolders.length})</span>
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground/80 mt-0.5 font-medium">
             Select a section to manage backlights, photos/videos, audio logs, and repair notes.
           </p>
         </div>

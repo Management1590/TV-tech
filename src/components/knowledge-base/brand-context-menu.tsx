@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useTransition, useId, useRef } from 'react';
+import React, { useState, useEffect, useTransition, useId, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter, usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { IosSlideToConfirm } from '@/components/shared/ios-slide-to-confirm';
 import {
@@ -43,7 +44,12 @@ import {
 } from '@/features/knowledge-base/actions/kb.actions';
 import { SetBrandThumbnailDialog } from './set-brand-thumbnail-dialog';
 import { parseThumbnailUrl } from '@/lib/thumbnail-utils';
-import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
+import {
+  useKeyboardViewport,
+  useScrollLock,
+  handleProximityTouch,
+  createPersistentBlurHandler,
+} from '@/lib/use-keyboard-viewport';
 
 interface BrandContextMenuProps {
   brandId: string;
@@ -55,6 +61,7 @@ interface BrandContextMenuProps {
   userRole?: string;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onDeleteSuccess?: () => void;
 }
 
 export function BrandContextMenu({
@@ -67,7 +74,10 @@ export function BrandContextMenu({
   userRole = 'STAFF',
   isOpen: mobileOpen = false,
   onOpenChange: setMobileOpen = () => {},
+  onDeleteSuccess,
 }: BrandContextMenuProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const previewClipId = useId().replace(/:/g, '');
   const parsedThumb = parseThumbnailUrl(currentLogoUrl);
 
@@ -86,20 +96,24 @@ export function BrandContextMenu({
   const descViewport = useKeyboardViewport(isDescriptionOpen);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const renameSheetRef = useRef<HTMLDivElement>(null);
+  const descSheetRef = useRef<HTMLDivElement>(null);
+
+  // Lock background scroll when mobile menu or delete modal is open
+  useScrollLock(mobileOpen || isDeleteOpen);
+
+  const persistentRenameBlur = useMemo(
+    () => createPersistentBlurHandler(isRenameOpen, isPending),
+    [isRenameOpen, isPending]
+  );
+  const persistentDescBlur = useMemo(
+    () => createPersistentBlurHandler(isDescriptionOpen, isPending),
+    [isDescriptionOpen, isPending]
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Lock body scroll when mobile overlay or any sheet is active
-  useEffect(() => {
-    if (mobileOpen || isDeleteOpen || isRenameOpen || isDescriptionOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [mobileOpen, isDeleteOpen, isRenameOpen, isDescriptionOpen]);
 
   const isAdmin = !!userRole;
 
@@ -161,6 +175,14 @@ export function BrandContextMenu({
       if (res.success) {
         toast.success(`Brand "${brandName}" deleted successfully`);
         setIsDeleteOpen(false);
+        setMobileOpen(false);
+        if (onDeleteSuccess) {
+          onDeleteSuccess();
+        }
+        // If the user is currently on this brand's detail page, redirect to brand directory
+        if (typeof window !== 'undefined' && window.location.pathname.includes(`/knowledge-base/brands/${brandId}`)) {
+          router.replace('/knowledge-base');
+        }
       } else {
         toast.error(res.error || 'Failed to delete brand');
       }
@@ -498,7 +520,7 @@ export function BrandContextMenu({
         <AnimatePresence>
           {isRenameOpen && (
             <div
-              className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+              className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
               style={renameViewport.containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
@@ -511,7 +533,7 @@ export function BrandContextMenu({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
                 onClick={() => {
                   if (!isPending) setIsRenameOpen(false);
                 }}
@@ -529,9 +551,15 @@ export function BrandContextMenu({
                     setIsRenameOpen(false);
                   }
                 }}
-                style={{ maxHeight: '100%' }}
+                ref={renameSheetRef}
+                style={{
+                  maxHeight: '100%',
+                  paddingBottom: renameViewport.isKeyboardOpen ? '380px' : undefined,
+                  marginBottom: renameViewport.isKeyboardOpen ? '-380px' : undefined,
+                }}
                 className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                 onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => handleProximityTouch(e, renameSheetRef.current)}
               >
                 {/* Drag Handle */}
                 <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
@@ -566,6 +594,15 @@ export function BrandContextMenu({
                       ref={renameInputRef}
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
+                      onBlur={persistentRenameBlur}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (newName.trim() && newName.trim() !== brandName) {
+                            handleRename(e);
+                          }
+                        }
+                      }}
                       required
                       className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold"
                       autoFocus
@@ -607,7 +644,7 @@ export function BrandContextMenu({
         <AnimatePresence>
           {isDescriptionOpen && (
             <div
-              className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+              className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
               style={descViewport.containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
@@ -620,7 +657,7 @@ export function BrandContextMenu({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
                 onClick={() => {
                   if (!isPending) setIsDescriptionOpen(false);
                 }}
@@ -638,9 +675,15 @@ export function BrandContextMenu({
                     setIsDescriptionOpen(false);
                   }
                 }}
-                style={{ maxHeight: '100%' }}
+                ref={descSheetRef}
+                style={{
+                  maxHeight: '100%',
+                  paddingBottom: descViewport.isKeyboardOpen ? '380px' : undefined,
+                  marginBottom: descViewport.isKeyboardOpen ? '-380px' : undefined,
+                }}
                 className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                 onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => handleProximityTouch(e, descSheetRef.current)}
               >
                 {/* Drag Handle */}
                 <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
@@ -675,6 +718,7 @@ export function BrandContextMenu({
                       ref={descTextareaRef}
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
+                      onBlur={persistentDescBlur}
                       placeholder="Optional technical guidelines, chassis series, or service remarks..."
                       rows={3}
                       className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
@@ -741,7 +785,7 @@ export function BrandContextMenu({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10 cursor-pointer"
+                className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10 cursor-pointer touch-none"
                 onClick={() => {
                   if (!isPending) setIsDeleteOpen(false);
                 }}

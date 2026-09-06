@@ -28,7 +28,11 @@ import {
 import { toast } from 'sonner';
 import { createTvModelAction } from '@/features/knowledge-base/actions/kb.actions';
 import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
-import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
+import {
+  useKeyboardViewport,
+  handleProximityTouch,
+  createPersistentBlurHandler,
+} from '@/lib/use-keyboard-viewport';
 
 interface CreateTvModelDialogProps {
   brands: { id: string; name: string }[];
@@ -61,32 +65,14 @@ export function CreateTvModelDialog({
   }, []);
 
   const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
-
-  // Lock body scroll on iOS without letting window.scrollY displace fixed overlays
-  useEffect(() => {
-    if (open) {
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const prevPosition = document.body.style.position;
-      const prevTop = document.body.style.top;
-      const prevWidth = document.body.style.width;
-      const prevOverflow = document.body.style.overflow;
-
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-
-      return () => {
-        document.body.style.position = prevPosition;
-        document.body.style.top = prevTop;
-        document.body.style.width = prevWidth;
-        document.body.style.overflow = prevOverflow;
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [open]);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   const [isPending, startTransition] = useTransition();
+
+  const persistentBlur = useMemo(
+    () => createPersistentBlurHandler(open, isPending),
+    [open, isPending]
+  );
 
   const [brandId, setBrandId] = useState(preselectedBrandId || brands[0]?.id || '');
   const [modelNumber, setModelNumber] = useState(initialModelNumber);
@@ -261,7 +247,7 @@ export function CreateTvModelDialog({
           <AnimatePresence>
             {open && (
               <div
-                className="fixed inset-0 z-[100] flex flex-col justify-end items-center select-none"
+                className="fixed inset-x-0 z-[100] flex flex-col justify-end items-center select-none"
                 style={containerStyle}
                 onClick={(e) => {
                   if (e.target === e.currentTarget && !isPending) {
@@ -275,7 +261,7 @@ export function CreateTvModelDialog({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
                   onClick={() => {
                     if (!isPending) handleClose();
                   }}
@@ -302,11 +288,15 @@ export function CreateTvModelDialog({
                       handleClose();
                     }
                   }}
+                  ref={sheetRef}
                   style={{
                     maxHeight: '100%',
+                    paddingBottom: isKeyboardOpen ? '380px' : undefined,
+                    marginBottom: isKeyboardOpen ? '-380px' : undefined,
                   }}
                   className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                   onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => handleProximityTouch(e, sheetRef.current)}
                 >
                   {/* Drag Handle */}
                   <div
@@ -354,7 +344,7 @@ export function CreateTvModelDialog({
 
                   {/* Form */}
                   <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                    <div className="overflow-y-auto px-5 sm:px-6 py-4 space-y-3.5 no-scrollbar flex-1">
+                    <div data-modal-scrollable="true" className="overflow-y-auto px-5 sm:px-6 py-4 space-y-3.5 no-scrollbar flex-1">
                       {/* Optional Brand Selector (Only if multiple brands exist and not preselected) */}
                       {!preselectedBrandId && brands.length > 1 && (
                         <div className="space-y-1">
@@ -393,10 +383,14 @@ export function CreateTvModelDialog({
                           id="model-number"
                           value={modelNumber}
                           onChange={(e) => handleModelNumberChange(e.target.value)}
+                          onBlur={persistentBlur}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              e.currentTarget.blur();
+                              const sizeInput = document.getElementById('screen-size');
+                              if (sizeInput) {
+                                sizeInput.focus();
+                              }
                             }
                           }}
                           onFocus={(e) => {
@@ -498,10 +492,13 @@ export function CreateTvModelDialog({
                               setScreenSize(e.target.value);
                               setAutoDetectedSize(null);
                             }}
+                            onBlur={persistentBlur}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
-                                e.currentTarget.blur();
+                                if (brandId && modelNumber.trim() && similarityResult.level !== 'BLOCK') {
+                                  handleSubmit(e as any);
+                                }
                               }
                             }}
                             placeholder="e.g. 55"

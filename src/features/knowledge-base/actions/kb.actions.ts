@@ -261,7 +261,7 @@ export async function deleteTvBrandAction(brandId: string) {
     });
 
     revalidatePath('/knowledge-base');
-    return { success: true };
+    return { success: true, brandId };
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to delete TV brand.' };
   }
@@ -662,7 +662,7 @@ export async function deleteTvModelAction(modelId: string) {
 
     revalidatePath('/knowledge-base');
     revalidatePath(`/knowledge-base/brands/${model.brandId}`);
-    return { success: true };
+    return { success: true, brandId: model.brandId };
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to delete TV model.' };
   }

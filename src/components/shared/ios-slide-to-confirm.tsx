@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { ChevronRight, ChevronsRight, Loader2, Lock, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface IosSlideToConfirmProps {
@@ -16,14 +16,14 @@ export interface IosSlideToConfirmProps {
   className?: string;
 }
 
-const KNOB_SIZE = 48; // 48px circle
-const TRACK_PADDING = 4; // 4px padding on each side (h-14 = 56px total)
+const KNOB_SIZE = 46; // 46px circle
+const TRACK_PADDING = 4; // 4px padding on each side (h-[54px] total)
 
 export function IosSlideToConfirm({
   onConfirm,
   isLoading = false,
-  label = 'slide to delete',
-  loadingLabel = 'Deleting...',
+  label = 'slide to confirm',
+  loadingLabel = 'Processing...',
   disabled = false,
   disabledReason,
   variant = 'danger',
@@ -32,9 +32,16 @@ export function IosSlideToConfirm({
   const trackRef = useRef<HTMLDivElement>(null);
   const [trackWidth, setTrackWidth] = useState(0);
   const [isTriggered, setIsTriggered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Gesture tracking refs
+  const isPointerDownRef = useRef(false);
+  const startClientXRef = useRef(0);
+  const startKnobXRef = useRef(0);
+
   const x = useMotionValue(0);
 
-  // Measure container width responsively
+  // Responsive track width measurement
   useEffect(() => {
     const updateWidth = () => {
       if (trackRef.current) {
@@ -55,79 +62,141 @@ export function IosSlideToConfirm({
   // Dynamic progress: 0 to 1
   const progress = useTransform(x, [0, Math.max(1, maxDrag)], [0, 1]);
 
-  // Smooth expanding gradient fill behind knob
+  // Expanding color fill behind knob from left track edge
   const fillWidth = useTransform(x, (val) => {
-    if (disabled) return 0;
-    if (trackWidth <= 0) return 0;
+    if (disabled || trackWidth <= 0) return 0;
     return Math.min(trackWidth, Math.max(0, val + KNOB_SIZE + TRACK_PADDING));
   });
 
   // Fade out shimmering label as knob slides across
-  const textOpacity = useTransform(x, [0, Math.max(1, maxDrag * 0.4)], [1, 0]);
+  const textOpacity = useTransform(x, [0, Math.max(1, maxDrag * 0.45)], [1, 0]);
 
-  // Gentle knob icon scale on nearing completion
-  const knobScale = useTransform(progress, [0.75, 0.95], [1, 1.15]);
+  // Threshold icon swap / scale feedback
+  const iconScale = useTransform(progress, [0.65, 0.95], [1, 1.18]);
 
-  // Handle drag release
-  const handleDragEnd = useCallback(() => {
-    if (disabled || isLoading || isTriggered) return;
+  const isBusy = isLoading || isTriggered;
+
+  // Pointer Down: captures touch/pointer on track or knob for 1:1 tracking
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (disabled || isBusy || maxDrag <= 0) return;
+
+    // Prevent parent sheets (e.g. Y-drag) from intercepting horizontal slide
+    e.stopPropagation();
+
+    const track = trackRef.current;
+    if (!track) return;
+
+    isPointerDownRef.current = true;
+    setIsDragging(true);
+
+    const rect = track.getBoundingClientRect();
+    const touchXInTrack = e.clientX - rect.left - TRACK_PADDING;
+    const currentKnobX = x.get();
+
+    // If tapped near or on the knob, drag relative to current position
+    // If tapped further along track, immediately jump knob toward pointer
+    if (Math.abs(touchXInTrack - (currentKnobX + KNOB_SIZE / 2)) < KNOB_SIZE * 0.9) {
+      startClientXRef.current = e.clientX;
+      startKnobXRef.current = currentKnobX;
+    } else {
+      const targetX = Math.min(maxDrag, Math.max(0, touchXInTrack - KNOB_SIZE / 2));
+      startClientXRef.current = e.clientX;
+      startKnobXRef.current = targetX;
+      x.set(targetX);
+    }
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  // Pointer Move: direct 1:1 hardware-accelerated tracking with zero latency
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPointerDownRef.current || disabled || isBusy || maxDrag <= 0) return;
+    e.stopPropagation();
+
+    const deltaX = e.clientX - startClientXRef.current;
+    const newX = Math.min(maxDrag, Math.max(0, startKnobXRef.current + deltaX));
+    x.set(newX);
+  };
+
+  // Pointer Up / Cancel: evaluate threshold and spring to target
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPointerDownRef.current) return;
+    isPointerDownRef.current = false;
+    setIsDragging(false);
+
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
 
     const currentX = x.get();
-    const threshold = maxDrag * 0.82;
+    // 70% distance is the natural iOS confirmation threshold
+    const threshold = maxDrag * 0.70;
 
-    if (currentX >= threshold) {
+    if (currentX >= threshold && !isTriggered) {
       setIsTriggered(true);
-      animate(x, maxDrag, { type: 'spring', damping: 25, stiffness: 350 });
+      // Spring smoothly to end
+      animate(x, maxDrag, { type: 'spring', damping: 24, stiffness: 360, mass: 0.5 });
 
-      // iOS tactile haptic feedback
+      // iOS tactile haptic vibration
       if (typeof window !== 'undefined' && 'vibrate' in navigator) {
         try {
-          navigator.vibrate(40);
-        } catch {
-          // ignore if vibration blocked
-        }
+          navigator.vibrate([25, 35]);
+        } catch {}
       }
 
       onConfirm();
     } else {
-      animate(x, 0, { type: 'spring', damping: 25, stiffness: 350 });
+      // Spring smoothly back to start
+      animate(x, 0, { type: 'spring', damping: 24, stiffness: 380, mass: 0.5 });
     }
-  }, [disabled, isLoading, isTriggered, maxDrag, onConfirm, x]);
+  };
 
-  // Reset when loading ends or if disabled changes
+  // Reset when loading ends
   useEffect(() => {
     if (!isLoading && isTriggered) {
       setIsTriggered(false);
-      animate(x, 0, { type: 'spring', damping: 25, stiffness: 350 });
+      animate(x, 0, { type: 'spring', damping: 24, stiffness: 380, mass: 0.5 });
     }
   }, [isLoading, isTriggered, x]);
 
+  // Reset if disabled changes
   useEffect(() => {
     if (disabled) {
-      animate(x, 0, { type: 'spring', damping: 25, stiffness: 350 });
+      animate(x, 0, { type: 'spring', damping: 24, stiffness: 380, mass: 0.5 });
     }
   }, [disabled, x]);
-
-  const isBusy = isLoading || isTriggered;
 
   // Variants styling
   const trackBorderBg = disabled
     ? 'border-border/40 bg-muted/30'
     : variant === 'danger'
-    ? 'border-red-500/30 bg-red-950/10 dark:bg-red-950/20'
+    ? 'border-red-500/30 bg-red-950/15 dark:bg-red-950/30'
+    : variant === 'warning'
+    ? 'border-amber-500/30 bg-amber-950/15 dark:bg-amber-950/30'
     : 'border-primary/30 bg-primary/10';
 
   const fillGradient =
     variant === 'danger'
-      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-500'
-      : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary';
+      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]'
+      : variant === 'warning'
+      ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+      : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary shadow-[0_0_20px_rgba(59,130,246,0.4)]';
+
+  const knobTextColor =
+    variant === 'danger' ? 'text-red-600' : variant === 'warning' ? 'text-amber-600' : 'text-primary';
 
   return (
     <div className={cn('relative w-full select-none touch-none', className)}>
       <div
         ref={trackRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         className={cn(
-          'relative w-full h-14 rounded-full border p-1 overflow-hidden shadow-inner flex items-center transition-colors',
+          'relative w-full h-[54px] rounded-full border p-1 overflow-hidden shadow-inner flex items-center transition-colors cursor-pointer touch-none select-none',
           trackBorderBg
         )}
       >
@@ -136,7 +205,7 @@ export function IosSlideToConfirm({
           <motion.div
             style={{ width: fillWidth }}
             className={cn(
-              'absolute inset-y-1 left-1 rounded-full pointer-events-none shadow-[0_0_16px_rgba(239,68,68,0.35)]',
+              'absolute inset-y-1 left-1 rounded-full pointer-events-none will-change-[width]',
               fillGradient
             )}
           />
@@ -149,7 +218,7 @@ export function IosSlideToConfirm({
             className="absolute inset-0 flex items-center justify-center pointer-events-none px-12"
           >
             <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider select-none text-center">
-              <span className="bg-gradient-to-r from-red-500 via-rose-300 to-red-500 dark:from-red-400 dark:via-rose-100 dark:to-red-400 bg-clip-text text-transparent animate-ios-shimmer">
+              <span className="bg-gradient-to-r from-red-500 via-rose-200 to-red-500 dark:from-red-400 dark:via-rose-100 dark:to-red-400 bg-clip-text text-transparent animate-ios-shimmer">
                 {label}
               </span>
               <ChevronsRight className="w-4 h-4 text-red-500/70 animate-pulse" />
@@ -177,29 +246,29 @@ export function IosSlideToConfirm({
           </div>
         )}
 
-        {/* Draggable Knob Thumb */}
+        {/* Ultra-Smooth Draggable Knob Thumb */}
         <motion.div
-          drag={disabled || isBusy ? false : 'x'}
-          dragConstraints={{ left: 0, right: maxDrag }}
-          dragElastic={{ left: 0, right: 0.12 }}
-          dragMomentum={false}
-          onDragEnd={handleDragEnd}
-          style={{ x }}
-          onPointerDown={(e) => e.stopPropagation()}
+          style={{
+            x,
+            scale: isDragging ? 1.05 : 1,
+          }}
+          transition={{
+            scale: { duration: 0.12, ease: 'easeOut' },
+          }}
           className={cn(
-            'relative z-20 w-12 h-12 rounded-full flex items-center justify-center shadow-lg select-none touch-none will-change-transform transform-gpu',
+            'relative z-20 w-[46px] h-[46px] rounded-full flex items-center justify-center select-none touch-none will-change-transform transform-gpu',
             disabled
               ? 'bg-muted text-muted-foreground cursor-not-allowed border border-border/60 shadow-none'
-              : 'bg-white dark:bg-slate-100 text-red-600 cursor-grab active:cursor-grabbing border border-white/80 shadow-[0_3px_12px_rgba(0,0,0,0.2),0_1px_3px_rgba(0,0,0,0.1)] active:scale-95 transition-transform'
+              : 'bg-white dark:bg-slate-100 cursor-grab active:cursor-grabbing border border-white/90 shadow-[0_3px_12px_rgba(0,0,0,0.22),0_1px_3px_rgba(0,0,0,0.12)]'
           )}
         >
           {isBusy ? (
-            <Loader2 className="w-5 h-5 animate-spin text-red-600" />
+            <Loader2 className={cn('w-5 h-5 animate-spin', knobTextColor)} />
           ) : disabled ? (
             <Lock className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <motion.div style={{ scale: knobScale }} className="flex items-center justify-center">
-              <ChevronRight className="w-5 h-5 text-red-600 stroke-[2.75]" />
+            <motion.div style={{ scale: iconScale }} className="flex items-center justify-center pointer-events-none">
+              <ChevronRight className={cn('w-5 h-5 stroke-[3]', knobTextColor)} />
             </motion.div>
           )}
         </motion.div>

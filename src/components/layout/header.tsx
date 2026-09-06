@@ -32,6 +32,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CreateStaffDialog } from '@/components/auth/create-staff-dialog';
+import { IosSlideToConfirm } from '@/components/shared/ios-slide-to-confirm';
+import { useScrollLock } from '@/lib/use-keyboard-viewport';
 
 interface HeaderProps {
   user?: {
@@ -46,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
   const [isPending, startTransition] = useTransition();
   const [isCreateStaffOpen, setIsCreateStaffOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -55,15 +58,8 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when mobile profile sheet is active
-  useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [mobileOpen]);
+  // Lock background scroll when mobile profile or sign out sheet is open
+  useScrollLock(mobileOpen || isSignOutOpen);
 
   const isAdmin = user?.role === 'ADMIN';
   const isRootPage = pathname === '/' || pathname === '/inventory';
@@ -219,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleLogout}
+              onClick={() => setIsSignOutOpen(true)}
               disabled={isPending}
               className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl sm:rounded-2xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs transition-all gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0"
               title="Sign out of TV Tech OS"
@@ -338,7 +334,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
 
                   {/* Sign Out Action */}
                   <DropdownMenuItem
-                    onClick={handleLogout}
+                    onClick={() => setIsSignOutOpen(true)}
                     disabled={isPending}
                     className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold rounded-xl cursor-pointer text-red-600 hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600"
                   >
@@ -555,7 +551,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                         e.preventDefault();
                         e.stopPropagation();
                         setMobileOpen(false);
-                        handleLogout();
+                        setIsSignOutOpen(true);
                       }}
                       className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50/80 active:bg-red-100/80 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
                     >
@@ -582,6 +578,125 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                 >
                   Cancel
                 </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* iOS Slide to Confirm Sign Out Sheet / Dialog */}
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isSignOutOpen && (
+            <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => !isPending && setIsSignOutOpen(false)}
+              />
+
+              {/* Sheet / Modal */}
+              <motion.div
+                initial={{ y: '100%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 28, stiffness: 320, mass: 0.8 }}
+                className="relative z-10 w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-3xl border border-border/70 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* iOS Drag Handle */}
+                <div className="pt-3 pb-1 flex justify-center sm:hidden">
+                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/20" />
+                </div>
+
+                {/* Header */}
+                <div className="px-5 sm:px-6 pt-3 sm:pt-5 pb-3 flex items-center justify-between border-b border-border/40">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-900/40 flex items-center justify-center shrink-0">
+                      <LogOut className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-black text-foreground leading-tight">Confirm Sign Out</h2>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">End your active workstation session</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => !isPending && setIsSignOutOpen(false)}
+                    disabled={isPending}
+                    className="w-8 h-8 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* User Details Preview Box */}
+                <div className="p-5 sm:p-6 space-y-3.5 flex-1 overflow-y-auto no-scrollbar">
+                  <div className="p-3.5 bg-muted/40 border border-border/70 rounded-2xl flex items-center gap-3.5">
+                    <div
+                      className={`w-12 h-12 rounded-2xl font-black text-lg flex items-center justify-center text-white shrink-0 shadow-md ${
+                        isAdmin
+                          ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
+                          : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
+                      }`}
+                    >
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
+                        {displayName}
+                      </h3>
+                      <div className="text-[11px] sm:text-xs text-muted-foreground truncate font-medium">
+                        {userEmail}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                            isAdmin
+                              ? 'bg-primary/10 text-primary border-primary/20'
+                              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                          }`}
+                        >
+                          <Shield className="w-3 h-3 mr-1 text-primary" />
+                          {isAdmin ? 'Administrator' : 'Staff Technician'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notice */}
+                  <div className="p-3.5 bg-red-50/60 dark:bg-red-950/20 border border-red-200/70 dark:border-red-900/40 rounded-2xl text-xs text-red-900 dark:text-red-300 font-medium leading-relaxed">
+                    You are about to sign out of TV Tech OS. You will need to re-authenticate with your email and password to access the technician portal again.
+                  </div>
+                </div>
+
+                {/* Footer with iOS Slide to Sign Out & Cancel */}
+                <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex flex-col gap-2.5 shrink-0">
+                  <IosSlideToConfirm
+                    onConfirm={handleLogout}
+                    isLoading={isPending}
+                    label="slide to sign out"
+                    loadingLabel="Signing Out..."
+                    variant="danger"
+                  />
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsSignOutOpen(false)}
+                    disabled={isPending}
+                    className="w-full h-10 rounded-full text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </motion.div>
             </div>
           )}

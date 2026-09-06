@@ -129,7 +129,7 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
           <div className="absolute bottom-9 sm:bottom-12 right-2 sm:right-2 z-20">
             <Badge
               variant="secondary"
-              className={`backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-bold shadow-md group-hover:shadow-lg transition-all border ${theme.badgeStyle}`}
+              className={`backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-extrabold shadow-md group-hover:shadow-lg transition-all border ${theme.badgeStyle}`}
             >
               {isBacklight ? (
                 <Lightbulb className="w-3 h-3 text-amber-600 shrink-0" />
@@ -143,9 +143,15 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
           </div>
 
           {/* 3. BOTTOM BAR (Folder Name Centered - matching Inventory folder-card) */}
-          <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-4 py-2 sm:py-3 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
+          <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-4 py-2.5 sm:py-3 bg-white border-t border-slate-200/80 flex items-center justify-center text-center">
             <h3
-              className="text-xs sm:text-base font-bold text-foreground group-hover:text-primary transition-colors tracking-tight truncate leading-tight w-full text-center"
+              className={`text-xs sm:text-sm font-black tracking-tight truncate leading-tight w-full text-center transition-colors ${
+                isBacklight
+                  ? 'text-amber-800 group-hover:text-amber-600'
+                  : isMoreInfo
+                  ? 'text-indigo-800 group-hover:text-indigo-600'
+                  : 'text-slate-800 group-hover:text-blue-600'
+              }`}
               title={folder.name}
             >
               {folder.name}

@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { IosSlideToConfirm } from '@/components/shared/ios-slide-to-confirm';
 import {
@@ -40,27 +41,38 @@ import {
   deleteTvModelAction,
 } from '@/features/knowledge-base/actions/kb.actions';
 import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
-import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
+import {
+  useKeyboardViewport,
+  useScrollLock,
+  handleProximityTouch,
+  createPersistentBlurHandler,
+} from '@/lib/use-keyboard-viewport';
 
 interface ModelContextMenuProps {
   modelId: string;
   modelNumber: string;
+  brandId?: string;
   screenSize?: number | null;
   brandName?: string;
   folderCount?: number;
   userRole?: string;
   existingModels?: string[];
+  onDeleteSuccess?: () => void;
 }
 
 export function ModelContextMenu({
   modelId,
   modelNumber,
+  brandId,
   screenSize,
   brandName,
   folderCount = 0,
   userRole = 'STAFF',
   existingModels = [],
+  onDeleteSuccess,
 }: ModelContextMenuProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -69,26 +81,25 @@ export function ModelContextMenu({
 
   const renameViewport = useKeyboardViewport(isRenameOpen);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const renameSheetRef = useRef<HTMLDivElement>(null);
+
+  // Lock background scroll when mobile menu or delete modal is open
+  useScrollLock(mobileOpen || isDeleteOpen);
+
+  const [isPending, startTransition] = useTransition();
+
+  const persistentRenameBlur = useMemo(
+    () => createPersistentBlurHandler(isRenameOpen, isPending),
+    [isRenameOpen, isPending]
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when mobile sheet or dialog is open
-  useEffect(() => {
-    if (mobileOpen || isRenameOpen || isDeleteOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [mobileOpen, isRenameOpen, isDeleteOpen]);
-
   const [newModelNumber, setNewModelNumber] = useState(modelNumber);
   const [newScreenSize, setNewScreenSize] = useState(screenSize ? String(screenSize) : '');
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
-
-  const [isPending, startTransition] = useTransition();
   const isAdmin = !!userRole;
 
   // Filter out current model number from collision comparison
@@ -171,6 +182,10 @@ export function ModelContextMenu({
       if (res.success) {
         toast.success(`Model "${modelNumber}" deleted successfully`);
         setIsDeleteOpen(false);
+        if (onDeleteSuccess) onDeleteSuccess();
+        const targetBrandId = (res as any).brandId || brandId;
+        const targetUrl = targetBrandId ? `/knowledge-base/brands/${targetBrandId}` : '/knowledge-base';
+        router.replace(targetUrl);
       } else {
         toast.error(res.error || 'Failed to delete model');
       }
@@ -404,7 +419,7 @@ export function ModelContextMenu({
           <AnimatePresence>
             {isRenameOpen && (
               <div
-                className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+                className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
                 style={renameViewport.containerStyle}
                 onClick={(e) => {
                   if (e.target === e.currentTarget && !isPending) {
@@ -417,7 +432,7 @@ export function ModelContextMenu({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
                   onClick={() => {
                     if (!isPending) setIsRenameOpen(false);
                   }}
@@ -435,9 +450,15 @@ export function ModelContextMenu({
                       setIsRenameOpen(false);
                     }
                   }}
-                  style={{ maxHeight: '100%' }}
+                  ref={renameSheetRef}
+                  style={{
+                    maxHeight: '100%',
+                    paddingBottom: renameViewport.isKeyboardOpen ? '380px' : undefined,
+                    marginBottom: renameViewport.isKeyboardOpen ? '-380px' : undefined,
+                  }}
                   className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                   onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => handleProximityTouch(e, renameSheetRef.current)}
                 >
                   {/* Drag Handle */}
                   <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
@@ -472,7 +493,7 @@ export function ModelContextMenu({
 
                   {/* Form Body */}
                   <form onSubmit={handleRename} className="flex flex-col flex-1 min-h-0">
-                    <div className="overflow-y-auto px-5 sm:px-6 py-4 space-y-4 no-scrollbar flex-1">
+                    <div data-modal-scrollable="true" className="overflow-y-auto px-5 sm:px-6 py-4 space-y-4 no-scrollbar flex-1">
                       {/* Model Number Input */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
@@ -490,6 +511,16 @@ export function ModelContextMenu({
                           id="rename-model-num"
                           value={newModelNumber}
                           onChange={(e) => handleModelNumberChange(e.target.value)}
+                          onBlur={persistentRenameBlur}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const sizeInput = document.getElementById('rename-screen-size');
+                              if (sizeInput) {
+                                sizeInput.focus();
+                              }
+                            }
+                          }}
                           placeholder="e.g. 55NU7100"
                           required
                           autoFocus
@@ -583,6 +614,15 @@ export function ModelContextMenu({
                               setNewScreenSize(e.target.value);
                               setAutoDetectedSize(null);
                             }}
+                            onBlur={persistentRenameBlur}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (newModelNumber.trim() && similarityResult.level !== 'BLOCK') {
+                                  handleRename(e);
+                                }
+                              }
+                            }}
                             placeholder="e.g. 55"
                             disabled={isPending}
                             className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16"
@@ -670,7 +710,7 @@ export function ModelContextMenu({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10 cursor-pointer"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10 cursor-pointer touch-none"
                   onClick={() => {
                     if (!isPending) setIsDeleteOpen(false);
                   }}

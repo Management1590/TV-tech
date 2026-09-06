@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useRef, useId, useEffect } from 'react';
+import React, { useState, useTransition, useRef, useId, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
@@ -27,7 +27,11 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { createTvBrandAction } from '@/features/knowledge-base/actions/kb.actions';
 import { formatThumbnailUrl } from '@/lib/thumbnail-utils';
-import { useKeyboardViewport } from '@/lib/use-keyboard-viewport';
+import {
+  useKeyboardViewport,
+  handleProximityTouch,
+  createPersistentBlurHandler,
+} from '@/lib/use-keyboard-viewport';
 
 export interface CreateTvBrandDialogProps {
   trigger?: React.ReactNode;
@@ -75,30 +79,12 @@ export function CreateTvBrandDialog({
   const dragControls = useDragControls();
 
   const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Lock body scroll on iOS without letting window.scrollY displace fixed overlays
-  useEffect(() => {
-    if (open) {
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const prevPosition = document.body.style.position;
-      const prevTop = document.body.style.top;
-      const prevWidth = document.body.style.width;
-      const prevOverflow = document.body.style.overflow;
-
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-
-      return () => {
-        document.body.style.position = prevPosition;
-        document.body.style.top = prevTop;
-        document.body.style.width = prevWidth;
-        document.body.style.overflow = prevOverflow;
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [open]);
+  const persistentBlur = useMemo(
+    () => createPersistentBlurHandler(open && step === 1, isPending),
+    [open, step, isPending]
+  );
 
   // Smooth focus on brand name input when opening Step 1 (fix keyboard open)
   // When advancing to Step 2 (thumbnail adjustments), explicitly blur to dismiss keyboard
@@ -324,7 +310,7 @@ export function CreateTvBrandDialog({
         <AnimatePresence>
           {open && (
             <div
-              className="fixed inset-0 z-[100] flex flex-col justify-end items-center select-none"
+              className="fixed inset-x-0 z-[100] flex flex-col justify-end items-center select-none"
               style={containerStyle}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isPending) {
@@ -340,7 +326,7 @@ export function CreateTvBrandDialog({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 will-change-opacity cursor-pointer"
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 will-change-opacity cursor-pointer touch-none"
                 onClick={(e) => {
                   if (!isPending) {
                     e.preventDefault();
@@ -377,11 +363,19 @@ export function CreateTvBrandDialog({
                     handleClose();
                   }
                 }}
+                ref={sheetRef}
                 style={{
                   maxHeight: '100%',
+                  paddingBottom: isKeyboardOpen ? '380px' : undefined,
+                  marginBottom: isKeyboardOpen ? '-380px' : undefined,
                 }}
                 className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
                 onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => {
+                  if (step === 1) {
+                    handleProximityTouch(e, sheetRef.current);
+                  }
+                }}
               >
                 {/* Top Drag Indicator Handle */}
                 <div
@@ -454,6 +448,7 @@ export function CreateTvBrandDialog({
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
                   {/* Form Content - Non-scrollable in Step 2, smooth scroll in Step 1 */}
                   <div
+                    data-modal-scrollable={step === 1 ? 'true' : undefined}
                     className={`flex-1 px-5 sm:px-6 ${
                       step === 2 ? 'py-2 space-y-2 overflow-hidden overscroll-none' : 'py-3 space-y-3 overflow-y-auto no-scrollbar'
                     }`}
@@ -478,6 +473,7 @@ export function CreateTvBrandDialog({
                               ref={nameInputRef}
                               value={name}
                               onChange={(e) => setName(e.target.value)}
+                              onBlur={persistentBlur}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
@@ -515,6 +511,7 @@ export function CreateTvBrandDialog({
                               id="create-brand-desc"
                               value={description}
                               onChange={(e) => setDescription(e.target.value)}
+                              onBlur={persistentBlur}
                               placeholder="Optional technical guidelines, chassis series, or service remarks..."
                               rows={2}
                               disabled={isPending}

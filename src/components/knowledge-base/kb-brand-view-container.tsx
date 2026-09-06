@@ -295,42 +295,44 @@ export function KbBrandViewContainer({
       {/* ========================================================================= */}
       {/* 1. SEAMLESS EMBEDDED KNOWLEDGE BASE HEADER (No Floating Card CTA)         */}
       {/* ========================================================================= */}
-      <div id="brand-directory-header" className="flex items-center justify-between gap-3 px-1 pt-1 pb-0.5">
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/30 flex items-center justify-center text-primary shadow-xs shrink-0">
-            <Tv className="w-5 h-5 text-primary" />
+      <div id="brand-directory-header" className="flex items-center justify-between gap-2.5 sm:gap-4 px-1 pt-1 pb-0.5">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/30 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+            <Tv className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-xl font-black tracking-tight text-foreground whitespace-nowrap">
-                Manufacturer Brands
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground whitespace-nowrap">
+                Brands
               </h1>
               <Badge
                 variant="outline"
-                className="bg-primary/10 text-primary border-primary/25 text-[10px] sm:text-xs font-bold py-0.5 px-2.5 rounded-full shrink-0 shadow-2xs"
+                className="bg-blue-500/10 text-blue-700 border-blue-400/30 text-[10px] sm:text-xs font-extrabold py-0.5 px-2.5 rounded-full shrink-0 shadow-2xs whitespace-nowrap"
               >
                 {initialBrands.length} Available
               </Badge>
             </div>
-            <p className="hidden sm:block text-xs text-muted-foreground mt-0.5 font-medium">
-              Select a manufacturer brand to explore TV model repair schematics, backlights, and diagnostic logs
+            <p className="hidden sm:block text-xs text-muted-foreground/80 mt-0.5 font-semibold tracking-wide">
+              Select a brand to explore TV model repair schematics, backlights, and diagnostic logs
             </p>
           </div>
         </div>
 
         {/* Embedded Add Brand Button */}
         {!!userRole && (
-          <CreateTvBrandDialog
-            trigger={
-              <Button
-                type="button"
-                className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-extrabold text-xs sm:text-sm shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
-              >
-                <Plus className="w-4 h-4 text-white stroke-[2.5]" />
-                <span className="whitespace-nowrap">Add Brand</span>
-              </Button>
-            }
-          />
+          <div className="shrink-0">
+            <CreateTvBrandDialog
+              trigger={
+                <Button
+                  type="button"
+                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-extrabold text-xs sm:text-sm shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
+                  <span className="whitespace-nowrap">Add Brand</span>
+                </Button>
+              }
+            />
+          </div>
         )}
       </div>
 
@@ -339,10 +341,10 @@ export function KbBrandViewContainer({
       {/* ========================================================================= */}
       <div
         ref={searchContainerRef}
-        className={`transition-all duration-200 bg-white/95 dark:bg-slate-950/95 p-2.5 sm:p-3.5 rounded-2xl sm:rounded-3xl border border-border/80 ${
+        className={`transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
           isSearchFocused || searchQuery.trim()
-            ? 'shadow-md ring-2 ring-primary/20 border-primary/40'
-            : 'shadow-xs hover:shadow-sm'
+            ? 'shadow-md ring-2 ring-blue-500/20 border-blue-400/50'
+            : 'border-border/80 shadow-xs hover:shadow-sm'
         }`}
       >
         <div className="space-y-2.5 sm:space-y-3">
@@ -356,8 +358,8 @@ export function KbBrandViewContainer({
           >
             <div className="relative flex items-center">
               {/* Premium Theme Icon Badge */}
-              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs pointer-events-none group-focus-within:border-primary/50 group-focus-within:scale-105 transition-all">
-                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-2xs pointer-events-none group-focus-within:border-blue-500/50 group-focus-within:scale-105 transition-all">
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
               </div>
 
               <Input
@@ -378,7 +380,7 @@ export function KbBrandViewContainer({
                 }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
-                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-white/95 dark:bg-slate-900 border-2 border-primary/25 hover:border-primary/45 focus-visible:border-primary rounded-xl sm:rounded-2xl shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-primary/15 text-xs sm:text-sm font-semibold transition-all duration-200"
+                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-slate-50/80 dark:bg-slate-900 border-2 border-slate-200 hover:border-blue-400/50 focus-visible:border-blue-500 rounded-xl sm:rounded-2xl shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-blue-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
               />
 
               {/* Clear / Dismiss Button or Quick Tag */}
@@ -397,7 +399,7 @@ export function KbBrandViewContainer({
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground/70 border border-border/80">
+                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-muted-foreground/70 border border-border/80">
                     Search
                   </span>
                 )}
@@ -406,18 +408,18 @@ export function KbBrandViewContainer({
           </div>
 
           {/* Row 2: Sort Directory Control Bar (Title on Left, Sort Button Shifted to Right) */}
-          <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/60">
+          <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/50">
             {/* Left: Explicit "Sort Directory" Title */}
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
+              <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 shrink-0">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-xs sm:text-sm font-extrabold text-foreground tracking-tight whitespace-nowrap">
                   Sort Directory
                 </span>
-                <span className="text-[11px] text-muted-foreground font-medium hidden xs:inline truncate">
-                  • {filteredBrands.length} {filteredBrands.length === 1 ? 'brand' : 'brands'}
+                <span className="text-[11px] text-muted-foreground/70 font-semibold hidden xs:inline truncate">
+                  · {filteredBrands.length} {filteredBrands.length === 1 ? 'brand' : 'brands'}
                 </span>
               </div>
             </div>
@@ -447,14 +449,14 @@ export function KbBrandViewContainer({
 
       {/* Active Search Results Indicator */}
       {debouncedQuery.trim() && !isSearching && (
-        <div className="flex items-center justify-between text-xs px-1 text-muted-foreground">
-          <span className="font-medium">
-            Showing <strong className="text-foreground">{filteredBrands.length}</strong> of {initialBrands.length} brands matching &ldquo;{debouncedQuery}&rdquo;
+        <div className="flex items-center justify-between text-xs px-1">
+          <span className="font-semibold text-muted-foreground/80">
+            Showing <strong className="text-foreground font-extrabold">{filteredBrands.length}</strong> of {initialBrands.length} brands matching &ldquo;<span className="text-blue-600 font-bold">{debouncedQuery}</span>&rdquo;
           </span>
           <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer"
+            className="text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
           >
             <X className="w-3 h-3" /> Clear filter
           </button>
@@ -473,13 +475,13 @@ export function KbBrandViewContainer({
         </div>
       ) : filteredBrands.length === 0 ? (
         <div className="p-8 sm:p-12 text-center bg-white border border-border/80 border-dashed rounded-3xl shadow-blend">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/30 flex items-center justify-center mx-auto mb-3.5 text-primary shadow-2xs">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-400/30 flex items-center justify-center mx-auto mb-3.5 text-blue-600 shadow-2xs">
             <Tv className="w-7 h-7" />
           </div>
-          <h3 className="font-bold text-foreground text-base sm:text-lg">
+          <h3 className="font-extrabold text-foreground text-base sm:text-lg tracking-tight">
             {searchQuery ? `No brand found matching "${searchQuery}"` : 'No TV Brands Created'}
           </h3>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md mx-auto mb-5 leading-relaxed">
+          <p className="text-xs sm:text-sm text-muted-foreground/80 mt-1.5 max-w-md mx-auto mb-5 leading-relaxed font-medium">
             {searchQuery
               ? `This brand is not registered in the TV Knowledge Base yet. Create "${searchQuery.trim()}" to set up its manufacturer directory and technical models.`
               : 'Add your first TV manufacturer brand (e.g. Samsung, LG, Sony) to start organizing models and documentation.'}
