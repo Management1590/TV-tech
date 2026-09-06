@@ -201,12 +201,12 @@ export function BrandContextMenu({
         </DropdownMenu>
       </div>
 
-      {/* Mobile View: Crystal Clear Portal Overlay with iOS Spring Animations */}
+      {/* Mobile View: Authentic iOS Bottom Sheet Page (Unified Folder, Options & Cancel) */}
       {mounted && createPortal(
         <AnimatePresence>
           {mobileOpen && (
             <div
-              className="fixed inset-0 z-[100] flex flex-col justify-between items-center p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:hidden select-none"
+              className="fixed inset-0 z-[100] flex flex-col justify-end sm:hidden select-none"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
                   e.preventDefault();
@@ -229,8 +229,8 @@ export function BrandContextMenu({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed inset-0 bg-black/45 backdrop-blur-[3px] -z-10 will-change-opacity"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -238,208 +238,197 @@ export function BrandContextMenu({
                 }}
               />
 
-              {/* Top Pill / Dismiss Button */}
+              {/* iOS Style Bottom Sheet Page */}
               <motion.div
-                initial={{ opacity: 0, y: -16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="relative z-10 w-full flex items-center justify-between pt-1 px-1 pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="text-[11px] font-extrabold tracking-wider uppercase text-white bg-white/20 px-3 py-1 rounded-full border border-white/30 backdrop-blur-md shadow-md">
-                  Brand Actions
-                </span>
-                <button
-                  type="button"
-                  aria-label="Close menu"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setMobileOpen(false);
-                  }}
-                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 border border-white/30 text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </motion.div>
-
-              {/* Center: Authentic Brand Folder Preview (Exact same folder structure as grid) */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.82, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.88, y: 10 }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{
+                  y: '100%',
+                  transition: {
+                    duration: 0.22,
+                    ease: [0.32, 0, 0.67, 0],
+                  },
+                }}
                 transition={{
                   type: 'spring',
-                  damping: 24,
+                  damping: 30,
                   stiffness: 340,
                   mass: 0.8,
                 }}
-                className="relative z-10 w-[190px] h-[165px] my-auto py-1 pointer-events-auto filter drop-shadow-2xl"
+                drag="y"
+                dragConstraints={{ top: 0 }}
+                dragElastic={{ top: 0, bottom: 0.2 }}
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 80 || info.velocity.y > 320) {
+                    setMobileOpen(false);
+                  }
+                }}
+                className="relative z-10 w-full max-w-md mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="relative w-full h-full flex flex-col">
-                  {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK */}
-                  <div
-                    className="relative w-full h-full bg-muted overflow-hidden flex flex-col justify-end shadow-2xl"
-                    style={{
-                      clipPath: `url(#preview-brand-folder-clip-${previewClipId})`,
-                    }}
-                  >
-                    {/* Background Artwork or Rich Tinted Brand Gradient Canvas */}
-                    {parsedThumb.url ? (
-                      <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center">
-                        <img
-                          src={parsedThumb.url}
-                          alt={brandName}
-                          style={{
-                            transform: `translate(${parsedThumb.x}px, ${parsedThumb.y}px) scale(${parsedThumb.scale})`,
-                            transformOrigin: 'center center',
-                          }}
-                          className="w-full h-full object-cover"
-                        />
-                        {/* Subtle bottom vignette for text contrast */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent pointer-events-none" />
-                      </div>
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-100/90 via-indigo-100/70 to-muted/80 flex items-center justify-center overflow-hidden">
-                        {/* Soft radial primary ambient glow */}
-                        <div className="absolute w-36 h-36 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
-                        {/* Geometric pattern */}
-                        <div
-                          className="absolute inset-0 opacity-[0.08]"
-                          style={{
-                            backgroundImage: 'radial-gradient(oklch(0.40 0.22 260) 1.2px, transparent 1.2px)',
-                            backgroundSize: '14px 14px',
-                          }}
-                        />
-                        <div className="relative flex flex-col items-center justify-center text-center p-2">
-                          <div className="w-11 h-11 rounded-2xl bg-white/95 border border-primary/30 shadow-md flex items-center justify-center text-primary mb-1">
-                            <Tv className="w-6 h-6 text-primary" />
+                {/* Top Drag Indicator Handle */}
+                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
+                </div>
+
+                {/* Sheet Scrollable Body with subtle content entrance */}
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.24, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-y-auto px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4 no-scrollbar flex flex-col items-center w-full"
+                >
+                  {/* Authentic Brand Folder Preview Inside Sheet */}
+                  <div className="relative w-[175px] h-[148px] my-1 shrink-0 filter drop-shadow-md">
+                    <div className="relative w-full h-full flex flex-col">
+                      {/* 1. CLIPPED FOLDER BODY & RICH TINTED ARTWORK */}
+                      <div
+                        className="relative w-full h-full bg-muted overflow-hidden flex flex-col justify-end shadow-md"
+                        style={{
+                          clipPath: `url(#preview-brand-folder-clip-${previewClipId})`,
+                        }}
+                      >
+                        {/* Background Artwork or Rich Tinted Brand Gradient Canvas */}
+                        {parsedThumb.url ? (
+                          <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted/80 flex items-center justify-center">
+                            <img
+                              src={parsedThumb.url}
+                              alt={brandName}
+                              style={{
+                                transform: `translate(${parsedThumb.x}px, ${parsedThumb.y}px) scale(${parsedThumb.scale})`,
+                                transformOrigin: 'center center',
+                              }}
+                              className="w-full h-full object-cover"
+                            />
+                            {/* Subtle bottom vignette for text contrast */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent pointer-events-none" />
                           </div>
-                          {currentDescription && (
-                            <p className="text-[9px] text-muted-foreground line-clamp-1 max-w-[130px] font-semibold">
-                              {currentDescription}
-                            </p>
-                          )}
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/90 via-indigo-100/70 to-muted/80 flex items-center justify-center overflow-hidden">
+                            {/* Soft radial primary ambient glow */}
+                            <div className="absolute w-36 h-36 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
+                            {/* Geometric pattern */}
+                            <div
+                              className="absolute inset-0 opacity-[0.08]"
+                              style={{
+                                backgroundImage: 'radial-gradient(oklch(0.40 0.22 260) 1.2px, transparent 1.2px)',
+                                backgroundSize: '14px 14px',
+                              }}
+                            />
+                            <div className="relative flex flex-col items-center justify-center text-center p-2">
+                              <div className="w-10 h-10 rounded-2xl bg-white/95 border border-primary/30 shadow-md flex items-center justify-center text-primary mb-1">
+                                <Tv className="w-5 h-5 text-primary" />
+                              </div>
+                              {currentDescription && (
+                                <p className="text-[9px] text-muted-foreground line-clamp-1 max-w-[125px] font-semibold">
+                                  {currentDescription}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. FLOATING MODEL COUNT BADGE */}
+                        <div className="absolute bottom-9 right-1.5 z-20">
+                          <Badge
+                            variant="secondary"
+                            className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[9px] py-0.5 px-1.5 font-bold shadow-md"
+                          >
+                            <Tv className="w-2.5 h-2.5" />
+                            {modelCount} {modelCount === 1 ? 'Model' : 'Models'}
+                          </Badge>
+                        </div>
+
+                        {/* 3. FROSTED GLASS FOOTER BAR */}
+                        <div className="relative z-10 px-2 py-1.5 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
+                          <h3
+                            className="font-bold text-foreground text-xs tracking-tight truncate leading-tight w-full text-center"
+                            title={brandName}
+                          >
+                            {brandName}
+                          </h3>
                         </div>
                       </div>
-                    )}
 
-                    {/* 2. FLOATING MODEL COUNT BADGE */}
-                    <div className="absolute bottom-9 right-1.5 z-20">
-                      <Badge
-                        variant="secondary"
-                        className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[9px] py-0.5 px-1.5 font-bold shadow-md"
+                      {/* 4. CLEAN PERIMETER BORDER CONTOUR */}
+                      <svg
+                        className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
                       >
-                        <Tv className="w-2.5 h-2.5" />
-                        {modelCount} {modelCount === 1 ? 'Model' : 'Models'}
-                      </Badge>
-                    </div>
-
-                    {/* 3. FROSTED GLASS FOOTER BAR */}
-                    <div className="relative z-10 px-2 py-1.5 bg-white/95 backdrop-blur-md border-t border-border/80 flex items-center justify-center text-center shadow-sm">
-                      <h3
-                        className="font-bold text-foreground text-xs tracking-tight truncate leading-tight w-full text-center"
-                        title={brandName}
-                      >
-                        {brandName}
-                      </h3>
+                        <path
+                          d="M 6,100 A 6,8 0 0,1 0,92 L 0,8 A 6,8 0 0,1 6,0 L 30,0 C 34,0 33,13.5 37,13.5 L 94,13.5 A 6,8 0 0,1 100,21.5 L 100,92 A 6,8 0 0,1 94,100 Z"
+                          fill="none"
+                          stroke="rgba(100, 116, 139, 0.4)"
+                          strokeWidth="1.5"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </svg>
                     </div>
                   </div>
 
-                  {/* 4. CLEAN PERIMETER BORDER CONTOUR */}
-                  <svg
-                    className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M 6,100 A 6,8 0 0,1 0,92 L 0,8 A 6,8 0 0,1 6,0 L 30,0 C 34,0 33,13.5 37,13.5 L 94,13.5 A 6,8 0 0,1 100,21.5 L 100,92 A 6,8 0 0,1 94,100 Z"
-                      fill="none"
-                      stroke="rgba(100, 116, 139, 0.4)"
-                      strokeWidth="1.5"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  </svg>
-                </div>
-              </motion.div>
+                  {/* Actions Group Card */}
+                  <div className="w-full bg-muted/40 dark:bg-slate-800/40 rounded-2xl border border-border/60 p-1.5 space-y-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMobileOpen(false);
+                        setIsRenameOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                        <Pencil className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Rename Brand</div>
+                        <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Change manufacturer name</div>
+                      </div>
+                    </button>
 
-              {/* Bottom: Smooth Slide-up Edit Actions Sheet (iOS Spring Slide Up) */}
-              <motion.div
-                initial={{ opacity: 0, y: 70, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 50, scale: 0.96 }}
-                transition={{
-                  type: 'spring',
-                  damping: 26,
-                  stiffness: 320,
-                  mass: 0.85,
-                  delay: 0.03,
-                }}
-                className="relative z-10 w-full max-w-sm flex flex-col gap-2 pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="bg-white rounded-3xl border border-border shadow-2xl p-2.5 space-y-1">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setMobileOpen(false);
-                      setIsRenameOpen(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                      <Pencil className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-foreground font-bold">Rename Brand</div>
-                      <div className="text-[11px] font-normal text-muted-foreground truncate">Change manufacturer name</div>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMobileOpen(false);
+                        setIsDescriptionOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Edit Description</div>
+                        <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Update brand overview</div>
+                      </div>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setMobileOpen(false);
-                      setIsDescriptionOpen(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-foreground font-bold">Edit Description</div>
-                      <div className="text-[11px] font-normal text-muted-foreground truncate">Update brand overview</div>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMobileOpen(false);
+                        setIsThumbnailOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center shrink-0">
+                        <ImagePlus className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Change Logo / Thumbnail</div>
+                        <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Upload brand logo artwork</div>
+                      </div>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setMobileOpen(false);
-                      setIsThumbnailOpen(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
-                      <ImagePlus className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="leading-tight text-foreground font-bold">Change Logo / Thumbnail</div>
-                      <div className="text-[11px] font-normal text-muted-foreground truncate">Upload brand logo artwork</div>
-                    </div>
-                  </button>
+                    <div className="border-t border-border/50 my-1 mx-1" />
 
-                  <div className="border-t border-border/60 my-1 pt-1">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -448,31 +437,31 @@ export function BrandContextMenu({
                         setMobileOpen(false);
                         setIsDeleteOpen(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 active:bg-red-100 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 active:bg-red-100 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-800/50 flex items-center justify-center shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="leading-tight text-red-600 font-bold">Delete Brand</div>
-                        <div className="text-[11px] font-normal text-red-400 truncate">Remove brand & its models</div>
+                        <div className="leading-tight text-red-600 font-bold text-xs sm:text-sm">Delete Brand</div>
+                        <div className="text-[10px] sm:text-[11px] font-normal text-red-400 truncate">Remove brand & its models</div>
                       </div>
                     </button>
                   </div>
-                </div>
 
-                {/* Standalone iOS Style Cancel Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setMobileOpen(false);
-                  }}
-                  className="w-full py-3.5 bg-white text-foreground/90 font-extrabold text-sm rounded-2xl border border-border shadow-lg active:bg-muted active:scale-[0.98] transition-all text-center cursor-pointer"
-                >
-                  Cancel
-                </button>
+                  {/* iOS Style Pill Cancel Button INSIDE the same bottom sheet page */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMobileOpen(false);
+                    }}
+                    className="w-full h-12 rounded-full border border-border/80 bg-white dark:bg-slate-800 hover:bg-muted active:bg-muted/80 text-foreground font-semibold text-sm shadow-2xs active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </motion.div>
               </motion.div>
             </div>
           )}
@@ -480,100 +469,210 @@ export function BrandContextMenu({
         document.body
       )}
 
-      {/* ── 1. RENAME BRAND DIALOG ── */}
-      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-primary" />
-              Rename Brand
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Update the official display name of this TV brand.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleRename} className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-foreground">Brand Name</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                required
-                className="h-11 rounded-xl bg-muted/50 border-border/80 text-sm"
-                autoFocus
+      {/* ── 1. RENAME BRAND IOS BOTTOM SHEET ── */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {isRenameOpen && (
+            <div
+              className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !isPending) {
+                  setIsRenameOpen(false);
+                }
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                onClick={() => {
+                  if (!isPending) setIsRenameOpen(false);
+                }}
               />
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
+                drag="y"
+                dragConstraints={{ top: 0 }}
+                dragElastic={{ top: 0, bottom: 0.2 }}
+                onDragEnd={(_, info) => {
+                  if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                    setIsRenameOpen(false);
+                  }
+                }}
+                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drag Handle */}
+                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
+                </div>
+
+                {/* Header */}
+                <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                      <Pencil className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-foreground">Rename Brand</h2>
+                      <p className="text-[11px] text-muted-foreground">Update the manufacturer display name</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsRenameOpen(false)}
+                    disabled={isPending}
+                    className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleRename} className="flex flex-col flex-1 min-h-0">
+                  <div className="p-5 sm:p-6 space-y-3">
+                    <Label className="text-xs font-bold text-foreground">Brand Name</Label>
+                    <Input
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      required
+                      className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsRenameOpen(false)}
+                      className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isPending || !newName.trim() || newName.trim() === brandName}
+                      className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white font-bold gap-2 cursor-pointer shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+                    >
+                      {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
             </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
-            <DialogFooter className="pt-3 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsRenameOpen(false)}
-                className="rounded-xl text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending || !newName.trim() || newName.trim() === brandName}
-                className="rounded-xl text-xs bg-primary hover:bg-primary/90 text-white font-semibold gap-2"
-              >
-                {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── 2. EDIT DESCRIPTION DIALOG ── */}
-      <Dialog open={isDescriptionOpen} onOpenChange={setIsDescriptionOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600" />
-              Edit Brand Description
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Provide background info, warranty guidelines, or technical notes for {brandName}.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleUpdateDescription} className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-foreground">Description / Notes</Label>
-              <Textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Optional notes or chassis guidelines..."
-                rows={4}
-                className="rounded-xl bg-muted/50 border-border/80 text-sm"
-                autoFocus
+      {/* ── 2. EDIT DESCRIPTION IOS BOTTOM SHEET ── */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {isDescriptionOpen && (
+            <div
+              className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !isPending) {
+                  setIsDescriptionOpen(false);
+                }
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                onClick={() => {
+                  if (!isPending) setIsDescriptionOpen(false);
+                }}
               />
-            </div>
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
+                drag="y"
+                dragConstraints={{ top: 0 }}
+                dragElastic={{ top: 0, bottom: 0.2 }}
+                onDragEnd={(_, info) => {
+                  if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                    setIsDescriptionOpen(false);
+                  }
+                }}
+                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drag Handle */}
+                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
+                </div>
 
-            <DialogFooter className="pt-3 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDescriptionOpen(false)}
-                className="rounded-xl text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-2"
-              >
-                {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                Save Description
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                {/* Header */}
+                <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-foreground">Edit Brand Description</h2>
+                      <p className="text-[11px] text-muted-foreground">Technical guidelines & overview for {brandName}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDescriptionOpen(false)}
+                    disabled={isPending}
+                    className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateDescription} className="flex flex-col flex-1 min-h-0">
+                  <div className="p-5 sm:p-6 space-y-3">
+                    <Label className="text-xs font-bold text-foreground">Description / Notes</Label>
+                    <Textarea
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
+                      placeholder="Optional technical guidelines, chassis series, or service remarks..."
+                      rows={4}
+                      className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsDescriptionOpen(false)}
+                      className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isPending}
+                      className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                    >
+                      {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      Save Description
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* ── 3. INTERACTIVE DRAG-TO-ADJUST THUMBNAIL DIALOG ── */}
       <SetBrandThumbnailDialog
@@ -584,59 +683,114 @@ export function BrandContextMenu({
         onOpenChange={setIsThumbnailOpen}
       />
 
-      {/* ── 4. DELETE BRAND WARNING DIALOG ── */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-red-600 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              Delete Brand Folder
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Are you sure you want to delete brand &ldquo;{brandName}&rdquo;?
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-3">
-            {modelCount > 0 ? (
-              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-2">
-                <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  Deletion Blocked: Brand Contains {modelCount} Model(s)
+      {/* ── 4. DELETE BRAND WARNING IOS BOTTOM SHEET ── */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {isDeleteOpen && (
+            <div
+              className="fixed inset-0 z-[110] flex flex-col justify-end items-center select-none"
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !isPending) {
+                  setIsDeleteOpen(false);
+                }
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                onClick={() => {
+                  if (!isPending) setIsDeleteOpen(false);
+                }}
+              />
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
+                drag="y"
+                dragConstraints={{ top: 0 }}
+                dragElastic={{ top: 0, bottom: 0.2 }}
+                onDragEnd={(_, info) => {
+                  if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                    setIsDeleteOpen(false);
+                  }
+                }}
+                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drag Handle */}
+                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                 </div>
-                <p className="text-[11px] text-amber-800 leading-relaxed">
-                  As per system safety rules, you cannot delete a brand folder that still contains registered TV models. Please open this brand and delete all inside models first.
-                </p>
-              </div>
-            ) : (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 leading-relaxed">
-                This brand folder is empty (0 models). Deleting it will permanently remove the brand category from the TV Knowledge Base. This action cannot be undone.
-              </div>
-            )}
-          </div>
 
-          <DialogFooter className="pt-2 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsDeleteOpen(false)}
-              className="rounded-xl text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isPending || modelCount > 0}
-              className="rounded-xl text-xs font-semibold gap-2"
-            >
-              {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Delete Brand Permanently
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                {/* Header */}
+                <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-800/50 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-red-600">Delete Brand Folder</h2>
+                      <p className="text-[11px] text-muted-foreground">Are you sure you want to delete &ldquo;{brandName}&rdquo;?</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteOpen(false)}
+                    disabled={isPending}
+                    className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-5 sm:p-6 space-y-3 flex-1 overflow-y-auto">
+                  {modelCount > 0 ? (
+                    <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-2">
+                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        Deletion Blocked: Brand Contains {modelCount} Model(s)
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        As per system safety rules, you cannot delete a brand folder that still contains registered TV models. Please open this brand and delete all inside models first.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 leading-relaxed">
+                      This brand folder is empty (0 models). Deleting it will permanently remove the brand category from the TV Knowledge Base. This action cannot be undone.
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-white/95 dark:bg-slate-900/95 flex items-center justify-between gap-3 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDeleteOpen(false)}
+                    className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isPending || modelCount > 0}
+                    className="rounded-2xl text-xs h-10 px-5 font-bold gap-2 cursor-pointer shadow-md shadow-red-500/20 active:scale-95 transition-all"
+                  >
+                    {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Delete Brand Permanently
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }

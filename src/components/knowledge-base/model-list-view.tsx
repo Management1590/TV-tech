@@ -75,47 +75,111 @@ export function ModelListView({
   const observerRef = useRef<IntersectionObserver | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const focusTimeRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
+  const isAutoScrollingRef = useRef(false);
+
+  const moveSearchBarToTop = useCallback(() => {
+    // Dock to the Registered TV Models section header so it smoothly stays visible with the search bar
+    const headerEl = document.getElementById('registered-models-header');
+    const targetEl = headerEl || searchContainerRef.current;
+    if (!targetEl) return;
+    const rect = targetEl.getBoundingClientRect();
+    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+    // If not already near the top of the viewport
+    if (rect.top > 12) {
+      isAutoScrollingRef.current = true;
+      const targetScrollY = currentScrollY + rect.top - 8;
+      window.scrollTo({
+        top: Math.max(0, targetScrollY),
+        behavior: 'smooth',
+      });
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+      }, 650);
+    }
+  }, []);
 
   const handleSearchFocus = useCallback(() => {
     setIsSearchFocused(true);
-    // Smoothly scroll search bar to top of mobile viewport so results are visible above keyboard
+    focusTimeRef.current = Date.now();
+    isAutoScrollingRef.current = true;
+
+    // Smoothly scroll search bar to the top of the viewport so results are visible above keyboard
     setTimeout(() => {
-      if (searchContainerRef.current) {
-        const rect = searchContainerRef.current.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop - 10;
-        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-      }
-    }, 120);
-  }, []);
+      moveSearchBarToTop();
+    }, 60);
+    setTimeout(() => {
+      moveSearchBarToTop();
+    }, 240); // Secondary adjustment after mobile keyboard layout shift completes
+  }, [moveSearchBarToTop]);
 
   const handleSearchBlur = useCallback(() => {
-    setTimeout(() => {
-      setIsSearchFocused(false);
-    }, 200);
+    setIsSearchFocused(false);
   }, []);
 
-  // Dismiss mobile virtual keyboard on touch outside search input or when scrolling
+  // Dismiss mobile virtual keyboard on touch outside search input or when user scrolls down
   useEffect(() => {
     if (!isSearchFocused) return;
 
-    const handleTouchOutside = (e: TouchEvent) => {
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        touchStartYRef.current = e.touches[0].clientY;
+      }
       const target = e.target as HTMLElement | null;
-      if (inputRef.current && target !== inputRef.current && !inputRef.current.contains(target as Node)) {
-        inputRef.current.blur();
+      if (
+        searchContainerRef.current &&
+        target &&
+        !searchContainerRef.current.contains(target)
+      ) {
+        inputRef.current?.blur();
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isAutoScrollingRef.current) return;
+      if (e.touches.length > 0) {
+        const currentY = e.touches[0].clientY;
+        // If user scrolls up or down (> 10px movement), dismiss keyboard
+        if (Math.abs(currentY - touchStartYRef.current) > 10) {
+          inputRef.current?.blur();
+        }
       }
     };
 
     const handleScroll = () => {
+      if (isAutoScrollingRef.current) {
+        return;
+      }
+      // Ignore initial browser viewport adjustments upon keyboard open (first 600ms)
+      if (Date.now() - focusTimeRef.current < 600) {
+        return;
+      }
       if (inputRef.current && document.activeElement === inputRef.current) {
         inputRef.current.blur();
       }
     };
 
-    document.addEventListener('touchstart', handleTouchOutside, { passive: true });
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        searchContainerRef.current &&
+        target &&
+        !searchContainerRef.current.contains(target)
+      ) {
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('mousedown', handleMouseDown, { passive: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
+
     return () => {
-      document.removeEventListener('touchstart', handleTouchOutside);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('scroll', handleScroll);
     };
   }, [isSearchFocused]);
@@ -259,19 +323,25 @@ export function ModelListView({
   );
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 min-h-[calc(100dvh-180px)] transition-all duration-300 ${isSearchFocused ? 'pb-32' : 'pb-16'}`}>
       {/* Sticky Real-time Contextual Model Search Bar + Filter Segmented Control */}
       <div
         ref={searchContainerRef}
-        className={`transition-all duration-300 ${
+        className={`sticky top-1 sm:top-2 z-30 transition-all duration-200 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl p-2 sm:p-2.5 rounded-2xl border border-border/80 ${
           isSearchFocused || searchQuery.trim()
-            ? 'sticky top-1 sm:top-2 z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl p-2 sm:p-2.5 rounded-2xl shadow-md border border-border/80'
-            : 'relative'
+            ? 'shadow-md ring-2 ring-primary/20'
+            : 'shadow-xs hover:shadow-sm'
         }`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-wrap">
           {/* In-Place Search Bar with Premium Theme Highlight */}
-          <div className="relative flex-1 min-w-0 group">
+          <div
+            className="relative flex-1 min-w-0 group cursor-text"
+            onClick={() => {
+              inputRef.current?.focus();
+              moveSearchBarToTop();
+            }}
+          >
             <div className="relative flex items-center">
               {/* Premium Theme Icon Badge */}
               <div className="absolute left-2.5 z-10 w-7 h-7 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs pointer-events-none group-focus-within:border-primary/50 group-focus-within:scale-105 transition-all">
@@ -284,6 +354,9 @@ export function ModelListView({
                 placeholder={`Search ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'brand'} models...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onClick={() => {
+                  moveSearchBarToTop();
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -300,7 +373,8 @@ export function ModelListView({
                 {searchQuery ? (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSearchQuery('');
                       inputRef.current?.focus();
                     }}
@@ -321,7 +395,10 @@ export function ModelListView({
           {/* Single Ultra-Premium iOS Sort Button Trigger */}
           <KbSortButton
             sortBy={sortBy}
-            onClick={() => setIsSortOpen(true)}
+            onClick={() => {
+              inputRef.current?.blur();
+              setIsSortOpen(true);
+            }}
             className="self-start sm:self-auto h-11"
           />
         </div>

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useTransition, useEffect, useId, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Monitor, Loader2, Plus, Sparkles, CheckCircle2, Tv, AlertTriangle, AlertCircle, ArrowRight } from 'lucide-react';
+import { Monitor, Loader2, Plus, Sparkles, CheckCircle2, Tv, AlertTriangle, AlertCircle, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -51,6 +53,22 @@ export function CreateTvModelDialog({
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? setControlledOpen! : setInternalOpen;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when dialog is active
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [open]);
+
   const [isPending, startTransition] = useTransition();
 
   const [brandId, setBrandId] = useState(preselectedBrandId || brands[0]?.id || '');
@@ -58,6 +76,7 @@ export function CreateTvModelDialog({
   const [screenSize, setScreenSize] = useState('');
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
+  const lastFocusTimeRef = useRef<number>(0);
 
   // Sync initialModelNumber when dialog opens
   useEffect(() => {
@@ -103,6 +122,13 @@ export function CreateTvModelDialog({
   useEffect(() => {
     if (!open) return;
 
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        lastFocusTimeRef.current = Date.now();
+      }
+    };
+
     const handleTouchOutside = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
       const activeEl = document.activeElement as HTMLElement | null;
@@ -119,15 +145,18 @@ export function CreateTvModelDialog({
     };
 
     const handleScroll = () => {
+      if (Date.now() - lastFocusTimeRef.current < 500) return;
       const activeEl = document.activeElement as HTMLElement | null;
       if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
         activeEl.blur();
       }
     };
 
+    document.addEventListener('focusin', handleFocusIn, { passive: true });
     document.addEventListener('touchstart', handleTouchOutside, { passive: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
+      document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('touchstart', handleTouchOutside);
       window.removeEventListener('scroll', handleScroll);
     };
@@ -222,243 +251,302 @@ export function CreateTvModelDialog({
         </Button>
       )}
 
-      <Dialog open={open} onOpenChange={isPending ? undefined : setOpen}>
-        <DialogContent
-          onScroll={() => {
-            const activeEl = document.activeElement as HTMLElement | null;
-            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-              activeEl.blur();
-            }
-          }}
-          className="sm:max-w-[440px] p-4 sm:p-5 bg-white border border-border/80 text-foreground shadow-2xl rounded-3xl overflow-hidden"
-        >
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            {/* Header */}
-            <DialogHeader className="space-y-0.5 pb-2 border-b border-border/60">
-              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs">
-                  <Monitor className="w-4 h-4" />
-                </div>
-                <span>Add TV Model</span>
-              </DialogTitle>
-              <DialogDescription className="text-[11px] text-muted-foreground line-clamp-1">
-                {selectedBrand ? (
-                  <span>Adding under brand <strong className="text-foreground font-semibold">{selectedBrand.name}</strong></span>
-                ) : (
-                  <span>Register a new TV model number.</span>
-                )}
-              </DialogDescription>
-            </DialogHeader>
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <div
+                className="fixed inset-0 z-[100] flex flex-col justify-end items-center select-none"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget && !isPending) {
+                    setOpen(false);
+                  }
+                }}
+              >
+                {/* Backdrop Blur Layer */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                  onClick={() => {
+                    if (!isPending) setOpen(false);
+                  }}
+                />
 
-            <div className="space-y-3">
-              {/* Optional Brand Selector (Only if multiple brands exist and not preselected) */}
-              {!preselectedBrandId && brands.length > 1 && (
-                <div className="space-y-1">
-                  <Label htmlFor="brand-select" className="text-xs font-semibold text-foreground">
-                    Brand Category *
-                  </Label>
-                  <Select value={brandId} onValueChange={(v) => v && setBrandId(v)}>
-                    <SelectTrigger id="brand-select" className="h-9.5 rounded-xl bg-muted/40 border-border/80 text-xs font-medium">
-                      <SelectValue placeholder="Select brand..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl bg-white border border-border shadow-xl">
-                      {brands.map((b) => (
-                        <SelectItem key={b.id} value={b.id} className="cursor-pointer font-medium text-xs">
-                          {b.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* 1. Model Number Input */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="model-number" className="text-xs font-semibold text-foreground">
-                    Model Number *
-                  </Label>
-                  {autoDetectedSize && (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md">
-                      <CheckCircle2 className="w-2.5 h-2.5" /> {autoDetectedSize}&quot; Size
-                    </span>
-                  )}
-                </div>
-                <Input
-                  ref={modelInputRef}
-                  id="model-number"
-                  value={modelNumber}
-                  onChange={(e) => handleModelNumberChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.currentTarget.blur();
+                {/* iOS Bottom Sheet */}
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                  transition={{
+                    type: 'spring',
+                    damping: 30,
+                    stiffness: 340,
+                    mass: 0.8,
+                  }}
+                  drag="y"
+                  dragConstraints={{ top: 0 }}
+                  dragElastic={{ top: 0, bottom: 0.2 }}
+                  onDragEnd={(_, info) => {
+                    if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                      setOpen(false);
                     }
                   }}
-                  onFocus={(e) => {
-                    const len = e.target.value.length;
-                    requestAnimationFrame(() => {
-                      e.target.setSelectionRange(len, len);
-                    });
-                  }}
-                  placeholder="e.g. 55NU7100, 32LM563, OLED65C1"
-                  required
-                  autoFocus
-                  disabled={isPending}
-                  className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold uppercase font-mono tracking-wider transition-all focus-visible:ring-2 ${
-                    similarityResult.level === 'BLOCK'
-                      ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
-                      : similarityResult.level === 'WARN_11'
-                      ? 'border-2 border-red-600 focus-visible:ring-red-600/50 text-red-950 bg-red-100/40 font-black'
-                      : similarityResult.level === 'WARN_8'
-                      ? 'border-red-500 focus-visible:ring-red-500/30 text-red-900 bg-red-50/30'
-                      : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
-                      ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
-                      : 'border-border/80 focus-visible:ring-primary/30'
-                  }`}
-                />
-                
-                {/* Exact Duplicate Match Restriction Banner */}
-                {similarityResult.level === 'BLOCK' && (
-                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2 animate-in fade-in">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mt-0.5" />
-                    <div className="space-y-0.5 min-w-0 flex-1">
-                      <p className="font-bold text-rose-900 text-xs">Exact Duplicate Model</p>
-                      <p className="text-[11px] text-rose-700 leading-tight">{similarityResult.message}</p>
-                    </div>
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden will-change-transform transform-gpu select-text"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Drag Handle */}
+                  <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                    <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                   </div>
-                )}
 
-                {/* 11+ Match Crazy Red Critical Warning Banner */}
-                {similarityResult.level === 'WARN_11' && (
-                  <div className="p-2.5 rounded-xl bg-red-600/10 border-2 border-red-600 text-red-950 text-xs flex items-start gap-2.5 animate-in fade-in">
-                    <AlertTriangle className="w-4 h-4 fill-red-600 text-white shrink-0 mt-0.5" />
-                    <div className="space-y-0.5 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-black uppercase tracking-wider">
-                          11+ Match Warning
-                        </span>
-                        <span className="font-bold text-xs truncate">&quot;{similarityResult.matchedSequence}&quot;</span>
+                  {/* Header */}
+                  <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Monitor className="w-4 h-4" />
                       </div>
-                      <p className="text-[11px] text-red-900 leading-tight mt-0.5">
-                        Matches model <strong className="font-extrabold text-red-950 underline">{similarityResult.conflictingName}</strong>. You may proceed if intended.
-                      </p>
+                      <div>
+                        <h2 className="text-base sm:text-lg font-bold text-foreground leading-tight">
+                          Add TV Model
+                        </h2>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">
+                          {selectedBrand ? (
+                            <span>Adding under brand <strong className="text-foreground font-semibold">{selectedBrand.name}</strong></span>
+                          ) : (
+                            <span>Register a new TV model number</span>
+                          )}
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isPending) setOpen(false);
+                      }}
+                      className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
 
-                {/* 8-10 Match Red Warning Banner */}
-                {similarityResult.level === 'WARN_8' && (
-                  <div className="p-2.5 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs flex items-start gap-2 animate-in fade-in">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
-                    <div className="space-y-0.5 min-w-0 flex-1">
-                      <p className="font-bold text-red-900 text-xs">
-                        8+ Match: &quot;{similarityResult.matchedSequence}&quot;
-                      </p>
-                      <p className="text-[11px] text-red-800 leading-tight">
-                        Matches model <strong className="font-bold text-red-950">{similarityResult.conflictingName}</strong>. You may proceed if intended.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  {/* Form */}
+                  <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                    <div className="overflow-y-auto px-5 sm:px-6 py-4 space-y-3.5 no-scrollbar flex-1">
+                      {/* Optional Brand Selector (Only if multiple brands exist and not preselected) */}
+                      {!preselectedBrandId && brands.length > 1 && (
+                        <div className="space-y-1">
+                          <Label htmlFor="brand-select" className="text-xs font-semibold text-foreground">
+                            Brand Category *
+                          </Label>
+                          <Select value={brandId} onValueChange={(v) => v && setBrandId(v)}>
+                            <SelectTrigger id="brand-select" className="h-9.5 rounded-xl bg-muted/40 border-border/80 text-xs font-medium">
+                              <SelectValue placeholder="Select brand..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl bg-white border border-border shadow-xl">
+                              {brands.map((b) => (
+                                <SelectItem key={b.id} value={b.id} className="cursor-pointer font-medium text-xs">
+                                  {b.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
-                {/* 5-7 Match Soft Amber Warning Banner */}
-                {(similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN') && (
-                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2 animate-in fade-in">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="space-y-0.5 min-w-0 flex-1">
-                      <p className="font-bold text-amber-900 text-xs">
-                        Similar Model ({similarityResult.matchLength} Chars: &quot;{similarityResult.matchedSequence}&quot;)
-                      </p>
-                      <p className="text-[11px] text-amber-800 leading-tight">
-                        Matches model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>.
-                      </p>
+                      {/* 1. Model Number Input */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="model-number" className="text-xs font-semibold text-foreground">
+                            Model Number *
+                          </Label>
+                          {autoDetectedSize && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> {autoDetectedSize}&quot; Size
+                            </span>
+                          )}
+                        </div>
+                        <Input
+                          ref={modelInputRef}
+                          id="model-number"
+                          value={modelNumber}
+                          onChange={(e) => handleModelNumberChange(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          onFocus={(e) => {
+                            const len = e.target.value.length;
+                            requestAnimationFrame(() => {
+                              e.target.setSelectionRange(len, len);
+                            });
+                          }}
+                          placeholder="e.g. 55NU7100, 32LM563, OLED65C1"
+                          required
+                          autoFocus
+                          disabled={isPending}
+                          className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold uppercase font-mono tracking-wider transition-all focus-visible:ring-2 ${
+                            similarityResult.level === 'BLOCK'
+                              ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
+                              : similarityResult.level === 'WARN_11'
+                              ? 'border-2 border-red-600 focus-visible:ring-red-600/50 text-red-950 bg-red-100/40 font-black'
+                              : similarityResult.level === 'WARN_8'
+                              ? 'border-red-500 focus-visible:ring-red-500/30 text-red-900 bg-red-50/30'
+                              : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
+                              ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
+                              : 'border-border/80 focus-visible:ring-primary/30'
+                          }`}
+                        />
+                        
+                        {/* Exact Duplicate Match Restriction Banner */}
+                        {similarityResult.level === 'BLOCK' && (
+                          <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2 animate-in fade-in">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mt-0.5" />
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <p className="font-bold text-rose-900 text-xs">Exact Duplicate Model</p>
+                              <p className="text-[11px] text-rose-700 leading-tight">{similarityResult.message}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 11+ Match Critical Warning Banner */}
+                        {similarityResult.level === 'WARN_11' && (
+                          <div className="p-2.5 rounded-xl bg-red-600/10 border-2 border-red-600 text-red-950 text-xs flex items-start gap-2.5 animate-in fade-in">
+                            <AlertTriangle className="w-4 h-4 fill-red-600 text-white shrink-0 mt-0.5" />
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-black uppercase tracking-wider">
+                                  11+ Match Warning
+                                </span>
+                                <span className="font-bold text-xs truncate">&quot;{similarityResult.matchedSequence}&quot;</span>
+                              </div>
+                              <p className="text-[11px] text-red-900 leading-tight mt-0.5">
+                                Matches model <strong className="font-extrabold text-red-950 underline">{similarityResult.conflictingName}</strong>. You may proceed if intended.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 8-10 Match Red Warning Banner */}
+                        {similarityResult.level === 'WARN_8' && (
+                          <div className="p-2.5 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs flex items-start gap-2 animate-in fade-in">
+                            <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <p className="font-bold text-red-900 text-xs">
+                                8+ Match: &quot;{similarityResult.matchedSequence}&quot;
+                              </p>
+                              <p className="text-[11px] text-red-800 leading-tight">
+                                Matches model <strong className="font-bold text-red-950">{similarityResult.conflictingName}</strong>. You may proceed if intended.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 5-7 Match Soft Amber Warning Banner */}
+                        {(similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN') && (
+                          <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2 animate-in fade-in">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <p className="font-bold text-amber-900 text-xs">
+                                Similar Model ({similarityResult.matchLength} Chars: &quot;{similarityResult.matchedSequence}&quot;)
+                              </p>
+                              <p className="text-[11px] text-amber-800 leading-tight">
+                                Matches model <strong className="font-semibold text-amber-950">{similarityResult.conflictingName}</strong>.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. TV Screen Size */}
+                      <div className="space-y-1">
+                        <Label htmlFor="screen-size" className="text-xs font-semibold text-foreground">
+                          TV Size (Inches)
+                        </Label>
+                        <div className="relative flex items-center">
+                          <Input
+                            id="screen-size"
+                            type="number"
+                            min="10"
+                            max="150"
+                            value={screenSize}
+                            onChange={(e) => {
+                              setScreenSize(e.target.value);
+                              setAutoDetectedSize(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            placeholder="e.g. 55"
+                            disabled={isPending}
+                            className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
+                          />
+                          <div className="absolute right-3 text-xs font-bold text-muted-foreground pointer-events-none">
+                            Inches (&quot;)
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+
+                    {/* Footer Actions */}
+                    <div className="px-5 sm:px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setOpen(false)}
+                        disabled={isPending}
+                        className="rounded-xl text-xs h-9.5 px-3.5"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isPending || !brandId || !modelNumber.trim() || similarityResult.level === 'BLOCK'}
+                        className={`rounded-xl text-xs h-9.5 px-4 text-white font-bold gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer ${
+                          similarityResult.level === 'WARN_11'
+                            ? 'bg-gradient-to-r from-red-700 via-rose-700 to-red-800 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-600/30 border border-red-400/40 font-black'
+                            : similarityResult.level === 'WARN_8'
+                            ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20'
+                            : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
+                            ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20'
+                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-sm shadow-blue-500/20 hover:shadow-md'
+                        }`}
+                      >
+                        {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        {similarityResult.level === 'WARN_11' ? (
+                          <>
+                            <span>Proceed & Create (11+ Match)</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </>
+                        ) : similarityResult.level === 'WARN_8' ? (
+                          <>
+                            <span>Proceed & Create (8+ Match)</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </>
+                        ) : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN' ? (
+                          <>
+                            <span>Proceed & Create Model</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </>
+                        ) : (
+                          <span>Create Model</span>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </motion.div>
               </div>
-
-              {/* 2. TV Screen Size (Auto-filled) */}
-              <div className="space-y-1">
-                <Label htmlFor="screen-size" className="text-xs font-semibold text-foreground">
-                  TV Size (Inches)
-                </Label>
-                <div className="relative flex items-center">
-                  <Input
-                    id="screen-size"
-                    type="number"
-                    min="10"
-                    max="150"
-                    value={screenSize}
-                    onChange={(e) => {
-                      setScreenSize(e.target.value);
-                      setAutoDetectedSize(null); // User manually modified
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    placeholder="e.g. 55"
-                    disabled={isPending}
-                    className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
-                  />
-                  <div className="absolute right-3 text-xs font-bold text-muted-foreground pointer-events-none">
-                    Inches (&quot;)
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <DialogFooter className="pt-2 gap-2 flex items-center justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isPending}
-                className="rounded-xl text-xs h-9.5 px-3.5"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending || !brandId || !modelNumber.trim() || similarityResult.level === 'BLOCK'}
-                className={`rounded-xl text-xs h-9.5 px-4 text-white font-bold gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer ${
-                  similarityResult.level === 'WARN_11'
-                    ? 'bg-gradient-to-r from-red-700 via-rose-700 to-red-800 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-600/30 border border-red-400/40 font-black'
-                    : similarityResult.level === 'WARN_8'
-                    ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20'
-                    : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
-                    ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20'
-                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-sm shadow-blue-500/20 hover:shadow-md'
-                }`}
-              >
-                {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {similarityResult.level === 'WARN_11' ? (
-                  <>
-                    <span>Proceed & Create (11+ Match)</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                ) : similarityResult.level === 'WARN_8' ? (
-                  <>
-                    <span>Proceed & Create (8+ Match)</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                ) : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN' ? (
-                  <>
-                    <span>Proceed & Create Model</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                ) : (
-                  <span>Create Model</span>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </>
   );
 }

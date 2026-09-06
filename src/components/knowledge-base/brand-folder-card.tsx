@@ -122,7 +122,13 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
       {/* ========================================================================= */}
       {/* UNIFIED ANIMATED CARD BODY (Everything transforms in 100% lockstep)       */}
       {/* ========================================================================= */}
-      <div className={`relative w-full h-full flex flex-col transition-all duration-300 group-hover:-translate-y-1.5 group-hover:scale-[1.015] ${isPressing ? 'scale-[0.96] opacity-95 transition-transform duration-200 ease-out' : ''}`}>
+      <div
+        className={`relative w-full h-full flex flex-col group-hover:-translate-y-1.5 group-hover:scale-[1.015] transition-all duration-300 ${
+          isPressing
+            ? 'scale-[0.96] opacity-90 transition-transform duration-150 ease-out'
+            : 'scale-100 opacity-100 transition-transform duration-250 ease-out'
+        }`}
+      >
         {/* 3-Dots Context Menu Button (Embedded into Top-Right shoulder, hidden on mobile) */}
         {!!userRole && (
           <div className="absolute top-5 sm:top-10 right-1.5 sm:right-3 z-30">

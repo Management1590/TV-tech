@@ -93,7 +93,7 @@ export default async function TvBrandDetailPage({
 
       {/* Model List View */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div id="registered-models-header" className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
             <Monitor className="w-4 h-4 text-primary" />
             Registered TV Models ({brand.models.length})
