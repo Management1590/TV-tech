@@ -17,7 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { matchesOrderedPattern, calculateMatchScore } from '@/lib/search-utils';
+import { evaluateModelSearch, findClosestModelSuggestions } from '@/lib/search-utils';
 import { recordModelOpen, getModelOpenCounts } from '@/lib/kb-tracking-utils';
 import { HighlightedText } from './highlighted-text';
 import { ModelContextMenu } from './model-context-menu';
@@ -212,7 +212,7 @@ export function ModelListView({
     setVisibleCount(ITEMS_PER_PAGE);
   }, [debouncedQuery, sortBy]);
 
-  // Ordered pattern search matching & ranking + Filter Sorting (Most Opened / Name)
+  // Enhanced Multi-Token, TV-Domain Search Matching & Ranking + Filter Sorting
   const filteredModels = useMemo(() => {
     const query = debouncedQuery.trim();
 
@@ -221,50 +221,25 @@ export function ModelListView({
     if (query) {
       list = models
         .map((model) => {
-          const cleanName = model.modelNumber.replace(/_\d{10,}$/, '');
-          const descText = model.notes?.trim() || '';
-
-          const modelScore = calculateMatchScore(query, cleanName);
-          const isModelOrdered = matchesOrderedPattern(query, cleanName);
-          const isModelMatch = modelScore > 0 || isModelOrdered;
-
-          let descScore = 0;
-          let isDescOrdered = false;
-          let isDescMatch = false;
-          if (descText) {
-            descScore = calculateMatchScore(query, descText);
-            isDescOrdered = matchesOrderedPattern(query, descText);
-            isDescMatch = descScore > 0 || isDescOrdered;
-          }
-
-          const otherSpecs = [
-            model.chassisNo || '',
-            model.displayType || '',
-            model.screenSize ? `${model.screenSize} inch` : '',
-          ].join(' ').trim();
-          const otherScore = otherSpecs ? calculateMatchScore(query, otherSpecs) : 0;
-          const isOtherOrdered = otherSpecs ? matchesOrderedPattern(query, otherSpecs) : false;
-          const isOtherMatch = otherScore > 0 || isOtherOrdered;
-
-          const isMatch = isModelMatch || isDescMatch || isOtherMatch;
-
-          // Compute search relevance score: direct model match has highest priority
-          const score = Math.max(
-            isModelMatch ? modelScore + 50 : 0,
-            isDescMatch ? descScore + 20 : 0,
-            isOtherMatch ? otherScore + 10 : 0
-          );
+          const evalRes = evaluateModelSearch(query, {
+            modelNumber: model.modelNumber,
+            notes: model.notes,
+            chassisNo: model.chassisNo,
+            displayType: model.displayType,
+            screenSize: model.screenSize,
+            brandName: model.brand?.name || brandName,
+          });
 
           return {
             model: {
               ...model,
               _searchMatch: {
-                isModelMatch,
-                isDescMatch,
+                isModelMatch: evalRes.isModelMatch,
+                isDescMatch: evalRes.isDescMatch,
               },
             },
-            score,
-            isMatch,
+            score: evalRes.score,
+            isMatch: evalRes.isMatch,
           };
         })
         .filter((item) => item.isMatch)
@@ -327,6 +302,12 @@ export function ModelListView({
 
     return list;
   }, [models, debouncedQuery, sortBy, openCounts]);
+
+  // Closest model suggestions for zero-results state
+  const suggestions = useMemo(() => {
+    if (!debouncedQuery.trim() || filteredModels.length > 0) return [];
+    return findClosestModelSuggestions(debouncedQuery, models, 2);
+  }, [debouncedQuery, filteredModels.length, models]);
 
   const visibleModels = useMemo(() => {
     return filteredModels.slice(0, visibleCount);
@@ -504,6 +485,28 @@ export function ModelListView({
               ? `This model is not registered under ${brandName ? brandName.replace(/_\d{10,}$/, '') : 'this brand'} yet. Create "${searchQuery.trim().toUpperCase()}" to automatically set up its technical folders (Backlight & More info).`
               : 'Add your first TV model for this brand to start organizing documentation.'}
           </p>
+
+          {/* iOS-Styled "Did You Mean?" Suggestions */}
+          {suggestions.length > 0 && (
+            <div className="mb-6 flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <span className="text-xs font-semibold text-muted-foreground/90">
+                Did you mean:
+              </span>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                {suggestions.map((sug) => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => setSearchQuery(sug)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all border border-blue-200/80 shadow-2xs cursor-pointer active:scale-95"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="underline decoration-blue-400 underline-offset-2">{sug}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {searchQuery && !!userRole && (
