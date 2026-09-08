@@ -12,12 +12,14 @@ import {
   Sparkles,
   Plus,
   SlidersHorizontal,
+  FileText,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { matchesOrderedPattern, calculateMatchScore } from '@/lib/search-utils';
 import { recordModelOpen, getModelOpenCounts } from '@/lib/kb-tracking-utils';
+import { HighlightedText } from './highlighted-text';
 import { ModelContextMenu } from './model-context-menu';
 import { CreateTvModelDialog } from './create-tv-model-dialog';
 import { ModelRowSkeleton, SearchDropdownRowSkeleton } from './kb-skeletons';
@@ -41,6 +43,10 @@ export interface TvModelListItem {
   };
   brand?: {
     name: string;
+  };
+  _searchMatch?: {
+    isModelMatch: boolean;
+    isDescMatch: boolean;
   };
 }
 
@@ -210,37 +216,65 @@ export function ModelListView({
   const filteredModels = useMemo(() => {
     const query = debouncedQuery.trim();
 
-    let list = models;
+    let list: TvModelListItem[] = models;
 
     if (query) {
       list = models
         .map((model) => {
           const cleanName = model.modelNumber.replace(/_\d{10,}$/, '');
-          const fullSearchText = [
-            cleanName,
+          const descText = model.notes?.trim() || '';
+
+          const modelScore = calculateMatchScore(query, cleanName);
+          const isModelOrdered = matchesOrderedPattern(query, cleanName);
+          const isModelMatch = modelScore > 0 || isModelOrdered;
+
+          let descScore = 0;
+          let isDescOrdered = false;
+          let isDescMatch = false;
+          if (descText) {
+            descScore = calculateMatchScore(query, descText);
+            isDescOrdered = matchesOrderedPattern(query, descText);
+            isDescMatch = descScore > 0 || isDescOrdered;
+          }
+
+          const otherSpecs = [
             model.chassisNo || '',
             model.displayType || '',
             model.screenSize ? `${model.screenSize} inch` : '',
-            model.notes || '',
-          ].join(' ');
+          ].join(' ').trim();
+          const otherScore = otherSpecs ? calculateMatchScore(query, otherSpecs) : 0;
+          const isOtherOrdered = otherSpecs ? matchesOrderedPattern(query, otherSpecs) : false;
+          const isOtherMatch = otherScore > 0 || isOtherOrdered;
 
-          const modelScore = calculateMatchScore(query, cleanName);
-          const textScore = calculateMatchScore(query, fullSearchText);
-          const isOrderedMatch =
-            matchesOrderedPattern(query, cleanName) ||
-            matchesOrderedPattern(query, fullSearchText);
+          const isMatch = isModelMatch || isDescMatch || isOtherMatch;
 
-          const score = Math.max(modelScore, textScore, isOrderedMatch ? 40 : 0);
+          // Compute search relevance score: direct model match has highest priority
+          const score = Math.max(
+            isModelMatch ? modelScore + 50 : 0,
+            isDescMatch ? descScore + 20 : 0,
+            isOtherMatch ? otherScore + 10 : 0
+          );
 
           return {
-            model,
+            model: {
+              ...model,
+              _searchMatch: {
+                isModelMatch,
+                isDescMatch,
+              },
+            },
             score,
-            isMatch: score > 0 || isOrderedMatch,
+            isMatch,
           };
         })
         .filter((item) => item.isMatch)
         .sort((a, b) => b.score - a.score)
         .map((item) => item.model);
+    }
+
+    // When actively searching and using default "most-opened" sort, keep search relevance score ranking.
+    if (query && sortBy === 'most-opened') {
+      return list;
     }
 
     // Apply Sort By: "Most Opened" (Default), "Name A-Z", "Recently Added", "Oldest Added"
@@ -528,9 +562,13 @@ export function ModelListView({
                       </div>
 
                       <div className="space-y-1.5 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors break-words [overflow-wrap:anywhere] leading-snug">
-                            {cleanModelNumber}
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors break-all [word-break:break-all] [overflow-wrap:anywhere] min-w-0 leading-snug">
+                            {Boolean(debouncedQuery.trim()) && model._searchMatch?.isModelMatch ? (
+                              <HighlightedText text={cleanModelNumber} query={debouncedQuery} className="break-all [word-break:break-all]" />
+                            ) : (
+                              cleanModelNumber
+                            )}
                           </span>
 
                           {model.screenSize && (
@@ -549,18 +587,28 @@ export function ModelListView({
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2.5 text-xs flex-wrap">
-                          {model.chassisNo && (
-                            <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
-                              Chassis: {model.chassisNo}
-                            </span>
-                          )}
-                          {model.notes && (
-                            <span className="text-[11px] italic text-muted-foreground/70 font-medium break-words [overflow-wrap:anywhere] line-clamp-2 sm:line-clamp-1">
-                              {model.notes}
-                            </span>
-                          )}
-                        </div>
+                        {(model.chassisNo || (Boolean(debouncedQuery.trim()) && model._searchMatch?.isDescMatch && model.notes)) && (
+                          <div className="flex items-center gap-2.5 text-xs flex-wrap min-w-0">
+                            {model.chassisNo && (
+                              <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
+                                Chassis: {model.chassisNo}
+                              </span>
+                            )}
+
+                            {/* Description search & highlight display rules:
+                                - Normal view: Description is NEVER visible (clean, compact model card).
+                                - Search view: Description is ONLY visible if user search matched description, with matched keyword highlighted.
+                            */}
+                            {Boolean(debouncedQuery.trim()) && model._searchMatch?.isDescMatch && model.notes && (
+                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/50 text-amber-950 dark:text-amber-100 text-[11px] font-medium shadow-2xs max-w-full">
+                                <FileText className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span className="break-all [word-break:break-word] line-clamp-2">
+                                  <HighlightedText text={model.notes} query={debouncedQuery} className="break-all [word-break:break-word]" />
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -586,6 +634,7 @@ export function ModelListView({
                             modelId={model.id}
                             modelNumber={model.modelNumber}
                             screenSize={model.screenSize}
+                            currentDescription={model.notes}
                             brandName={brandName || model.brand?.name}
                             folderCount={folderCount}
                             userRole={userRole}

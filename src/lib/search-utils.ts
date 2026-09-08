@@ -75,3 +75,72 @@ export function calculateMatchScore(query: string, text: string): number {
 
   return 0;
 }
+
+/**
+ * Finds all character index ranges [startIndex, endIndex] in `text` that match `query`.
+ * Supports exact contiguous matches, individual word tokens, and ordered pattern matches.
+ * Automatically sorts and merges overlapping ranges for clean rendering.
+ */
+export function getHighlightedRanges(text: string, query: string): [number, number][] {
+  if (!text || !query || !query.trim()) return [];
+
+  const cleanQuery = query.trim();
+  const lowerText = text.toLowerCase();
+  const lowerQuery = cleanQuery.toLowerCase();
+
+  const ranges: [number, number][] = [];
+
+  // 1. Contiguous full query match
+  let fullIdx = lowerText.indexOf(lowerQuery);
+  while (fullIdx !== -1) {
+    ranges.push([fullIdx, fullIdx + lowerQuery.length]);
+    fullIdx = lowerText.indexOf(lowerQuery, fullIdx + 1);
+  }
+
+  // 2. Individual words match (when query contains spaces)
+  const words = cleanQuery.split(/\s+/).map((w) => w.toLowerCase()).filter((w) => w.length > 0);
+  if (words.length > 1) {
+    for (const word of words) {
+      let wordIdx = lowerText.indexOf(word);
+      while (wordIdx !== -1) {
+        ranges.push([wordIdx, wordIdx + word.length]);
+        wordIdx = lowerText.indexOf(word, wordIdx + 1);
+      }
+    }
+  }
+
+  // 3. If no ranges found yet, check ordered pattern match (subsequence)
+  if (ranges.length === 0) {
+    const normQ = normalizeSearchString(cleanQuery);
+    if (normQ.length > 0) {
+      let qIdx = 0;
+      for (let tIdx = 0; tIdx < text.length; tIdx++) {
+        const char = text[tIdx].toLowerCase();
+        if (/[a-z0-9]/.test(char) && char === normQ[qIdx]) {
+          ranges.push([tIdx, tIdx + 1]);
+          qIdx++;
+          if (qIdx === normQ.length) break;
+        }
+      }
+    }
+  }
+
+  if (ranges.length === 0) return [];
+
+  // Sort ranges by start index, then end index
+  ranges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+  // Merge overlapping or contiguous ranges
+  const merged: [number, number][] = [ranges[0]];
+  for (let i = 1; i < ranges.length; i++) {
+    const prev = merged[merged.length - 1];
+    const curr = ranges[i];
+    if (curr[0] <= prev[1]) {
+      prev[1] = Math.max(prev[1], curr[1]);
+    } else {
+      merged.push(curr);
+    }
+  }
+
+  return merged;
+}

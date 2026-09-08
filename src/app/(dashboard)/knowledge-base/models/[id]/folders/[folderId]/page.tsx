@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ChevronRight, FolderOpen, Lightbulb, Info, ArrowLeft } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
@@ -108,6 +108,13 @@ export default async function KbFolderDetailPage({
   const linkedBacklights = (modelEntity?.targetRelationships || [])
     .map((r) => r.sourceEntity.item)
     .filter(Boolean);
+
+  const isAdmin = user?.role === 'ADMIN';
+
+  // In user panel (non-admin), if there are no linked backlight items, this folder is not accessible
+  if (isBacklight && !isAdmin && linkedBacklights.length === 0) {
+    redirect(`/knowledge-base/models/${modelId}`);
+  }
 
   const formattedMedia = (folder.entity.mediaAttachments || []).map((a) => ({
     id: a.media.id,

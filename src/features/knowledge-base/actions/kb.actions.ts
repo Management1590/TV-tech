@@ -276,6 +276,7 @@ export async function createTvModelAction(data: {
   displayType?: string;
   chassisNo?: string;
   notes?: string;
+  description?: string;
 }) {
   const user = await getCurrentUser();
   if (!user) {
@@ -328,7 +329,7 @@ export async function createTvModelAction(data: {
           screenSize: screenSizeInt && !isNaN(screenSizeInt) ? screenSizeInt : null,
           displayType: data.displayType || null,
           chassisNo: data.chassisNo || null,
-          notes: data.notes || null,
+          notes: (data.description || data.notes)?.trim() || null,
         },
       });
 
@@ -365,7 +366,14 @@ export async function createTvModelAction(data: {
           subtitle: [screenSizeInt && `${screenSizeInt}"`, data.displayType, data.chassisNo]
             .filter(Boolean)
             .join(' • ') || null,
-          searchText: [brand.name, cleanNumber, data.screenSize, data.displayType, data.chassisNo, data.notes]
+          searchText: [
+            brand.name,
+            cleanNumber,
+            data.screenSize,
+            data.displayType,
+            data.chassisNo,
+            (data.description || data.notes)?.trim(),
+          ]
             .filter(Boolean)
             .join(' '),
         },
@@ -512,7 +520,8 @@ export const unlinkPartFromTvModelAction = unlinkItemFromTvModelAction;
 export async function renameTvModelAction(
   modelId: string,
   newModelNumber: string,
-  newScreenSize?: string
+  newScreenSize?: string,
+  newDescription?: string
 ) {
   const user = await getCurrentUser();
   if (!user) {
@@ -548,6 +557,7 @@ export async function renameTvModelAction(
   try {
     const slug = generateSlug(cleanNumber);
     const screenSizeInt = newScreenSize ? parseInt(newScreenSize, 10) : null;
+    const cleanDescription = newDescription !== undefined ? (newDescription.trim() || null) : undefined;
 
     await prisma.$transaction(async (tx) => {
       const model = await tx.tvModel.findUnique({
@@ -562,6 +572,7 @@ export async function renameTvModelAction(
           modelNumber: cleanNumber,
           slug,
           screenSize: screenSizeInt && !isNaN(screenSizeInt) ? screenSizeInt : null,
+          ...(cleanDescription !== undefined ? { notes: cleanDescription } : {}),
         },
       });
 
@@ -582,7 +593,7 @@ export async function renameTvModelAction(
             screenSizeInt ? `${screenSizeInt}` : '',
             model.displayType,
             model.chassisNo,
-            model.notes,
+            cleanDescription !== undefined ? cleanDescription : model.notes,
           ]
             .filter(Boolean)
             .join(' '),
@@ -599,6 +610,7 @@ export async function renameTvModelAction(
             oldModelNumber: model.modelNumber,
             newModelNumber: cleanNumber,
             screenSize: screenSizeInt,
+            ...(cleanDescription !== undefined ? { notes: cleanDescription } : {}),
           },
         },
       });
@@ -609,6 +621,63 @@ export async function renameTvModelAction(
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to rename TV model.' };
+  }
+}
+
+export async function updateTvModelDescriptionAction(modelId: string, description: string) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { success: false, error: 'Unauthorized: Authentication required.' };
+  }
+
+  try {
+    const cleanDesc = description.trim() || null;
+
+    await prisma.$transaction(async (tx) => {
+      const model = await tx.tvModel.findUnique({
+        where: { id: modelId },
+        include: { brand: { select: { name: true } } },
+      });
+      if (!model) throw new Error('TV Model not found.');
+
+      await tx.tvModel.update({
+        where: { id: modelId },
+        data: { notes: cleanDesc },
+      });
+
+      const newDisplayName = `${model.brand.name} ${model.modelNumber}`;
+      await tx.searchIndex.updateMany({
+        where: { entityId: model.entityId },
+        data: {
+          searchText: [
+            model.brand.name,
+            model.modelNumber,
+            model.screenSize ? `${model.screenSize}` : '',
+            model.displayType,
+            model.chassisNo,
+            cleanDesc,
+          ]
+            .filter(Boolean)
+            .join(' '),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'UPDATE',
+          entityType: 'TV_MODEL',
+          entityId: model.entityId,
+          changes: { notes: cleanDesc },
+        },
+      });
+    });
+
+    revalidatePath('/knowledge-base');
+    revalidatePath(`/knowledge-base/models/${modelId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to update TV model description.' };
   }
 }
 

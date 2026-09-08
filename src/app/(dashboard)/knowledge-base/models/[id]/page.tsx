@@ -22,6 +22,14 @@ export default async function TvModelDetailPage({
     where: { id },
     include: {
       brand: true,
+      entity: {
+        include: {
+          targetRelationships: {
+            where: { relationshipTypeCode: 'ITEM_COMPATIBLE_TV_MODEL' },
+            select: { id: true },
+          },
+        },
+      },
       knowledgeFolders: {
         where: { parentId: null }, // Strictly 1-level folders under Model
         orderBy: { sortOrder: 'asc' },
@@ -42,6 +50,14 @@ export default async function TvModelDetailPage({
 
   const cleanBrandName = model.brand.name.replace(/_\d{10,}$/, '');
   const cleanModelNumber = model.modelNumber.replace(/_\d{10,}$/, '');
+
+  const linkedBacklightCount = model.entity?.targetRelationships?.length ?? 0;
+  const hasLinkedBacklights = linkedBacklightCount > 0;
+  const isAdmin = user?.role === 'ADMIN';
+  const effectiveFolderCount =
+    !isAdmin && !hasLinkedBacklights
+      ? Math.max(1, model.knowledgeFolders.length - 1)
+      : model.knowledgeFolders.length;
 
   return (
     <div
@@ -71,7 +87,7 @@ export default async function TvModelDetailPage({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 break-words [overflow-wrap:anywhere] leading-tight">
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 break-all [word-break:break-all] [overflow-wrap:anywhere] leading-tight min-w-0">
                 {cleanModelNumber}
               </h1>
               <span className="text-xs text-muted-foreground/70 font-bold">({cleanBrandName})</span>
@@ -110,8 +126,9 @@ export default async function TvModelDetailPage({
               modelNumber={model.modelNumber}
               brandId={model.brand.id}
               screenSize={model.screenSize}
+              currentDescription={model.notes}
               brandName={cleanBrandName}
-              folderCount={model.knowledgeFolders.length}
+              folderCount={effectiveFolderCount}
               userRole={user?.role}
             />
           </div>
@@ -125,6 +142,8 @@ export default async function TvModelDetailPage({
         brandName={cleanBrandName}
         folders={model.knowledgeFolders}
         userRole={user?.role}
+        hasLinkedBacklights={hasLinkedBacklights}
+        linkedBacklightCount={linkedBacklightCount}
       />
     </div>
   );

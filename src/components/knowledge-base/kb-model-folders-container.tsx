@@ -10,6 +10,8 @@ interface KbModelFoldersContainerProps {
   brandName: string;
   folders: any[];
   userRole?: string;
+  hasLinkedBacklights?: boolean;
+  linkedBacklightCount?: number;
 }
 
 export function KbModelFoldersContainer({
@@ -18,15 +20,41 @@ export function KbModelFoldersContainer({
   brandName,
   folders,
   userRole = 'STAFF',
+  hasLinkedBacklights = false,
+  linkedBacklightCount = 0,
 }: KbModelFoldersContainerProps) {
+  const isAdmin = userRole === 'ADMIN';
+
   // Strictly display the 2 premade technical folders (Backlight & More info)
+  // In Admin panel: Backlight Linker is ALWAYS present.
+  // In User panel: Backlight Linker is ONLY displayed if there is at least one linked backlight item present.
+  // Otherwise, only More Info folder is shown.
   const technicalFolders = folders.filter((f) => {
     const nameLower = f.name.toLowerCase();
-    return nameLower.includes('backlight') || nameLower.includes('more info') || nameLower.includes('more-info');
+    const isBacklight = nameLower.includes('backlight');
+    const isMoreInfo = nameLower.includes('more info') || nameLower.includes('more-info');
+
+    if (isBacklight) {
+      if (!isAdmin && !hasLinkedBacklights) {
+        return false;
+      }
+      return true;
+    }
+
+    return isMoreInfo;
   });
 
-  // Fallback to all if custom, but prioritizes the 2 standard folders
-  const displayFolders = technicalFolders.length > 0 ? technicalFolders : folders.slice(0, 2);
+  // Fallback to custom folders if no technical folders match, while respecting the backlight rule
+  const displayFolders =
+    technicalFolders.length > 0
+      ? technicalFolders
+      : folders.filter((f) => {
+          const nameLower = f.name.toLowerCase();
+          if (nameLower.includes('backlight') && !isAdmin && !hasLinkedBacklights) {
+            return false;
+          }
+          return true;
+        });
 
   return (
     <div className="space-y-4">
@@ -46,24 +74,28 @@ export function KbModelFoldersContainer({
 
       {/* Grid of Technical Folders */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-        {displayFolders.map((kf) => (
-          <KbFolderCard
-            key={kf.id}
-            folder={{
-              id: kf.id,
-              name: kf.name,
-              slug: kf.slug,
-              isSystem: kf.isSystem,
-              modelId,
-              modelNumber,
-              brandName,
-              pages: kf.pages,
-              entity: kf.entity,
-            }}
-            modelId={modelId}
-            userRole={userRole}
-          />
-        ))}
+        {displayFolders.map((kf) => {
+          const isBacklight = kf.name.toLowerCase().includes('backlight');
+          return (
+            <KbFolderCard
+              key={kf.id}
+              folder={{
+                id: kf.id,
+                name: kf.name,
+                slug: kf.slug,
+                isSystem: kf.isSystem,
+                modelId,
+                modelNumber,
+                brandName,
+                pages: kf.pages,
+                entity: kf.entity,
+                linkedItemsCount: isBacklight ? linkedBacklightCount : undefined,
+              }}
+              modelId={modelId}
+              userRole={userRole}
+            />
+          );
+        })}
       </div>
     </div>
   );

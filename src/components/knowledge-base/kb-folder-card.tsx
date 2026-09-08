@@ -21,6 +21,7 @@ export interface KbFolderCardData {
     mediaAttachments?: any[];
     targetRelationships?: any[];
   };
+  linkedItemsCount?: number;
 }
 
 interface KbFolderCardProps {
@@ -39,6 +40,7 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
   const mediaCount = folder.entity?.mediaAttachments?.length ?? 0;
   const docCount = folder.pages?.length ?? folder._count?.pages ?? 0;
   const totalItems = mediaCount + docCount;
+  const backlightCount = folder.linkedItemsCount ?? 0;
 
   // Folder specific color theme configurations
   const theme = isBacklight
@@ -48,7 +50,7 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
         iconBg: 'bg-white/95 border-amber-300/80 text-amber-600 shadow-md shadow-amber-500/10',
         strokeColor: 'rgba(245, 158, 11, 0.40)',
         badgeStyle: 'bg-white/95 text-amber-800 border-amber-300/80',
-        badgeLabel: 'Linker',
+        badgeLabel: backlightCount > 0 ? `${backlightCount} ${backlightCount === 1 ? 'part' : 'parts'}` : 'Linker',
       }
     : isMoreInfo
     ? {

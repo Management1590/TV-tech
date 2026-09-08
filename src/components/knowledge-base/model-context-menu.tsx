@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ArrowRight,
   X,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -34,10 +35,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   renameTvModelAction,
+  updateTvModelDescriptionAction,
   deleteTvModelAction,
 } from '@/features/knowledge-base/actions/kb.actions';
 import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
@@ -58,6 +61,7 @@ interface ModelContextMenuProps {
   folderCount?: number;
   userRole?: string;
   existingModels?: string[];
+  currentDescription?: string | null;
   onDeleteSuccess?: () => void;
 }
 
@@ -70,6 +74,7 @@ export function ModelContextMenu({
   folderCount = 0,
   userRole = 'STAFF',
   existingModels = [],
+  currentDescription,
   onDeleteSuccess,
 }: ModelContextMenuProps) {
   const router = useRouter();
@@ -80,12 +85,18 @@ export function ModelContextMenu({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const deleteDragControls = useDragControls();
 
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const descSheetRef = useRef<HTMLDivElement>(null);
+  const descDragControls = useDragControls();
+  const descViewport = useKeyboardViewport(isDescriptionOpen);
+
   const renameViewport = useKeyboardViewport(isRenameOpen);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const renameSheetRef = useRef<HTMLDivElement>(null);
 
-  // Lock background scroll when mobile menu, delete modal, or rename sheet is open
-  useScrollLock(mobileOpen || isDeleteOpen || isRenameOpen);
+  // Lock background scroll when mobile menu, delete modal, rename sheet, or description sheet is open
+  useScrollLock(mobileOpen || isDeleteOpen || isRenameOpen || isDescriptionOpen);
 
   const [isPending, startTransition] = useTransition();
 
@@ -94,14 +105,25 @@ export function ModelContextMenu({
     [isRenameOpen, isPending]
   );
 
+  const persistentDescBlur = useMemo(
+    () => createPersistentBlurHandler(isDescriptionOpen, isPending),
+    [isDescriptionOpen, isPending]
+  );
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const [newModelNumber, setNewModelNumber] = useState(modelNumber);
+  const cleanModelNumber = useMemo(
+    () => modelNumber.replace(/_\d{10,}$/, ''),
+    [modelNumber]
+  );
+
+  const [newModelNumber, setNewModelNumber] = useState(cleanModelNumber);
   const [newScreenSize, setNewScreenSize] = useState(screenSize ? String(screenSize) : '');
+  const [newDescription, setNewDescription] = useState(currentDescription || '');
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
-  const isAdmin = !!userRole;
+  const isAdmin = userRole === 'ADMIN';
 
   // Filter out current model number from collision comparison
   const otherModels = useMemo(() => {
@@ -127,16 +149,32 @@ export function ModelContextMenu({
     if (sizeInput instanceof HTMLElement) {
       sizeInput.blur();
     }
+    const descInput = document.getElementById('rename-description');
+    if (descInput instanceof HTMLElement) {
+      descInput.blur();
+    }
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
     setIsRenameOpen(false);
   };
 
+  const handleCloseDesc = () => {
+    if (isPending) return;
+    if (descTextareaRef.current) {
+      descTextareaRef.current.blur();
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setIsDescriptionOpen(false);
+  };
+
   React.useEffect(() => {
     if (isRenameOpen) {
-      setNewModelNumber(modelNumber);
+      setNewModelNumber(cleanModelNumber.toUpperCase());
       setNewScreenSize(screenSize ? String(screenSize) : '');
+      setNewDescription(currentDescription || '');
       setAutoDetectedSize(null);
       const timer = setTimeout(() => {
         if (renameInputRef.current) {
@@ -145,14 +183,27 @@ export function ModelContextMenu({
       }, 60);
       return () => clearTimeout(timer);
     }
-  }, [isRenameOpen, modelNumber, screenSize]);
+  }, [isRenameOpen, modelNumber, screenSize, currentDescription]);
 
-  // Auto-detect starting 2 numeric digits when renaming model number
+  React.useEffect(() => {
+    if (isDescriptionOpen) {
+      setNewDescription(currentDescription || '');
+      const timer = setTimeout(() => {
+        if (descTextareaRef.current) {
+          descTextareaRef.current.focus({ preventScroll: true });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [isDescriptionOpen, currentDescription]);
+
+  // Auto-detect starting 2 numeric digits when renaming model number and always convert to capital letters
   const handleModelNumberChange = (value: string) => {
-    setNewModelNumber(value);
+    const upper = value.toUpperCase();
+    setNewModelNumber(upper);
 
-    const cleaned = value.trim();
-    const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[a-zA-Z]{0,4}[-_]?)(\d{2})/);
+    const cleaned = upper.trim();
+    const match = cleaned.match(/^(\d{2})/) || cleaned.match(/(?:^[A-Z]{0,4}[-_]?)(\d{2})/);
 
     if (match && match[1]) {
       const detected = match[1];
@@ -172,7 +223,8 @@ export function ModelContextMenu({
       const res = await renameTvModelAction(
         modelId,
         newModelNumber.trim().toUpperCase(),
-        newScreenSize.trim() || undefined
+        newScreenSize.trim() || undefined,
+        newDescription.trim()
       );
 
       if (res.success) {
@@ -188,6 +240,19 @@ export function ModelContextMenu({
         setIsRenameOpen(false);
       } else {
         toast.error(res.error || 'Failed to rename model');
+      }
+    });
+  };
+
+  const handleUpdateDescription = (e: React.FormEvent) => {
+    e.preventDefault();
+    startTransition(async () => {
+      const res = await updateTvModelDescriptionAction(modelId, newDescription);
+      if (res.success) {
+        toast.success(`Model "${modelNumber}" description updated`);
+        setIsDescriptionOpen(false);
+      } else {
+        toast.error(res.error || 'Failed to update description');
       }
     });
   };
@@ -234,6 +299,16 @@ export function ModelContextMenu({
               >
                 <Pencil className="w-3.5 h-3.5 text-primary" />
                 <span>Rename Model</span>
+              </DropdownMenuItem>
+            )}
+
+            {isAdmin && (
+              <DropdownMenuItem
+                onClick={() => setIsDescriptionOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted focus:bg-muted"
+              >
+                <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Edit Description</span>
               </DropdownMenuItem>
             )}
 
@@ -338,25 +413,35 @@ export function ModelContextMenu({
                     className="overflow-y-auto px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4 no-scrollbar flex flex-col items-center w-full"
                   >
                     {/* Model Preview Card Inside Sheet */}
-                    <div className="w-full p-4 rounded-2xl bg-muted/50 border border-border/80 flex items-center justify-between shadow-2xs">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-                          <Monitor className="w-6 h-6" />
+                    <div className="w-full p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-slate-50/90 dark:bg-slate-800/60 border border-border/80 flex items-start gap-3.5 shadow-2xs transition-all">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-500/10 border border-blue-400/20 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                        <Monitor className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                      </div>
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <div className="flex items-start sm:items-center gap-2 flex-wrap min-w-0">
+                          <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight break-all [word-break:break-all] [overflow-wrap:anywhere] min-w-0 leading-snug">
+                            {cleanModelNumber}
+                          </span>
+                          {screenSize && (
+                            <Badge variant="outline" className="text-[10px] font-extrabold px-2 py-0.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shrink-0">
+                              {screenSize}&quot;
+                            </Badge>
+                          )}
                         </div>
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-base font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug">
-                              {modelNumber}
-                            </span>
-                            {screenSize && (
-                              <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-white shrink-0">
-                                {screenSize}&quot;
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground break-words">
-                            {brandName || 'TV Model'} &bull; {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'}
-                          </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground/80 flex-wrap min-w-0 font-medium">
+                          <span className="truncate">{brandName || 'TV Model'}</span>
+                          <span>&bull;</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'}
+                          </span>
+                          {currentDescription && (
+                            <>
+                              <span>&bull;</span>
+                              <span className="italic text-[11px] text-muted-foreground/70 break-all [word-break:break-word] line-clamp-1 max-w-[180px]">
+                                {currentDescription}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -382,6 +467,30 @@ export function ModelContextMenu({
                             <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Edit model number and screen size</div>
                           </div>
                         </button>
+                      )}
+
+                      {isAdmin && (
+                        <>
+                          <div className="border-t border-border/50 my-1 mx-1" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setMobileOpen(false);
+                              setIsDescriptionOpen(true);
+                            }}
+                            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Edit Description</div>
+                              <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Update technical notes & specifications</div>
+                            </div>
+                          </button>
+                        </>
                       )}
 
                       {isAdmin && (
@@ -538,9 +647,8 @@ export function ModelContextMenu({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              const sizeInput = document.getElementById('rename-screen-size');
-                              if (sizeInput) {
-                                sizeInput.focus();
+                              if (newModelNumber.trim() && similarityResult.level !== 'BLOCK') {
+                                handleRename(e);
                               }
                             }
                           }}
@@ -548,7 +656,7 @@ export function ModelContextMenu({
                           required
                           autoFocus
                           disabled={isPending}
-                          className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
+                          className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold uppercase font-mono tracking-wider transition-all focus-visible:ring-2 ${
                             similarityResult.level === 'BLOCK'
                               ? 'border-rose-400 focus-visible:ring-rose-400/40 text-rose-900 bg-rose-50/40'
                               : similarityResult.level === 'WARN_11'
@@ -623,9 +731,12 @@ export function ModelContextMenu({
 
                       {/* TV Screen Size */}
                       <div className="space-y-1">
-                        <Label htmlFor="rename-screen-size" className="text-xs font-semibold text-foreground">
-                          TV Size (Inches)
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="rename-screen-size" className="text-xs font-semibold text-foreground">
+                            TV Size (Inches)
+                          </Label>
+                          <span className="text-[11px] font-normal text-muted-foreground">Optional</span>
+                        </div>
                         <div className="relative flex items-center">
                           <Input
                             id="rename-screen-size"
@@ -646,7 +757,7 @@ export function ModelContextMenu({
                                 }
                               }
                             }}
-                            placeholder="e.g. 55"
+                            placeholder="Optional (e.g. 55)"
                             disabled={isPending}
                             className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16"
                           />
@@ -654,6 +765,26 @@ export function ModelContextMenu({
                             Inches (&quot;)
                           </div>
                         </div>
+                      </div>
+
+                      {/* TV Model Description */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="rename-description" className="text-xs font-semibold text-foreground">
+                            Description
+                          </Label>
+                          <span className="text-[11px] font-normal text-muted-foreground">Optional</span>
+                        </div>
+                        <Textarea
+                          id="rename-description"
+                          value={newDescription}
+                          onChange={(e) => setNewDescription(e.target.value)}
+                          onBlur={persistentRenameBlur}
+                          placeholder="Optional specifications, chassis, panel, or repair notes..."
+                          rows={2}
+                          disabled={isPending}
+                          className="rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-xs sm:text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary/30 resize-none min-h-[52px]"
+                        />
                       </div>
                     </div>
 
@@ -784,8 +915,8 @@ export function ModelContextMenu({
                         <h2 className="text-base sm:text-lg font-bold text-red-600 leading-tight">
                           Delete TV Model
                         </h2>
-                        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">
-                          {brandName ? `${brandName} • ${modelNumber}` : modelNumber}
+                        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 break-all">
+                          {brandName ? `${brandName} • ${cleanModelNumber}` : cleanModelNumber}
                         </p>
                       </div>
                     </div>
@@ -804,22 +935,22 @@ export function ModelContextMenu({
                   {/* Content Body */}
                   <div className="p-5 sm:px-6 space-y-3.5 flex-1 overflow-y-auto no-scrollbar">
                     {/* Model Item Preview Card */}
-                    <div className="p-3.5 bg-muted/40 border border-border/70 rounded-2xl flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-                        <Monitor className="w-6 h-6" />
+                    <div className="p-3.5 bg-muted/40 border border-border/70 rounded-2xl flex items-start gap-3.5">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                        <Monitor className="w-5 h-5 sm:w-6 sm:h-6" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm sm:text-base font-black text-foreground tracking-tight truncate">
-                            {modelNumber}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-start sm:items-center gap-2 flex-wrap min-w-0">
+                          <h3 className="text-sm sm:text-base font-black text-foreground tracking-tight break-all [word-break:break-all] [overflow-wrap:anywhere] min-w-0 leading-snug">
+                            {cleanModelNumber}
                           </h3>
                           {screenSize && (
-                            <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-background">
+                            <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-background shrink-0">
                               {screenSize}&quot;
                             </Badge>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground font-semibold mt-0.5">
+                        <p className="text-[11px] text-muted-foreground font-semibold">
                           {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'} Attached
                         </p>
                       </div>
@@ -831,8 +962,8 @@ export function ModelContextMenu({
                         <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
                         Permanent Action
                       </div>
-                      <p className="text-[11px] sm:text-xs text-red-800 dark:text-red-400 leading-relaxed">
-                        Deleting model <strong className="font-bold text-red-950 dark:text-red-200">{modelNumber}</strong> will permanently remove all associated technical folders, schematics, backlight compatibility links, and service logs. This action cannot be undone.
+                      <p className="text-[11px] sm:text-xs text-red-800 dark:text-red-400 leading-relaxed break-all">
+                        Deleting model <strong className="font-bold text-red-950 dark:text-red-200 break-all">{cleanModelNumber}</strong> will permanently remove all associated technical folders, schematics, backlight compatibility links, and service logs. This action cannot be undone.
                       </p>
                     </div>
                   </div>
@@ -858,6 +989,160 @@ export function ModelContextMenu({
                   </div>
                 </motion.div>
               </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+
+      {/* ── 3. EDIT MODEL DESCRIPTION IOS BOTTOM SHEET ── */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {isDescriptionOpen && (
+              <>
+                <UnderKeyboardShield
+                  isKeyboardOpen={descViewport.isKeyboardOpen}
+                  offsetTop={descViewport.offsetTop}
+                  viewportHeight={descViewport.viewportHeight}
+                />
+                <div
+                  className="fixed inset-0 z-[100] flex flex-col justify-end items-center select-none"
+                  style={{
+                    height: descViewport.isKeyboardOpen
+                      ? `${descViewport.viewportHeight}px`
+                      : '100dvh',
+                    top: descViewport.isKeyboardOpen
+                      ? `${descViewport.offsetTop}px`
+                      : '0px',
+                    bottom: descViewport.isKeyboardOpen ? 'auto' : '0px',
+                    position: 'fixed',
+                  }}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget && !isPending) {
+                      handleCloseDesc();
+                    }
+                  }}
+                >
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer"
+                    onClick={() => {
+                      if (!isPending) handleCloseDesc();
+                    }}
+                  />
+
+                  <motion.div
+                    ref={descSheetRef}
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                    transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
+                    drag="y"
+                    dragControls={descDragControls}
+                    dragListener={false}
+                    dragConstraints={{ top: 0 }}
+                    dragElastic={{ top: 0, bottom: 0.2 }}
+                    onDragEnd={(_, info) => {
+                      if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                        handleCloseDesc();
+                      }
+                    }}
+                    style={{
+                      maxHeight: '100%',
+                      paddingBottom: '32px',
+                      marginBottom: '-32px',
+                    }}
+                    className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[28px] sm:rounded-t-[32px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => handleProximityTouch(e, descSheetRef.current)}
+                  >
+                    {/* Drag Handle */}
+                    <div
+                      onPointerDown={(e) => descDragControls.start(e)}
+                      className="pt-2.5 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                    >
+                      <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
+                    </div>
+
+                    {/* Header */}
+                    <div
+                      onPointerDown={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest('button') || target?.closest('a') || target?.closest('input') || target?.closest('textarea')) return;
+                        descDragControls.start(e);
+                      }}
+                      className="px-5 sm:px-6 pt-0.5 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h2 className="text-sm sm:text-base font-bold text-foreground leading-tight">
+                            Edit Model Description
+                          </h2>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 break-all">
+                            {brandName ? `${brandName} • ${cleanModelNumber}` : cleanModelNumber}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCloseDesc}
+                        className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                        aria-label="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleUpdateDescription} className="flex flex-col flex-1 min-h-0">
+                      <div className="p-5 sm:p-6 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-foreground">Description / Notes</Label>
+                          <span className="text-[11px] font-normal text-muted-foreground">Optional</span>
+                        </div>
+                        <Textarea
+                          ref={descTextareaRef}
+                          value={newDescription}
+                          onChange={(e) => setNewDescription(e.target.value)}
+                          onBlur={persistentDescBlur}
+                          placeholder="Optional specifications, chassis series, display panel, or service remarks..."
+                          rows={3}
+                          className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
+                          autoFocus
+                        />
+                      </div>
+
+                      <div
+                        className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
+                          descViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
+                        }`}
+                      >
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCloseDesc}
+                          className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={isPending}
+                          className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                        >
+                          {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                          Save Description
+                        </Button>
+                      </div>
+                    </form>
+                  </motion.div>
+                </div>
+              </>
             )}
           </AnimatePresence>,
           document.body

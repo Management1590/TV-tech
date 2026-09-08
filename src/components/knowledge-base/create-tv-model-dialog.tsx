@@ -16,6 +16,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -80,6 +81,7 @@ export function CreateTvModelDialog({
   const [brandId, setBrandId] = useState(preselectedBrandId || brands[0]?.id || '');
   const [modelNumber, setModelNumber] = useState(initialModelNumber);
   const [screenSize, setScreenSize] = useState('');
+  const [description, setDescription] = useState('');
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const lastFocusTimeRef = useRef<number>(0);
@@ -106,6 +108,10 @@ export function CreateTvModelDialog({
     if (sizeInput instanceof HTMLElement) {
       sizeInput.blur();
     }
+    const descInput = document.getElementById('model-description');
+    if (descInput instanceof HTMLElement) {
+      descInput.blur();
+    }
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -113,6 +119,7 @@ export function CreateTvModelDialog({
     setTimeout(() => {
       setModelNumber('');
       setScreenSize('');
+      setDescription('');
       setAutoDetectedSize(null);
     }, 250);
   };
@@ -210,6 +217,7 @@ export function CreateTvModelDialog({
         brandId,
         modelNumber: modelNumber.trim().toUpperCase(),
         screenSize: screenSize.trim() || undefined,
+        description: description.trim() || undefined,
       });
 
       if (result.success && result.data) {
@@ -225,6 +233,7 @@ export function CreateTvModelDialog({
         setOpen(false);
         setModelNumber('');
         setScreenSize('');
+        setDescription('');
         setAutoDetectedSize(null);
         router.push(`/knowledge-base/models/${result.data.id}`);
       } else {
@@ -405,9 +414,8 @@ export function CreateTvModelDialog({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              const sizeInput = document.getElementById('screen-size');
-                              if (sizeInput) {
-                                sizeInput.focus();
+                              if (brandId && modelNumber.trim() && similarityResult.level !== 'BLOCK') {
+                                handleSubmit(e as any);
                               }
                             }
                           }}
@@ -494,11 +502,14 @@ export function CreateTvModelDialog({
                         )}
                       </div>
 
-                      {/* 2. TV Screen Size */}
+                      {/* 2. TV Screen Size (Optional) */}
                       <div className="space-y-1">
-                        <Label htmlFor="screen-size" className="text-xs font-semibold text-foreground">
-                          TV Size (Inches)
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="screen-size" className="text-xs font-semibold text-foreground">
+                            TV Size (Inches)
+                          </Label>
+                          <span className="text-[11px] font-normal text-muted-foreground">Optional</span>
+                        </div>
                         <div className="relative flex items-center">
                           <Input
                             id="screen-size"
@@ -519,7 +530,7 @@ export function CreateTvModelDialog({
                                 }
                               }
                             }}
-                            placeholder="e.g. 55"
+                            placeholder="Optional (e.g. 55)"
                             disabled={isPending}
                             className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
                           />
@@ -527,6 +538,26 @@ export function CreateTvModelDialog({
                             Inches (&quot;)
                           </div>
                         </div>
+                      </div>
+
+                      {/* 3. Description / Technical Notes (Optional) */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="model-description" className="text-xs font-semibold text-foreground">
+                            Description
+                          </Label>
+                          <span className="text-[11px] font-normal text-muted-foreground">Optional</span>
+                        </div>
+                        <Textarea
+                          id="model-description"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          onBlur={persistentBlur}
+                          placeholder="Optional specifications, chassis, panel, or repair notes..."
+                          rows={2}
+                          disabled={isPending}
+                          className="rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-xs sm:text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary/30 resize-none min-h-[52px]"
+                        />
                       </div>
                     </div>
 

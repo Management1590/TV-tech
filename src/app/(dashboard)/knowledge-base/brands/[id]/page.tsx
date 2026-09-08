@@ -27,6 +27,14 @@ export default async function TvBrandDetailPage({
         orderBy: { modelNumber: 'asc' },
         include: {
           _count: { select: { knowledgeFolders: true } },
+          entity: {
+            include: {
+              targetRelationships: {
+                where: { relationshipTypeCode: 'ITEM_COMPATIBLE_TV_MODEL' },
+                select: { id: true },
+              },
+            },
+          },
         },
       },
     },
@@ -36,7 +44,25 @@ export default async function TvBrandDetailPage({
     notFound();
   }
 
+  const isAdmin = user?.role === 'ADMIN';
   const cleanBrandName = brand.name.replace(/_\d{10,}$/, '');
+
+  const formattedModels = brand.models.map((m) => {
+    const hasLinkedBacklights = (m.entity?.targetRelationships?.length ?? 0) > 0;
+    const rawFolderCount = m._count?.knowledgeFolders ?? 2;
+    // For non-admin (user panel), if no linked backlight items, Backlight folder is hidden
+    const effectiveFolderCount = !isAdmin && !hasLinkedBacklights
+      ? Math.max(1, rawFolderCount - 1)
+      : rawFolderCount;
+
+    return {
+      ...m,
+      _count: {
+        knowledgeFolders: effectiveFolderCount,
+      },
+      brand: { name: brand.name },
+    };
+  });
 
   return (
     <div
@@ -114,10 +140,7 @@ export default async function TvBrandDetailPage({
         </div>
 
         <ModelListView
-          models={brand.models.map((m) => ({
-            ...m,
-            brand: { name: brand.name },
-          }))}
+          models={formattedModels}
           brandName={cleanBrandName}
           brandId={brand.id}
           brands={[{ id: brand.id, name: cleanBrandName }]}
