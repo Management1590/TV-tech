@@ -53,14 +53,14 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
     [open, isPending]
   );
 
-  // Auto-focus the first field (Full Name) when opened without scrolling background
+  // Auto-focus the first field (Full Name) when opened
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => {
         if (nameInputRef.current) {
           nameInputRef.current.focus({ preventScroll: true });
         }
-      }, 120);
+      }, 80);
       return () => clearTimeout(timer);
     }
   }, [open]);
@@ -272,6 +272,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                             }}
                             className="pl-8.5 h-9 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-foreground text-xs placeholder:text-muted-foreground/60 transition-all focus-visible:ring-2 focus-visible:ring-primary/30 font-medium"
                             required
+                            autoFocus
                             disabled={isPending}
                           />
                         </div>

@@ -58,7 +58,7 @@ export default async function TvModelDetailPage({
           <span>{cleanBrandName}</span>
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-        <span className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-700 border border-blue-400/20 font-extrabold shrink-0 min-h-[34px] inline-flex items-center gap-1 truncate max-w-[160px] sm:max-w-none">
+        <span className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-700 border border-blue-400/20 font-extrabold shrink-0 min-h-[34px] inline-flex items-center gap-1">
           {cleanModelNumber}
         </span>
       </nav>
@@ -71,7 +71,7 @@ export default async function TvModelDetailPage({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 truncate max-w-full">
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 break-words [overflow-wrap:anywhere] leading-tight">
                 {cleanModelNumber}
               </h1>
               <span className="text-xs text-muted-foreground/70 font-bold">({cleanBrandName})</span>

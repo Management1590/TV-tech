@@ -97,7 +97,7 @@ export function CreateTvBrandDialog({
         if (nameInputRef.current) {
           nameInputRef.current.focus({ preventScroll: true });
         }
-      }, 120);
+      }, 60);
       return () => clearTimeout(timer);
     } else if (open && step === 2) {
       if (document.activeElement instanceof HTMLElement) {
@@ -507,6 +507,7 @@ export function CreateTvBrandDialog({
                               }}
                               placeholder="e.g. Samsung, LG, Sony, TCL"
                               required
+                              autoFocus
                               disabled={isPending}
                               className="h-10 sm:h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold transition-all"
                             />

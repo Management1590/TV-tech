@@ -519,22 +519,22 @@ export function ModelListView({
                   <Link
                     href={`/knowledge-base/models/${model.id}`}
                     onClick={() => recordModelOpen(model.id)}
-                    className="group flex items-center justify-between p-4 sm:p-5 hover:bg-slate-50/80 transition-all duration-200 cursor-pointer"
+                    className="group flex items-center justify-between p-4 sm:p-5 hover:bg-slate-50/80 transition-all duration-200 cursor-pointer gap-3 sm:gap-4"
                   >
                     {/* Left Side: Model Info */}
-                    <div className="flex items-center gap-4 min-w-0">
+                    <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
                       <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 group-hover:scale-105 group-hover:border-blue-400/40 group-hover:shadow-sm transition-all shrink-0">
                         <Monitor className="w-5 h-5" />
                       </div>
 
-                      <div className="space-y-1 min-w-0">
+                      <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors truncate">
+                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors break-words [overflow-wrap:anywhere] leading-snug">
                             {cleanModelNumber}
                           </span>
 
                           {model.screenSize && (
-                            <Badge variant="outline" className="text-[11px] font-extrabold px-2 py-0.5 bg-slate-50 text-slate-700 border-slate-200">
+                            <Badge variant="outline" className="text-[11px] font-extrabold px-2 py-0.5 bg-slate-50 text-slate-700 border-slate-200 shrink-0">
                               {model.screenSize}&quot;
                             </Badge>
                           )}
@@ -542,19 +542,21 @@ export function ModelListView({
                           {model.displayType && (
                             <Badge
                               variant="secondary"
-                              className="text-[10px] uppercase font-extrabold px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200/60"
+                              className="text-[10px] uppercase font-extrabold px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200/60 shrink-0"
                             >
                               {model.displayType}
                             </Badge>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-3 text-xs flex-wrap">
+                        <div className="flex items-center gap-2.5 text-xs flex-wrap">
                           {model.chassisNo && (
-                            <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md">Chassis: {model.chassisNo}</span>
+                            <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
+                              Chassis: {model.chassisNo}
+                            </span>
                           )}
                           {model.notes && (
-                            <span className="truncate max-w-xs text-[11px] italic text-muted-foreground/70 font-medium">
+                            <span className="text-[11px] italic text-muted-foreground/70 font-medium break-words [overflow-wrap:anywhere] line-clamp-2 sm:line-clamp-1">
                               {model.notes}
                             </span>
                           )}
@@ -563,7 +565,7 @@ export function ModelListView({
                     </div>
 
                     {/* Right Side: Folders Count, 3-Dots Menu, & Action Pill */}
-                    <div className="flex items-center gap-2.5 shrink-0 ml-4">
+                    <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-1 sm:ml-4">
                       <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
                         <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
                         <span>

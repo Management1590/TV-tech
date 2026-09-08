@@ -161,7 +161,7 @@ export default async function KbFolderDetailPage({
                     Backlight Linker
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground/80 mt-0.5 truncate font-semibold">
+                <p className="text-xs text-muted-foreground/80 mt-0.5 font-semibold break-words [overflow-wrap:anywhere]">
                   {modelFullName} · Backlight Inventory Linker
                 </p>
               </div>

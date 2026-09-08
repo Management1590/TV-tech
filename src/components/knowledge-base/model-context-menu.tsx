@@ -103,18 +103,6 @@ export function ModelContextMenu({
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
   const isAdmin = !!userRole;
 
-  // Smoothly focus model input when rename sheet opens without pushing background
-  useEffect(() => {
-    if (isRenameOpen) {
-      const timer = setTimeout(() => {
-        if (renameInputRef.current) {
-          renameInputRef.current.focus({ preventScroll: true });
-        }
-      }, 120);
-      return () => clearTimeout(timer);
-    }
-  }, [isRenameOpen]);
-
   // Filter out current model number from collision comparison
   const otherModels = useMemo(() => {
     return (existingModels || []).filter(
@@ -351,22 +339,22 @@ export function ModelContextMenu({
                   >
                     {/* Model Preview Card Inside Sheet */}
                     <div className="w-full p-4 rounded-2xl bg-muted/50 border border-border/80 flex items-center justify-between shadow-2xs">
-                      <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
                         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
                           <Monitor className="w-6 h-6" />
                         </div>
-                        <div className="space-y-1 min-w-0">
+                        <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-base font-bold text-foreground truncate">
+                            <span className="text-base font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug">
                               {modelNumber}
                             </span>
                             {screenSize && (
-                              <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-white">
+                              <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-white shrink-0">
                                 {screenSize}&quot;
                               </Badge>
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
+                          <div className="text-xs text-muted-foreground break-words">
                             {brandName || 'TV Model'} &bull; {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'}
                           </div>
                         </div>
@@ -558,6 +546,7 @@ export function ModelContextMenu({
                           }}
                           placeholder="e.g. 55NU7100"
                           required
+                          autoFocus
                           disabled={isPending}
                           className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
                             similarityResult.level === 'BLOCK'
