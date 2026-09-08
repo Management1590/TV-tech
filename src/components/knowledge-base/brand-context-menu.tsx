@@ -49,6 +49,7 @@ import {
   useScrollLock,
   handleProximityTouch,
   createPersistentBlurHandler,
+  UnderKeyboardShield,
 } from '@/lib/use-keyboard-viewport';
 
 interface BrandContextMenuProps {
@@ -541,121 +542,130 @@ export function BrandContextMenu({
       {mounted && createPortal(
         <AnimatePresence>
           {isRenameOpen && (
-            <div
-              className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
-              style={renameViewport.containerStyle}
-              onClick={(e) => {
-                if (e.target === e.currentTarget && !isPending) {
-                  handleCloseRename();
-                }
-              }}
-            >
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
-                onClick={() => {
-                  if (!isPending) handleCloseRename();
-                }}
+            <>
+              {/* Under-Keyboard Solid Shield: completely covers and hides background elements under the keyboard */}
+              <UnderKeyboardShield
+                isKeyboardOpen={renameViewport.isKeyboardOpen}
+                offsetTop={renameViewport.offsetTop}
+                viewportHeight={renameViewport.viewportHeight}
               />
-              <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
-                transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
-                drag="y"
-                dragConstraints={{ top: 0 }}
-                dragElastic={{ top: 0, bottom: 0.2 }}
-                onDragEnd={(_, info) => {
-                  if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+
+              <div
+                className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
+                style={renameViewport.containerStyle}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget && !isPending) {
                     handleCloseRename();
                   }
                 }}
-                ref={renameSheetRef}
-                style={{
-                  maxHeight: renameViewport.isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
-                  paddingBottom: renameViewport.isKeyboardOpen ? '380px' : undefined,
-                  marginBottom: renameViewport.isKeyboardOpen ? '-380px' : undefined,
-                }}
-                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => handleProximityTouch(e, renameSheetRef.current)}
               >
-                {/* Drag Handle */}
-                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
-                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
-                </div>
-
-                {/* Header */}
-                <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                      <Pencil className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">Rename Brand</h2>
-                      <p className="text-[11px] text-muted-foreground">Update the manufacturer display name</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCloseRename}
-                    disabled={isPending}
-                    className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleRename} className="flex flex-col flex-1 min-h-0">
-                  <div className="p-5 sm:p-6 space-y-3">
-                    <Label className="text-xs font-bold text-foreground">Brand Name</Label>
-                    <Input
-                      ref={renameInputRef}
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      onBlur={persistentRenameBlur}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (newName.trim() && newName.trim() !== brandName) {
-                            handleRename(e);
-                          }
-                        }
-                      }}
-                      required
-                      className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold"
-                      autoFocus
-                    />
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
+                  onClick={() => {
+                    if (!isPending) handleCloseRename();
+                  }}
+                />
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
+                  drag="y"
+                  dragConstraints={{ top: 0 }}
+                  dragElastic={{ top: 0, bottom: 0.2 }}
+                  onDragEnd={(_, info) => {
+                    if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                      handleCloseRename();
+                    }
+                  }}
+                  ref={renameSheetRef}
+                  style={{
+                    maxHeight: '100%',
+                    paddingBottom: renameViewport.isKeyboardOpen ? '32px' : undefined,
+                    marginBottom: renameViewport.isKeyboardOpen ? '-32px' : undefined,
+                  }}
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => handleProximityTouch(e, renameSheetRef.current)}
+                >
+                  {/* Drag Handle */}
+                  <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                    <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                   </div>
 
-                  <div
-                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
-                      renameViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
-                    }`}
-                  >
-                    <Button
+                  {/* Header */}
+                  <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                        <Pencil className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h2 className="text-base sm:text-lg font-bold text-foreground">Rename Brand</h2>
+                        <p className="text-[11px] text-muted-foreground">Update the manufacturer display name</p>
+                      </div>
+                    </div>
+                    <button
                       type="button"
-                      variant="outline"
                       onClick={handleCloseRename}
-                      className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                      disabled={isPending}
+                      className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
                     >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isPending || !newName.trim() || newName.trim() === brandName}
-                      className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white font-bold gap-2 cursor-pointer shadow-md shadow-blue-500/20 active:scale-95 transition-all"
-                    >
-                      {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      Save Changes
-                    </Button>
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                </form>
-              </motion.div>
-            </div>
+
+                  <form onSubmit={handleRename} className="flex flex-col flex-1 min-h-0">
+                    <div className="p-5 sm:p-6 space-y-3">
+                      <Label className="text-xs font-bold text-foreground">Brand Name</Label>
+                      <Input
+                        ref={renameInputRef}
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onBlur={persistentRenameBlur}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newName.trim() && newName.trim() !== brandName) {
+                              handleRename(e);
+                            }
+                          }
+                        }}
+                        required
+                        className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div
+                      className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
+                        renameViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
+                      }`}
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCloseRename}
+                        className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isPending || !newName.trim() || newName.trim() === brandName}
+                        className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white font-bold gap-2 cursor-pointer shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+                      >
+                        {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        Save Changes
+                      </Button>
+                    </div>
+                  </form>
+                </motion.div>
+              </div>
+            </>
           )}
         </AnimatePresence>,
         document.body
@@ -665,114 +675,123 @@ export function BrandContextMenu({
       {mounted && createPortal(
         <AnimatePresence>
           {isDescriptionOpen && (
-            <div
-              className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
-              style={descViewport.containerStyle}
-              onClick={(e) => {
-                if (e.target === e.currentTarget && !isPending) {
-                  handleCloseDesc();
-                }
-              }}
-            >
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
-                onClick={() => {
-                  if (!isPending) handleCloseDesc();
-                }}
+            <>
+              {/* Under-Keyboard Solid Shield: completely covers and hides background elements under the keyboard */}
+              <UnderKeyboardShield
+                isKeyboardOpen={descViewport.isKeyboardOpen}
+                offsetTop={descViewport.offsetTop}
+                viewportHeight={descViewport.viewportHeight}
               />
-              <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
-                transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
-                drag="y"
-                dragConstraints={{ top: 0 }}
-                dragElastic={{ top: 0, bottom: 0.2 }}
-                onDragEnd={(_, info) => {
-                  if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+
+              <div
+                className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
+                style={descViewport.containerStyle}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget && !isPending) {
                     handleCloseDesc();
                   }
                 }}
-                ref={descSheetRef}
-                style={{
-                  maxHeight: descViewport.isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
-                  paddingBottom: descViewport.isKeyboardOpen ? '380px' : undefined,
-                  marginBottom: descViewport.isKeyboardOpen ? '-380px' : undefined,
-                }}
-                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => handleProximityTouch(e, descSheetRef.current)}
               >
-                {/* Drag Handle */}
-                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
-                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
-                </div>
-
-                {/* Header */}
-                <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">Edit Brand Description</h2>
-                      <p className="text-[11px] text-muted-foreground">Technical guidelines & overview for {brandName}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCloseDesc}
-                    disabled={isPending}
-                    className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleUpdateDescription} className="flex flex-col flex-1 min-h-0">
-                  <div className="p-5 sm:p-6 space-y-3">
-                    <Label className="text-xs font-bold text-foreground">Description / Notes</Label>
-                    <Textarea
-                      ref={descTextareaRef}
-                      value={newDescription}
-                      onChange={(e) => setNewDescription(e.target.value)}
-                      onBlur={persistentDescBlur}
-                      placeholder="Optional technical guidelines, chassis series, or service remarks..."
-                      rows={3}
-                      className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
-                      autoFocus
-                    />
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
+                  onClick={() => {
+                    if (!isPending) handleCloseDesc();
+                  }}
+                />
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
+                  drag="y"
+                  dragConstraints={{ top: 0 }}
+                  dragElastic={{ top: 0, bottom: 0.2 }}
+                  onDragEnd={(_, info) => {
+                    if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                      handleCloseDesc();
+                    }
+                  }}
+                  ref={descSheetRef}
+                  style={{
+                    maxHeight: '100%',
+                    paddingBottom: descViewport.isKeyboardOpen ? '32px' : undefined,
+                    marginBottom: descViewport.isKeyboardOpen ? '-32px' : undefined,
+                  }}
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => handleProximityTouch(e, descSheetRef.current)}
+                >
+                  {/* Drag Handle */}
+                  <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
+                    <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
                   </div>
 
-                  <div
-                    className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
-                      descViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
-                    }`}
-                  >
-                    <Button
+                  {/* Header */}
+                  <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h2 className="text-base sm:text-lg font-bold text-foreground">Edit Brand Description</h2>
+                        <p className="text-[11px] text-muted-foreground">Technical guidelines & overview for {brandName}</p>
+                      </div>
+                    </div>
+                    <button
                       type="button"
-                      variant="outline"
                       onClick={handleCloseDesc}
-                      className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
                       disabled={isPending}
-                      className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                      className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
                     >
-                      {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      Save Description
-                    </Button>
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                </form>
-              </motion.div>
-            </div>
+
+                  <form onSubmit={handleUpdateDescription} className="flex flex-col flex-1 min-h-0">
+                    <div className="p-5 sm:p-6 space-y-3">
+                      <Label className="text-xs font-bold text-foreground">Description / Notes</Label>
+                      <Textarea
+                        ref={descTextareaRef}
+                        value={newDescription}
+                        onChange={(e) => setNewDescription(e.target.value)}
+                        onBlur={persistentDescBlur}
+                        placeholder="Optional technical guidelines, chassis series, or service remarks..."
+                        rows={3}
+                        className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div
+                      className={`px-5 sm:px-6 pt-3 border-t border-border/60 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 ${
+                        descViewport.isKeyboardOpen ? 'pb-3' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'
+                      }`}
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCloseDesc}
+                        className="rounded-2xl text-xs h-10 px-4 cursor-pointer font-medium"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isPending}
+                        className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                      >
+                        {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        Save Description
+                      </Button>
+                    </div>
+                  </form>
+                </motion.div>
+              </div>
+            </>
           )}
         </AnimatePresence>,
         document.body

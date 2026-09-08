@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface KeyboardViewportState {
   isKeyboardOpen: boolean;
@@ -10,32 +10,62 @@ export interface KeyboardViewportState {
   offsetTop: number;
   offsetLeft: number;
   containerStyle: React.CSSProperties;
+  underKeyboardStyle: React.CSSProperties;
 }
+
+// Global scroll-lock state tracking to support nested / consecutive dialogs seamlessly
+let lockCount = 0;
+let originalBodyStyles: {
+  position: string;
+  top: string;
+  left: string;
+  right: string;
+  width: string;
+  overflow: string;
+  overscrollBehavior: string;
+} | null = null;
+let originalDocOverflow = '';
+let savedScrollY = 0;
 
 /**
  * Completely locks background scrolling and rubber-banding on mobile (especially iOS Safari)
- * without displacing the body scroll position or breaking portals.
+ * by fixing document.body in place. Prevents background elements from shifting when user scrolls on popups.
  */
 export function useScrollLock(isActive: boolean = true) {
   useEffect(() => {
     if (!isActive || typeof window === 'undefined') return;
 
-    const originalDocOverflow = document.documentElement.style.overflow;
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalOverscroll = document.body.style.overscrollBehavior;
+    if (lockCount === 0) {
+      savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      originalBodyStyles = {
+        position: document.body.style.position,
+        top: document.body.style.top,
+        left: document.body.style.left,
+        right: document.body.style.right,
+        width: document.body.style.width,
+        overflow: document.body.style.overflow,
+        overscrollBehavior: document.body.style.overscrollBehavior,
+      };
+      originalDocOverflow = document.documentElement.style.overflow;
 
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    document.body.style.overscrollBehavior = 'none';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${savedScrollY}px`;
+      document.body.style.left = '0px';
+      document.body.style.right = '0px';
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+    }
+    lockCount++;
 
     // Global non-passive touchmove listener to completely prevent iOS background scrolling
     const preventBackgroundTouchMove = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
-      // Allow user interaction on range sliders, explicitly marked modal scroll containers, or drag canvases
+      // Allow user interaction on range sliders or explicitly marked modal scroll containers
       if (
         (target?.tagName === 'INPUT' && (target as HTMLInputElement).type === 'range') ||
         target?.closest('[data-modal-scrollable="true"]') ||
-        target?.closest('.touch-none') ||
         target?.closest('[data-touch-allow="true"]')
       ) {
         return;
@@ -48,12 +78,46 @@ export function useScrollLock(isActive: boolean = true) {
     document.addEventListener('touchmove', preventBackgroundTouchMove, { passive: false });
 
     return () => {
-      document.documentElement.style.overflow = originalDocOverflow;
-      document.body.style.overflow = originalBodyOverflow;
-      document.body.style.overscrollBehavior = originalOverscroll;
       document.removeEventListener('touchmove', preventBackgroundTouchMove);
+      lockCount = Math.max(0, lockCount - 1);
+      if (lockCount === 0 && originalBodyStyles) {
+        document.documentElement.style.overflow = originalDocOverflow;
+        document.body.style.position = originalBodyStyles.position;
+        document.body.style.top = originalBodyStyles.top;
+        document.body.style.left = originalBodyStyles.left;
+        document.body.style.right = originalBodyStyles.right;
+        document.body.style.width = originalBodyStyles.width;
+        document.body.style.overflow = originalBodyStyles.overflow;
+        document.body.style.overscrollBehavior = originalBodyStyles.overscrollBehavior;
+        window.scrollTo(0, savedScrollY);
+        originalBodyStyles = null;
+      }
     };
   }, [isActive]);
+}
+
+/**
+ * Dedicated solid under-keyboard shield that completely covers the area under the
+ * virtual keyboard, hiding background elements (blurred cards, folders, etc.).
+ */
+export function UnderKeyboardShield({
+  isKeyboardOpen,
+  offsetTop,
+  viewportHeight,
+}: {
+  isKeyboardOpen: boolean;
+  offsetTop: number;
+  viewportHeight: number;
+}) {
+  if (!isKeyboardOpen) return null;
+  return React.createElement('div', {
+    'aria-hidden': 'true',
+    className: 'fixed inset-x-0 bottom-0 bg-white dark:bg-slate-900 pointer-events-none z-[105]',
+    style: {
+      top: `${Math.round(offsetTop + viewportHeight - 2)}px`,
+      height: '100vh',
+    },
+  });
 }
 
 export function useKeyboardViewport(isActive: boolean = true): KeyboardViewportState {
@@ -76,6 +140,9 @@ export function useKeyboardViewport(isActive: boolean = true): KeyboardViewportS
       height: '100%',
       bottom: 'auto',
       right: 'auto',
+    },
+    underKeyboardStyle: {
+      display: 'none',
     },
   }));
 
@@ -100,6 +167,9 @@ export function useKeyboardViewport(isActive: boolean = true): KeyboardViewportS
             height: '100%',
             bottom: 'auto',
             right: 'auto',
+          },
+          underKeyboardStyle: {
+            display: 'none',
           },
         });
         return;
@@ -126,6 +196,19 @@ export function useKeyboardViewport(isActive: boolean = true): KeyboardViewportS
           bottom: 'auto',
           right: 'auto',
         },
+        underKeyboardStyle: isKbOpen
+          ? {
+              position: 'fixed',
+              top: `${Math.round(vv.offsetTop + vv.height - 2)}px`,
+              left: `${Math.round(vv.offsetLeft)}px`,
+              width: `${Math.round(vv.width)}px`,
+              height: '100vh',
+              pointerEvents: 'none',
+              zIndex: 105,
+            }
+          : {
+              display: 'none',
+            },
       });
     };
 

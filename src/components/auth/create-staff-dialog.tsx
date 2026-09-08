@@ -14,6 +14,7 @@ import {
   useScrollLock,
   handleProximityTouch,
   createPersistentBlurHandler,
+  UnderKeyboardShield,
 } from '@/lib/use-keyboard-viewport';
 
 interface CreateStaffDialogProps {
@@ -44,7 +45,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
   useScrollLock(open);
 
   // Dock to virtual keyboard viewport
-  const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
+  const { containerStyle, isKeyboardOpen, offsetTop, viewportHeight } = useKeyboardViewport(open);
 
   // Persistent blur handler to prevent keyboard from dismissing when tapping inside
   const persistentBlur = useMemo(
@@ -131,58 +132,72 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
         createPortal(
           <AnimatePresence>
             {open && (
-              <div
-                className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
-                style={containerStyle}
-                onClick={(e) => {
-                  if (e.target === e.currentTarget && !isPending) {
-                    handleClose();
-                  }
-                }}
-              >
-                {/* Backdrop Blur Layer */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
-                  onClick={() => {
-                    if (!isPending) handleClose();
-                  }}
+              <>
+                {/* Under-Keyboard Solid Shield: completely covers and hides background elements under the keyboard */}
+                <UnderKeyboardShield
+                  isKeyboardOpen={isKeyboardOpen}
+                  offsetTop={offsetTop}
+                  viewportHeight={viewportHeight}
                 />
 
-                {/* iOS Bottom Sheet */}
-                <motion.div
-                  initial={{ y: '100%' }}
-                  animate={{ y: 0 }}
-                  exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
-                  transition={{
-                    type: 'spring',
-                    damping: 30,
-                    stiffness: 340,
-                    mass: 0.8,
-                  }}
-                  drag="y"
-                  dragControls={dragControls}
-                  dragListener={false}
-                  dragConstraints={{ top: 0 }}
-                  dragElastic={{ top: 0, bottom: 0.2 }}
-                  onDragEnd={(_, info) => {
-                    if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                <div
+                  className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
+                  style={containerStyle}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget && !isPending) {
+                      e.preventDefault();
+                      e.stopPropagation();
                       handleClose();
                     }
                   }}
-                  ref={sheetRef}
-                  style={{
-                    maxHeight: isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
-                    paddingBottom: isKeyboardOpen ? '380px' : undefined,
-                    marginBottom: isKeyboardOpen ? '-380px' : undefined,
-                  }}
-                  className="relative z-10 w-full max-w-md mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => handleProximityTouch(e, sheetRef.current)}
                 >
+                  {/* Backdrop Blur Layer */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
+                    onClick={(e) => {
+                      if (!isPending) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleClose();
+                      }
+                    }}
+                  />
+
+                  {/* iOS Bottom Sheet */}
+                  <motion.div
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                    transition={{
+                      type: 'spring',
+                      damping: 30,
+                      stiffness: 340,
+                      mass: 0.8,
+                    }}
+                    drag="y"
+                    dragControls={dragControls}
+                    dragListener={false}
+                    dragConstraints={{ top: 0 }}
+                    dragElastic={{ top: 0, bottom: 0.2 }}
+                    onDragEnd={(_, info) => {
+                      if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                        handleClose();
+                      }
+                    }}
+                    ref={sheetRef}
+                    style={{
+                      maxHeight: isKeyboardOpen ? '100%' : '92dvh',
+                      paddingBottom: isKeyboardOpen ? '32px' : undefined,
+                      marginBottom: isKeyboardOpen ? '-32px' : undefined,
+                    }}
+                    className="relative z-10 w-full max-w-md mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => handleProximityTouch(e, sheetRef.current)}
+                  >
                   {/* iOS Drag Handle */}
                   <div
                     onPointerDown={(e) => dragControls.start(e)}
@@ -374,8 +389,9 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                   </form>
                 </motion.div>
               </div>
-            )}
-          </AnimatePresence>,
+            </>
+          )}
+        </AnimatePresence>,
           document.body
         )}
     </>

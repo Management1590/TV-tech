@@ -32,6 +32,7 @@ import {
   useScrollLock,
   handleProximityTouch,
   createPersistentBlurHandler,
+  UnderKeyboardShield,
 } from '@/lib/use-keyboard-viewport';
 
 export interface CreateTvBrandDialogProps {
@@ -79,7 +80,7 @@ export function CreateTvBrandDialog({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const dragControls = useDragControls();
 
-  const { containerStyle, isKeyboardOpen } = useKeyboardViewport(open);
+  const { containerStyle, isKeyboardOpen, offsetTop, viewportHeight } = useKeyboardViewport(open);
   useScrollLock(open); // Lock background scroll when sheet is open
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -311,74 +312,82 @@ export function CreateTvBrandDialog({
       {mounted && createPortal(
         <AnimatePresence>
           {open && (
-            <div
-              className="fixed inset-x-0 z-[100] flex flex-col justify-end items-center select-none"
-              style={containerStyle}
-              onClick={(e) => {
-                if (e.target === e.currentTarget && !isPending) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleClose();
-                }
-              }}
-            >
-              {/* Soft Blurred iOS Backdrop Layer - Fixed to full screen */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 will-change-opacity cursor-pointer touch-none"
+            <>
+              {/* Under-Keyboard Solid Shield: completely covers and hides background elements under the keyboard */}
+              <UnderKeyboardShield
+                isKeyboardOpen={isKeyboardOpen}
+                offsetTop={offsetTop}
+                viewportHeight={viewportHeight}
+              />
+
+              <div
+                className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
+                style={containerStyle}
                 onClick={(e) => {
-                  if (!isPending) {
+                  if (e.target === e.currentTarget && !isPending) {
                     e.preventDefault();
                     e.stopPropagation();
                     handleClose();
                   }
                 }}
-              />
-
-              {/* iOS Style Bottom Sheet Page */}
-              <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{
-                  y: '100%',
-                  transition: {
-                    duration: 0.22,
-                    ease: [0.32, 0, 0.67, 0],
-                  },
-                }}
-                transition={{
-                  type: 'spring',
-                  damping: 30,
-                  stiffness: 340,
-                  mass: 0.8,
-                }}
-                drag="y"
-                dragControls={dragControls}
-                dragListener={false}
-                dragConstraints={{ top: 0 }}
-                dragElastic={{ top: 0, bottom: 0.2 }}
-                onDragEnd={(_, info) => {
-                  if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
-                    handleClose();
-                  }
-                }}
-                ref={sheetRef}
-                style={{
-                  maxHeight: isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
-                  paddingBottom: isKeyboardOpen ? '380px' : undefined,
-                  marginBottom: isKeyboardOpen ? '-380px' : undefined,
-                }}
-                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => {
-                  if (step === 1) {
-                    handleProximityTouch(e, sheetRef.current);
-                  }
-                }}
               >
+                {/* Soft Blurred iOS Backdrop Layer - Fixed to full screen */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 will-change-opacity cursor-pointer touch-none"
+                  onClick={(e) => {
+                    if (!isPending) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleClose();
+                    }
+                  }}
+                />
+
+                {/* iOS Style Bottom Sheet Page */}
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{
+                    y: '100%',
+                    transition: {
+                      duration: 0.22,
+                      ease: [0.32, 0, 0.67, 0],
+                    },
+                  }}
+                  transition={{
+                    type: 'spring',
+                    damping: 30,
+                    stiffness: 340,
+                    mass: 0.8,
+                  }}
+                  drag="y"
+                  dragControls={dragControls}
+                  dragListener={false}
+                  dragConstraints={{ top: 0 }}
+                  dragElastic={{ top: 0, bottom: 0.2 }}
+                  onDragEnd={(_, info) => {
+                    if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                      handleClose();
+                    }
+                  }}
+                  ref={sheetRef}
+                  style={{
+                    maxHeight: '100%',
+                    paddingBottom: isKeyboardOpen ? '32px' : undefined,
+                    marginBottom: isKeyboardOpen ? '-32px' : undefined,
+                  }}
+                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => {
+                    if (step === 1) {
+                      handleProximityTouch(e, sheetRef.current);
+                    }
+                  }}
+                >
                 {/* Top Drag Indicator Handle */}
                 <div
                   onPointerDown={(e) => dragControls.start(e)}
@@ -970,7 +979,8 @@ export function CreateTvBrandDialog({
                   </div>
                 </form>
               </motion.div>
-            </div>
+              </div>
+            </>
           )}
         </AnimatePresence>,
         document.body

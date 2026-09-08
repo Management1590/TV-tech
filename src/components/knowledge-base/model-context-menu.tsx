@@ -46,6 +46,7 @@ import {
   useScrollLock,
   handleProximityTouch,
   createPersistentBlurHandler,
+  UnderKeyboardShield,
 } from '@/lib/use-keyboard-viewport';
 
 interface ModelContextMenuProps {
@@ -433,48 +434,56 @@ export function ModelContextMenu({
         createPortal(
           <AnimatePresence>
             {isRenameOpen && (
-              <div
-                className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
-                style={renameViewport.containerStyle}
-                onClick={(e) => {
-                  if (e.target === e.currentTarget && !isPending) {
-                    handleCloseRename();
-                  }
-                }}
-              >
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
-                  onClick={() => {
-                    if (!isPending) handleCloseRename();
-                  }}
+              <>
+                {/* Under-Keyboard Solid Shield: completely covers and hides background elements under the keyboard */}
+                <UnderKeyboardShield
+                  isKeyboardOpen={renameViewport.isKeyboardOpen}
+                  offsetTop={renameViewport.offsetTop}
+                  viewportHeight={renameViewport.viewportHeight}
                 />
-                <motion.div
-                  initial={{ y: '100%' }}
-                  animate={{ y: 0 }}
-                  exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
-                  transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
-                  drag="y"
-                  dragConstraints={{ top: 0 }}
-                  dragElastic={{ top: 0, bottom: 0.2 }}
-                  onDragEnd={(_, info) => {
-                    if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+
+                <div
+                  className="fixed inset-x-0 z-[110] flex flex-col justify-end items-center select-none"
+                  style={renameViewport.containerStyle}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget && !isPending) {
                       handleCloseRename();
                     }
                   }}
-                  ref={renameSheetRef}
-                  style={{
-                    maxHeight: renameViewport.isKeyboardOpen ? 'calc(100% + 380px)' : '92dvh',
-                    paddingBottom: renameViewport.isKeyboardOpen ? '380px' : undefined,
-                    marginBottom: renameViewport.isKeyboardOpen ? '-380px' : undefined,
-                  }}
-                  className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => handleProximityTouch(e, renameSheetRef.current)}
                 >
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 cursor-pointer touch-none"
+                    onClick={() => {
+                      if (!isPending) handleCloseRename();
+                    }}
+                  />
+                  <motion.div
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%', transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } }}
+                    transition={{ type: 'spring', damping: 30, stiffness: 340, mass: 0.8 }}
+                    drag="y"
+                    dragConstraints={{ top: 0 }}
+                    dragElastic={{ top: 0, bottom: 0.2 }}
+                    onDragEnd={(_, info) => {
+                      if ((info.offset.y > 80 || info.velocity.y > 320) && !isPending) {
+                        handleCloseRename();
+                      }
+                    }}
+                    ref={renameSheetRef}
+                    style={{
+                      maxHeight: '100%',
+                      paddingBottom: renameViewport.isKeyboardOpen ? '32px' : undefined,
+                      marginBottom: renameViewport.isKeyboardOpen ? '-32px' : undefined,
+                    }}
+                    className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col overflow-hidden will-change-transform transform-gpu select-text"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => handleProximityTouch(e, renameSheetRef.current)}
+                  >
                   {/* Drag Handle */}
                   <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0">
                     <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
@@ -700,8 +709,9 @@ export function ModelContextMenu({
                   </form>
                 </motion.div>
               </div>
-            )}
-          </AnimatePresence>,
+            </>
+          )}
+        </AnimatePresence>,
           document.body
         )}
 
