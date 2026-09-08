@@ -13,8 +13,8 @@ interface HighlightedTextProps {
 export function HighlightedText({
   text,
   query,
-  className = 'break-all [word-break:break-all]',
-  highlightClassName = 'bg-amber-300/80 text-amber-950 dark:bg-amber-400/40 dark:text-amber-100 rounded-[4px] px-0.5 py-0.2 font-black shadow-2xs break-all [word-break:break-all]',
+  className = 'break-words [word-break:normal] [overflow-wrap:anywhere]',
+  highlightClassName = 'bg-amber-300/80 text-amber-950 dark:bg-amber-400/40 dark:text-amber-100 rounded-[4px] px-0.5 py-0.2 font-black shadow-2xs break-words [word-break:normal] [overflow-wrap:anywhere]',
 }: HighlightedTextProps) {
   if (!text) return null;
   if (!query || !query.trim()) {

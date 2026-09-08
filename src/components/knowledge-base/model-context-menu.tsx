@@ -419,7 +419,7 @@ export function ModelContextMenu({
                       </div>
                       <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-start sm:items-center gap-2 flex-wrap min-w-0">
-                          <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight break-all [word-break:break-all] [overflow-wrap:anywhere] min-w-0 leading-snug">
+                          <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] min-w-0 leading-snug">
                             {cleanModelNumber}
                           </span>
                           {screenSize && (
@@ -437,7 +437,7 @@ export function ModelContextMenu({
                           {currentDescription && (
                             <>
                               <span>&bull;</span>
-                              <span className="italic text-[11px] text-muted-foreground/70 break-all [word-break:break-word] line-clamp-1 max-w-[180px]">
+                              <span className="italic text-[11px] text-muted-foreground/70 break-words [word-break:normal] [overflow-wrap:anywhere] line-clamp-1 max-w-[180px]">
                                 {currentDescription}
                               </span>
                             </>
@@ -915,7 +915,7 @@ export function ModelContextMenu({
                         <h2 className="text-base sm:text-lg font-bold text-red-600 leading-tight">
                           Delete TV Model
                         </h2>
-                        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 break-all">
+                        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 break-words [word-break:normal] [overflow-wrap:anywhere]">
                           {brandName ? `${brandName} • ${cleanModelNumber}` : cleanModelNumber}
                         </p>
                       </div>
@@ -941,7 +941,7 @@ export function ModelContextMenu({
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-start sm:items-center gap-2 flex-wrap min-w-0">
-                          <h3 className="text-sm sm:text-base font-black text-foreground tracking-tight break-all [word-break:break-all] [overflow-wrap:anywhere] min-w-0 leading-snug">
+                          <h3 className="text-sm sm:text-base font-black text-foreground tracking-tight break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] min-w-0 leading-snug">
                             {cleanModelNumber}
                           </h3>
                           {screenSize && (
@@ -962,8 +962,8 @@ export function ModelContextMenu({
                         <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
                         Permanent Action
                       </div>
-                      <p className="text-[11px] sm:text-xs text-red-800 dark:text-red-400 leading-relaxed break-all">
-                        Deleting model <strong className="font-bold text-red-950 dark:text-red-200 break-all">{cleanModelNumber}</strong> will permanently remove all associated technical folders, schematics, backlight compatibility links, and service logs. This action cannot be undone.
+                      <p className="text-[11px] sm:text-xs text-red-800 dark:text-red-400 leading-relaxed break-words [word-break:normal] [overflow-wrap:anywhere]">
+                        Deleting model <strong className="font-bold text-red-950 dark:text-red-200 break-words [word-break:normal] [overflow-wrap:anywhere]">{cleanModelNumber}</strong> will permanently remove all associated technical folders, schematics, backlight compatibility links, and service logs. This action cannot be undone.
                       </p>
                     </div>
                   </div>
@@ -1084,7 +1084,7 @@ export function ModelContextMenu({
                           <h2 className="text-sm sm:text-base font-bold text-foreground leading-tight">
                             Edit Model Description
                           </h2>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1 break-all">
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 break-words [word-break:normal] [overflow-wrap:anywhere]">
                             {brandName ? `${brandName} • ${cleanModelNumber}` : cleanModelNumber}
                           </p>
                         </div>

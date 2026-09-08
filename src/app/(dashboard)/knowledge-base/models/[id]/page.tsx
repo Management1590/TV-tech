@@ -87,7 +87,7 @@ export default async function TvModelDetailPage({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 break-all [word-break:break-all] [overflow-wrap:anywhere] leading-tight min-w-0">
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] leading-tight min-w-0">
                 {cleanModelNumber}
               </h1>
               <span className="text-xs text-muted-foreground/70 font-bold">({cleanBrandName})</span>

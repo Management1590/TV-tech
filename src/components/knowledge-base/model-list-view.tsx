@@ -563,9 +563,9 @@ export function ModelListView({
 
                       <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors break-all [word-break:break-all] [overflow-wrap:anywhere] min-w-0 leading-snug">
+                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] min-w-0 leading-snug">
                             {Boolean(debouncedQuery.trim()) && model._searchMatch?.isModelMatch ? (
-                              <HighlightedText text={cleanModelNumber} query={debouncedQuery} className="break-all [word-break:break-all]" />
+                              <HighlightedText text={cleanModelNumber} query={debouncedQuery} className="break-words [word-break:normal] [overflow-wrap:anywhere]" />
                             ) : (
                               cleanModelNumber
                             )}
@@ -602,8 +602,8 @@ export function ModelListView({
                             {Boolean(debouncedQuery.trim()) && model._searchMatch?.isDescMatch && model.notes && (
                               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/50 text-amber-950 dark:text-amber-100 text-[11px] font-medium shadow-2xs max-w-full">
                                 <FileText className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
-                                <span className="break-all [word-break:break-word] line-clamp-2">
-                                  <HighlightedText text={model.notes} query={debouncedQuery} className="break-all [word-break:break-word]" />
+                                <span className="break-words [word-break:normal] [overflow-wrap:anywhere] line-clamp-2">
+                                  <HighlightedText text={model.notes} query={debouncedQuery} className="break-words [word-break:normal] [overflow-wrap:anywhere]" />
                                 </span>
                               </div>
                             )}
