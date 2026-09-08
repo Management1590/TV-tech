@@ -88,7 +88,7 @@ export function ModelListView({
     const rect = targetEl.getBoundingClientRect();
     const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
     // If not already near the top of the viewport
-    if (rect.top > 12) {
+    if (rect.top > 12 || rect.top < 0) {
       isAutoScrollingRef.current = true;
       const targetScrollY = currentScrollY + rect.top - 8;
       window.scrollTo({
@@ -324,11 +324,11 @@ export function ModelListView({
   );
 
   return (
-    <div className={`space-y-4 min-h-[calc(100dvh-180px)] transition-all duration-300 ${isSearchFocused ? 'pb-32' : 'pb-16'}`}>
+    <div className={`space-y-4 min-h-[calc(100dvh-180px)] transition-all duration-300 ${isSearchFocused ? 'pb-[70vh]' : 'pb-16'}`}>
       {/* Real-time Contextual Model Search Bar + Filter Segmented Control */}
       <div
         ref={searchContainerRef}
-        className={`transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
+        className={`scroll-mt-2 transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
           isSearchFocused || searchQuery.trim()
             ? 'shadow-md ring-2 ring-blue-500/20 border-blue-400/50'
             : 'border-border/80 shadow-xs hover:shadow-sm'

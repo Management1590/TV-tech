@@ -125,7 +125,7 @@ export function BrandContextMenu({
         if (renameInputRef.current) {
           renameInputRef.current.focus({ preventScroll: true });
         }
-      }, 60);
+      }, 120);
       return () => clearTimeout(timer);
     }
   }, [isRenameOpen, brandName]);
@@ -137,7 +137,7 @@ export function BrandContextMenu({
         if (descTextareaRef.current) {
           descTextareaRef.current.focus({ preventScroll: true });
         }
-      }, 60);
+      }, 120);
       return () => clearTimeout(timer);
     }
   }, [isDescriptionOpen, currentDescription]);
@@ -636,7 +636,6 @@ export function BrandContextMenu({
                         }}
                         required
                         className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold"
-                        autoFocus
                       />
                     </div>
 
@@ -762,7 +761,6 @@ export function BrandContextMenu({
                         placeholder="Optional technical guidelines, chassis series, or service remarks..."
                         rows={3}
                         className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
-                        autoFocus
                       />
                     </div>
 

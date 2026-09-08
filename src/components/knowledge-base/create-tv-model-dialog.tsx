@@ -85,14 +85,14 @@ export function CreateTvModelDialog({
   const lastFocusTimeRef = useRef<number>(0);
   const dragControls = useDragControls();
 
-  // Smooth focus on model input when opening dialog
+  // Smooth focus on model input when opening dialog without background shift
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => {
         if (modelInputRef.current) {
           modelInputRef.current.focus({ preventScroll: true });
         }
-      }, 80);
+      }, 120);
       return () => clearTimeout(timer);
     }
   }, [open]);
@@ -419,7 +419,6 @@ export function CreateTvModelDialog({
                           }}
                           placeholder="e.g. 55NU7100, 32LM563, OLED65C1"
                           required
-                          autoFocus
                           disabled={isPending}
                           className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold uppercase font-mono tracking-wider transition-all focus-visible:ring-2 ${
                             similarityResult.level === 'BLOCK'

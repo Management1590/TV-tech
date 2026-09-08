@@ -330,7 +330,7 @@ export function UploadKbMediaDialog({
                   </p>
                   <div className="pt-0.5">
                     <Badge variant="outline" className="text-[9px] sm:text-[10px] py-0.5 px-2 bg-primary/5 border-primary/20 text-primary font-bold">
-                      HD & 4K Supported • No Size Limit
+                      WhatsApp HD Quality (&gt;40 MB) • No Size Limit
                     </Badge>
                   </div>
                 </div>

@@ -56,6 +56,9 @@ export function useScrollLock(isActive: boolean = true) {
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
+
+      // Pin window scroll to 0 while body is fixed so background elements remain completely still
+      window.scrollTo(0, 0);
     }
     lockCount++;
 
@@ -75,10 +78,33 @@ export function useScrollLock(isActive: boolean = true) {
       }
     };
 
+    // When virtual keyboard opens on mobile, prevent iOS Safari from scrolling the window/visual viewport
+    const preventWindowScroll = () => {
+      if (window.scrollY !== 0 || window.pageYOffset !== 0 || document.documentElement.scrollTop !== 0) {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+      }
+    };
+
     document.addEventListener('touchmove', preventBackgroundTouchMove, { passive: false });
+    window.addEventListener('scroll', preventWindowScroll, { passive: true });
+
+    const vv = window.visualViewport;
+    const handleVvScroll = () => {
+      if (vv && vv.offsetTop !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    if (vv) {
+      vv.addEventListener('scroll', handleVvScroll, { passive: true });
+    }
 
     return () => {
       document.removeEventListener('touchmove', preventBackgroundTouchMove);
+      window.removeEventListener('scroll', preventWindowScroll);
+      if (vv) {
+        vv.removeEventListener('scroll', handleVvScroll);
+      }
       lockCount = Math.max(0, lockCount - 1);
       if (lockCount === 0 && originalBodyStyles) {
         document.documentElement.style.overflow = originalDocOverflow;
@@ -179,6 +205,11 @@ export function useKeyboardViewport(isActive: boolean = true): KeyboardViewportS
       const offsetFromBottom = window.innerHeight - (vv.height + vv.offsetTop);
       const kbHeight = Math.max(0, Math.round(offsetFromBottom));
       const isKbOpen = kbHeight > 80;
+
+      // Keep layout/visual viewport anchored to top 0 when keyboard is open so background never pushes up
+      if (isKbOpen && (vv.offsetTop !== 0 || window.scrollY !== 0)) {
+        window.scrollTo(0, 0);
+      }
 
       setState({
         isKeyboardOpen: isKbOpen,

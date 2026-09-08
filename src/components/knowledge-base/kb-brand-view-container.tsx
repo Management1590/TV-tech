@@ -59,12 +59,17 @@ export function KbBrandViewContainer({
   const isAutoScrollingRef = useRef(false);
 
   const moveSearchBarToTop = useCallback(() => {
-    // Dock smoothly to the top of the page so header, brand title, and search bar stay in view
+    // Dock to the Brand Search Bar so it smoothly scrolls to the top of the viewport
+    const targetEl = searchContainerRef.current;
+    if (!targetEl) return;
+    const rect = targetEl.getBoundingClientRect();
     const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
-    if (currentScrollY > 8) {
+    // If not already near the top of the viewport (within 12px)
+    if (rect.top > 12 || rect.top < 0) {
       isAutoScrollingRef.current = true;
+      const targetScrollY = currentScrollY + rect.top - 8;
       window.scrollTo({
-        top: 0,
+        top: Math.max(0, targetScrollY),
         behavior: 'smooth',
       });
       setTimeout(() => {
@@ -291,7 +296,7 @@ export function KbBrandViewContainer({
   );
 
   return (
-    <div className={`space-y-4 sm:space-y-6 max-w-7xl mx-auto min-h-[calc(100dvh-180px)] transition-all duration-300 ${isSearchFocused ? 'pb-32' : 'pb-16'}`}>
+    <div className={`space-y-4 sm:space-y-6 max-w-7xl mx-auto min-h-[calc(100dvh-180px)] transition-all duration-300 ${isSearchFocused ? 'pb-[70vh]' : 'pb-16'}`}>
       {/* ========================================================================= */}
       {/* 1. SEAMLESS EMBEDDED KNOWLEDGE BASE HEADER (No Floating Card CTA)         */}
       {/* ========================================================================= */}
@@ -341,7 +346,7 @@ export function KbBrandViewContainer({
       {/* ========================================================================= */}
       <div
         ref={searchContainerRef}
-        className={`transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
+        className={`scroll-mt-2 transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
           isSearchFocused || searchQuery.trim()
             ? 'shadow-md ring-2 ring-blue-500/20 border-blue-400/50'
             : 'border-border/80 shadow-xs hover:shadow-sm'

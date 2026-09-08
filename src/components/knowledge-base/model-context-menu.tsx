@@ -103,6 +103,18 @@ export function ModelContextMenu({
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
   const isAdmin = !!userRole;
 
+  // Smoothly focus model input when rename sheet opens without pushing background
+  useEffect(() => {
+    if (isRenameOpen) {
+      const timer = setTimeout(() => {
+        if (renameInputRef.current) {
+          renameInputRef.current.focus({ preventScroll: true });
+        }
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+  }, [isRenameOpen]);
+
   // Filter out current model number from collision comparison
   const otherModels = useMemo(() => {
     return (existingModels || []).filter(
@@ -546,7 +558,6 @@ export function ModelContextMenu({
                           }}
                           placeholder="e.g. 55NU7100"
                           required
-                          autoFocus
                           disabled={isPending}
                           className={`h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border text-sm font-bold tracking-wide transition-all focus-visible:ring-2 ${
                             similarityResult.level === 'BLOCK'
