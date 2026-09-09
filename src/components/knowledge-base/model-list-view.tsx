@@ -343,14 +343,14 @@ export function ModelListView({
       {/* Real-time Contextual Model Search Bar + Filter Segmented Control */}
       <div
         ref={searchContainerRef}
-        className={`scroll-mt-2 transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
+        className={`scroll-mt-2 transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-3xl border ${
           isSearchFocused || searchQuery.trim()
-            ? 'shadow-md ring-2 ring-blue-500/20 border-blue-400/50'
-            : 'border-border/80 shadow-xs hover:shadow-sm'
+            ? 'shadow-md ring-2 ring-violet-500/25 border-violet-400/60'
+            : 'border-border/70 shadow-xs hover:shadow-sm hover:border-violet-300/40'
         }`}
       >
         <div className="space-y-2.5 sm:space-y-3">
-          {/* Row 1: Real-time In-Place Search Bar */}
+          {/* Row 1: Real-time In-Place Search Bar Themed to Knowledge Base Purple */}
           <div
             className="relative w-full group cursor-text"
             onClick={() => {
@@ -359,9 +359,9 @@ export function ModelListView({
             }}
           >
             <div className="relative flex items-center">
-              {/* Premium Theme Icon Badge */}
-              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-2xs pointer-events-none group-focus-within:border-blue-500/50 group-focus-within:scale-105 transition-all">
-                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+              {/* Premium Knowledge Base Violet Theme Icon Badge */}
+              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-violet-600/20 via-purple-500/15 to-indigo-500/10 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-2xs pointer-events-none group-focus-within:border-violet-500/60 group-focus-within:scale-105 transition-all">
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600 dark:text-violet-400" />
               </div>
 
               <Input
@@ -381,7 +381,7 @@ export function ModelListView({
                 }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
-                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-slate-50/80 dark:bg-slate-900 border-2 border-slate-200 hover:border-blue-400/50 focus-visible:border-blue-500 rounded-full shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-blue-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
+                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-violet-50/25 dark:bg-slate-900/90 border-2 border-violet-200/70 dark:border-violet-900/50 hover:border-violet-400/60 focus-visible:border-violet-500 rounded-full shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-violet-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
               />
 
               {/* Clear / Dismiss Button or Quick Tag */}
@@ -400,7 +400,7 @@ export function ModelListView({
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-muted-foreground/70 border border-border/80">
+                  <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-violet-100/70 dark:bg-violet-950/40 text-[10px] font-bold text-violet-700 dark:text-violet-300 border border-violet-200/70 dark:border-violet-800/50">
                     Search
                   </span>
                 )}
@@ -408,18 +408,18 @@ export function ModelListView({
             </div>
           </div>
 
-          {/* Row 2: Sort Directory Control Bar */}
+          {/* Row 2: Sort Directory Control Bar (Muted Title on Left, Highlighted Sort Button on Right) */}
           <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/50">
-            {/* Left: Explicit "Sort Directory" Title */}
+            {/* Left: Clean Muted "Sort Directory" Title */}
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 shrink-0">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+              <div className="w-7 h-7 rounded-full bg-muted/80 dark:bg-slate-800 border border-border/70 flex items-center justify-center text-muted-foreground shrink-0">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs sm:text-sm font-extrabold text-foreground tracking-tight whitespace-nowrap">
+                <span className="text-xs sm:text-sm font-bold text-foreground/80 tracking-tight whitespace-nowrap">
                   Sort Directory
                 </span>
-                <span className="text-[11px] text-muted-foreground/70 font-semibold hidden xs:inline truncate">
+                <span className="text-[11px] text-muted-foreground/60 font-medium hidden xs:inline truncate">
                   · {filteredModels.length} {filteredModels.length === 1 ? 'model' : 'models'}
                 </span>
               </div>
@@ -432,7 +432,7 @@ export function ModelListView({
                 inputRef.current?.blur();
                 setIsSortOpen(true);
               }}
-              className="h-9 sm:h-9.5 shrink-0 ml-auto shadow-2xs hover:shadow-xs"
+              className="h-9 sm:h-9.5 shrink-0 ml-auto shadow-xs"
             />
           </div>
         </div>
@@ -452,14 +452,14 @@ export function ModelListView({
       {debouncedQuery.trim() && !isSearching && (
         <div className="flex items-center justify-between text-xs px-1">
           <span className="font-semibold text-muted-foreground/80">
-            Showing <strong className="text-foreground font-extrabold">{filteredModels.length}</strong> of {models.length} models matching &ldquo;<span className="text-blue-600 font-bold">{debouncedQuery}</span>&rdquo;
+            Showing <strong className="text-foreground font-extrabold">{filteredModels.length}</strong> of {models.length} models matching &ldquo;<span className="text-violet-600 font-bold">{debouncedQuery}</span>&rdquo;
           </span>
           <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+            className="text-violet-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
           >
-            <X className="w-3 h-3" /> Clear filter
+            <X className="w-3.5 h-3.5" /> Clear filter
           </button>
         </div>
       )}
@@ -474,7 +474,7 @@ export function ModelListView({
         </div>
       ) : filteredModels.length === 0 ? (
         <div className="p-8 sm:p-12 text-center bg-white border border-border/80 border-dashed rounded-3xl shadow-blend">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-400/30 flex items-center justify-center mx-auto mb-3.5 text-blue-600 shadow-2xs">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600/20 via-purple-500/15 to-indigo-500/10 border border-violet-400/30 flex items-center justify-center mx-auto mb-3.5 text-violet-600 shadow-2xs">
             <Monitor className="w-7 h-7" />
           </div>
           <h3 className="font-extrabold text-foreground text-base sm:text-lg tracking-tight">
@@ -498,10 +498,10 @@ export function ModelListView({
                     key={sug}
                     type="button"
                     onClick={() => setSearchQuery(sug)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all border border-blue-200/80 shadow-2xs cursor-pointer active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-50/90 hover:bg-violet-100 text-violet-700 text-xs font-bold transition-all border border-violet-200/80 shadow-2xs cursor-pointer active:scale-95"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span className="underline decoration-blue-400 underline-offset-2">{sug}</span>
+                    <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                    <span className="underline decoration-violet-400 underline-offset-2">{sug}</span>
                   </button>
                 ))}
               </div>
@@ -518,7 +518,7 @@ export function ModelListView({
                 trigger={
                   <Button
                     type="button"
-                    className="h-10 px-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:to-primary text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 hover:shadow-lg active:scale-95 transition-all flex items-center gap-2 border border-white/20 cursor-pointer"
+                    className="h-10 px-5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-md shadow-violet-500/30 active:scale-95 transition-all flex items-center gap-2 border border-white/20 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Create Model &ldquo;{searchQuery.trim().toUpperCase()}&rdquo;</span>
@@ -560,13 +560,13 @@ export function ModelListView({
                   >
                     {/* Left Side: Model Info */}
                     <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 group-hover:scale-105 group-hover:border-blue-400/40 group-hover:shadow-sm transition-all shrink-0">
+                      <div className="w-11 h-11 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:scale-105 group-hover:text-violet-600 dark:group-hover:text-violet-400 group-hover:border-violet-300/70 group-hover:shadow-xs transition-all shrink-0">
                         <Monitor className="w-5 h-5" />
                       </div>
 
                       <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-blue-600 transition-colors break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] min-w-0 leading-snug">
+                          <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] min-w-0 leading-snug">
                             {Boolean(debouncedQuery.trim()) && model._searchMatch?.isModelMatch ? (
                               <HighlightedText text={cleanModelNumber} query={debouncedQuery} className="break-words [word-break:normal] [overflow-wrap:anywhere]" />
                             ) : (
@@ -583,7 +583,7 @@ export function ModelListView({
                           {model.displayType && (
                             <Badge
                               variant="secondary"
-                              className="text-[10px] uppercase font-extrabold px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200/60 shrink-0"
+                              className="text-[10px] uppercase font-extrabold px-1.5 py-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 shrink-0"
                             >
                               {model.displayType}
                             </Badge>
@@ -618,7 +618,7 @@ export function ModelListView({
                     {/* Right Side: Folders Count, 3-Dots Menu, & Action Pill */}
                     <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-1 sm:ml-4">
                       <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
-                        <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
+                        <FolderOpen className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                         <span>
                           {folderCount} {folderCount === 1 ? 'Folder' : 'Folders'}
                         </span>
@@ -646,7 +646,7 @@ export function ModelListView({
                         </div>
                       )}
 
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center text-slate-500 transition-all duration-200">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-violet-600 group-hover:text-white flex items-center justify-center text-slate-500 transition-all duration-200">
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </div>

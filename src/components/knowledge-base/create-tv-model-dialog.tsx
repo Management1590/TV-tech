@@ -252,12 +252,10 @@ export function CreateTvModelDialog({
         <Button
           type="button"
           onClick={() => setOpen(true)}
-          className="h-10 px-4 sm:px-5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all flex items-center gap-2 border border-white/20 cursor-pointer group shrink-0"
+          className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-md shadow-violet-500/30 hover:shadow-lg hover:shadow-violet-500/40 active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
         >
-          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:rotate-90 transition-transform duration-300">
-            <Plus className="w-3.5 h-3.5 text-white" />
-          </div>
-          <span>Add Model</span>
+          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
+          <span className="whitespace-nowrap font-black">Add Model</span>
         </Button>
       )}
 
@@ -586,7 +584,7 @@ export function CreateTvModelDialog({
                             ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20 text-white'
                             : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
                             ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20 text-white'
-                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white shadow-sm shadow-blue-500/20 hover:shadow-md'
+                            : 'bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-sm shadow-violet-500/20 hover:shadow-md'
                         }`}
                       >
                         {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

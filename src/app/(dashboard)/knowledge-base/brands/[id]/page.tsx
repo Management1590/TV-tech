@@ -73,19 +73,19 @@ export default async function TvBrandDetailPage({
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
         <Link
           href="/knowledge-base"
-          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-slate-50 hover:text-blue-600 active:bg-muted/80 text-foreground/70 transition-all font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-200/80 hover:text-slate-900 text-slate-600 dark:text-slate-300 transition-all font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer group"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
+          <ArrowLeft className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
           <span>Knowledge Base</span>
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-        <span className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-700 border border-blue-400/20 font-extrabold shrink-0 min-h-[34px] inline-flex items-center gap-1">
+        <span className="px-2.5 py-1.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-800 dark:text-slate-100 border border-slate-300/80 dark:border-slate-600/80 font-black shrink-0 min-h-[34px] inline-flex items-center gap-1">
           {cleanBrandName}
         </span>
       </nav>
 
       {/* Brand Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-6 bg-white border border-border/70 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-6 bg-white dark:bg-slate-900 border border-border/70 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-center gap-3 sm:gap-4">
           <FolderSilhouetteThumbnail
             thumbnailUrl={brand.logoUrl}
@@ -93,7 +93,7 @@ export default async function TvBrandDetailPage({
             className="w-16 sm:w-24"
           />
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 truncate">
+            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-foreground truncate">
               {cleanBrandName}
             </h1>
             <p className="hidden sm:block text-xs text-muted-foreground/80 mt-1 font-semibold tracking-wide">
@@ -104,8 +104,9 @@ export default async function TvBrandDetailPage({
 
         {/* Upper Actions: Model Counter Badge + Add Model Button */}
         <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto shrink-0 justify-between sm:justify-end">
-          <div className="flex items-center px-3.5 h-9 sm:h-10 rounded-full bg-blue-50 border border-blue-200/80 text-xs font-extrabold text-blue-700 shadow-2xs">
-            {brand.models.length} {brand.models.length === 1 ? 'Model' : 'Models'}
+          <div className="flex items-center gap-1.5 px-3.5 h-9 sm:h-10 rounded-full bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 text-xs font-black text-slate-700 dark:text-slate-200 shadow-2xs">
+            <Monitor className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+            <span>{brand.models.length} {brand.models.length === 1 ? 'Model' : 'Models'}</span>
           </div>
 
           {!!user && (
@@ -133,7 +134,7 @@ export default async function TvBrandDetailPage({
       <div className="space-y-3">
         <div id="registered-models-header" className="flex items-center justify-between">
           <h2 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">
-            <Monitor className="w-4 h-4 text-blue-600" />
+            <Monitor className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <span>Registered TV Models</span>
             <span className="text-muted-foreground/70 font-bold">({brand.models.length})</span>
           </h2>
