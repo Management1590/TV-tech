@@ -384,9 +384,6 @@ function NavBar({
             );
           })}
         </div>
-
-        {/* Subtle iOS Home indicator line at bottom */}
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-20 h-0.5 bg-zinc-300/80 dark:bg-zinc-700/80 rounded-full pointer-events-none" />
       </div>
     </nav>
   );
