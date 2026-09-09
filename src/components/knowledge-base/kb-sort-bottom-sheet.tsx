@@ -79,10 +79,10 @@ export function KbSortButton({ sortBy, onClick, className = '' }: KbSortButtonPr
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl bg-white dark:bg-slate-900 border border-border/80 hover:border-primary/40 text-foreground text-xs font-bold shadow-2xs hover:shadow-xs active:scale-95 transition-all duration-200 cursor-pointer group shrink-0 ${className}`}
+      className={`flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white dark:bg-slate-900 border border-border/80 hover:border-primary/40 text-foreground text-xs font-bold shadow-2xs hover:shadow-xs active:scale-95 transition-all duration-200 cursor-pointer group shrink-0 ${className}`}
       title="Change Sort Order"
     >
-      <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+      <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
         <CurrentIcon className="w-3.5 h-3.5" />
       </div>
       <span className="font-extrabold tracking-tight truncate">{current.label}</span>

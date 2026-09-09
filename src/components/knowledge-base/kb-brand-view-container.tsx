@@ -302,7 +302,7 @@ export function KbBrandViewContainer({
       {/* ========================================================================= */}
       <div id="brand-directory-header" className="flex items-center justify-between gap-2.5 sm:gap-4 px-1 pt-1 pb-0.5">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/30 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/30 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
             <Tv className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
           </div>
           <div className="min-w-0 flex-1">
@@ -330,7 +330,7 @@ export function KbBrandViewContainer({
               trigger={
                 <Button
                   type="button"
-                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-extrabold text-xs sm:text-sm shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
+                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-extrabold text-xs sm:text-sm shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
                   <span className="whitespace-nowrap">Add Brand</span>
@@ -346,7 +346,7 @@ export function KbBrandViewContainer({
       {/* ========================================================================= */}
       <div
         ref={searchContainerRef}
-        className={`scroll-mt-2 transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border ${
+        className={`scroll-mt-2 transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-3xl border ${
           isSearchFocused || searchQuery.trim()
             ? 'shadow-md ring-2 ring-blue-500/20 border-blue-400/50'
             : 'border-border/80 shadow-xs hover:shadow-sm'
@@ -363,7 +363,7 @@ export function KbBrandViewContainer({
           >
             <div className="relative flex items-center">
               {/* Premium Theme Icon Badge */}
-              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-2xs pointer-events-none group-focus-within:border-blue-500/50 group-focus-within:scale-105 transition-all">
+              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-2xs pointer-events-none group-focus-within:border-blue-500/50 group-focus-within:scale-105 transition-all">
                 <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
               </div>
 
@@ -385,7 +385,7 @@ export function KbBrandViewContainer({
                 }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
-                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-slate-50/80 dark:bg-slate-900 border-2 border-slate-200 hover:border-blue-400/50 focus-visible:border-blue-500 rounded-xl sm:rounded-2xl shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-blue-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
+                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-slate-50/80 dark:bg-slate-900 border-2 border-slate-200 hover:border-blue-400/50 focus-visible:border-blue-500 rounded-full shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-blue-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
               />
 
               {/* Clear / Dismiss Button or Quick Tag */}
@@ -398,13 +398,13 @@ export function KbBrandViewContainer({
                       setSearchQuery('');
                       inputRef.current?.focus();
                     }}
-                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors cursor-pointer"
                     title="Clear search"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-muted-foreground/70 border border-border/80">
+                  <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-muted-foreground/70 border border-border/80">
                     Search
                   </span>
                 )}
@@ -416,7 +416,7 @@ export function KbBrandViewContainer({
           <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/50">
             {/* Left: Explicit "Sort Directory" Title */}
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 shrink-0">
+              <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 shrink-0">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
               </div>
               <div className="flex items-center gap-1.5 min-w-0">

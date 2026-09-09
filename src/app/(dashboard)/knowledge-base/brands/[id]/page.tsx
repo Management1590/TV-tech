@@ -104,7 +104,7 @@ export default async function TvBrandDetailPage({
 
         {/* Upper Actions: Model Counter Badge + Add Model Button */}
         <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto shrink-0 justify-between sm:justify-end">
-          <div className="flex items-center px-3 h-9 sm:h-10 rounded-xl sm:rounded-2xl bg-blue-50 border border-blue-200/80 text-xs font-extrabold text-blue-700 shadow-2xs">
+          <div className="flex items-center px-3.5 h-9 sm:h-10 rounded-full bg-blue-50 border border-blue-200/80 text-xs font-extrabold text-blue-700 shadow-2xs">
             {brand.models.length} {brand.models.length === 1 ? 'Model' : 'Models'}
           </div>
 
