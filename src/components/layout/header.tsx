@@ -111,15 +111,15 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               type="button"
               onClick={handleBack}
               aria-label="Go Back"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/10 to-primary/10 border border-primary/25 hover:border-primary/50 flex items-center justify-center text-primary shadow-2xs hover:bg-primary/15 active:scale-90 transition-all duration-200 cursor-pointer shrink-0 group"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-2xs active:scale-90 transition-all duration-200 cursor-pointer shrink-0 group"
               title="Go back (restores scroll position)"
             >
-              <ArrowLeft className="w-5 h-5 text-primary stroke-[2.5] group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300 stroke-[2.2] group-hover:-translate-x-0.5 transition-transform" />
             </button>
             <div className="hidden md:flex flex-col">
               <div className="flex items-center gap-1.5 font-extrabold text-sm sm:text-base tracking-tight text-foreground leading-none">
                 <span>MODERN</span>
-                <span className="text-primary font-black">ELECTRONICS</span>
+                <span className="text-slate-700 dark:text-slate-200 font-black">ELECTRONICS</span>
               </div>
               <span className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase mt-0.5">
                 Back to previous
@@ -128,28 +128,28 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
           </div>
         ) : isKbRoute ? (
           <div className="flex items-center gap-2.5 shrink-0 select-none cursor-default">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/15 to-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-2xs">
               <AppLogo className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="hidden sm:flex flex-col">
               <div className="flex items-center gap-1.5 font-extrabold text-sm sm:text-base tracking-tight text-foreground leading-none">
                 <span>MODERN</span>
-                <span className="text-primary font-black">ELECTRONICS</span>
+                <span className="text-slate-700 dark:text-slate-200 font-black">ELECTRONICS</span>
               </div>
-              <span className="text-[10px] font-bold text-primary tracking-wider uppercase mt-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase mt-0.5">
                 Knowledge Base
               </span>
             </div>
           </div>
         ) : (
           <Link href={isAdmin ? '/' : '/inventory'} className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-primary/15 to-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs group-hover:scale-105 group-hover:shadow-md group-hover:border-primary/40 transition-all duration-200">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-2xs group-hover:scale-105 group-hover:shadow-md transition-all duration-200">
               <AppLogo className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="hidden sm:flex flex-col">
               <div className="flex items-center gap-1.5 font-extrabold text-sm sm:text-base tracking-tight text-foreground leading-none">
                 <span>MODERN</span>
-                <span className="text-primary font-black">ELECTRONICS</span>
+                <span className="text-slate-700 dark:text-slate-200 font-black">ELECTRONICS</span>
               </div>
               <span className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase mt-0.5">
                 Operating System
@@ -164,24 +164,20 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-card/90 hover:bg-muted/90 active:bg-muted border border-border/80 text-foreground transition-all duration-200 min-w-0 max-w-full cursor-pointer text-left group shadow-2xs"
+              className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 active:bg-slate-200 border border-slate-200/90 dark:border-slate-700/90 text-foreground transition-all duration-200 min-w-0 max-w-full cursor-pointer text-left group shadow-2xs"
               title="View account details & permissions"
             >
               <div
-                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs flex items-center justify-center text-white shadow-xs shrink-0 ${
-                  isAdmin
-                    ? 'bg-gradient-to-tr from-primary to-blue-600'
-                    : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
-                }`}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-xs shrink-0"
               >
                 {initials}
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-xs sm:text-sm font-extrabold text-foreground truncate group-hover:text-primary transition-colors leading-none">
+                  <span className="text-xs sm:text-sm font-extrabold text-foreground truncate group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-none">
                     {displayName}
                   </span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" title="Active Session" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" title="Active Session" />
                 </div>
                 <span className="text-[10px] text-muted-foreground font-semibold mt-0.5 leading-none truncate">
                   {isAdmin ? 'Super Admin' : 'Staff Technician'}
@@ -204,10 +200,10 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               variant="outline"
               size="sm"
               onClick={() => setIsCreateStaffOpen(true)}
-              className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 rounded-2xl text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200/80 shadow-2xs transition-all gap-1.5 cursor-pointer shrink-0 flex items-center justify-center"
+              className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 hover:text-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs transition-all gap-1.5 cursor-pointer shrink-0 flex items-center justify-center"
               title="Create new Staff account"
             >
-              <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
+              <UserPlus className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <span className="hidden sm:inline">Add Staff</span>
             </Button>
           )}
@@ -220,13 +216,13 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               size="sm"
               onClick={() => setIsSignOutOpen(true)}
               disabled={isPending}
-              className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs transition-all gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-rose-50/80 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200/80 dark:hover:border-rose-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs transition-all gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0 group"
               title="Sign out of TV Tech OS"
             >
               {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
               ) : (
-                <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                <LogOut className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors" />
               )}
               <span>Sign Out</span>
             </Button>
@@ -241,16 +237,12 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                   aria-label="User profile menu"
                 >
                   <div
-                    className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center text-white shadow-2xs ${
-                      isAdmin
-                        ? 'bg-gradient-to-tr from-primary to-blue-600'
-                        : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
-                    }`}
+                    className="w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-2xs"
                   >
                     {initials}
                   </div>
                   <div className="hidden md:flex flex-col text-left">
-                    <span className="text-xs font-bold text-foreground leading-none group-hover:text-primary transition-colors">
+                    <span className="text-xs font-bold text-foreground leading-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                       {displayName}
                     </span>
                     <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
@@ -268,11 +260,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                   {/* Profile Header Card */}
                   <div className="flex items-start gap-3 pb-3 border-b border-border/70">
                     <div
-                      className={`w-12 h-12 rounded-2xl font-black text-sm flex items-center justify-center text-white shadow-md shrink-0 ${
-                        isAdmin
-                          ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
-                          : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
-                      }`}
+                      className="w-12 h-12 rounded-2xl font-black text-sm flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-md shrink-0"
                     >
                       {initials}
                     </div>
@@ -362,11 +350,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               className="sm:hidden flex items-center justify-center w-9 h-9 rounded-2xl bg-muted/90 active:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer shadow-2xs"
             >
               <div
-                className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center text-white shadow-xs ${
-                  isAdmin
-                    ? 'bg-gradient-to-tr from-primary to-blue-600'
-                    : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
-                }`}
+                className="w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-xs"
               >
                 {initials}
               </div>
