@@ -79,14 +79,14 @@ export function KbSortButton({ sortBy, onClick, className = '' }: KbSortButtonPr
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white dark:bg-slate-900 border border-border/80 hover:border-primary/40 text-foreground text-xs font-bold shadow-2xs hover:shadow-xs active:scale-95 transition-all duration-200 cursor-pointer group shrink-0 ${className}`}
+      className={`flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-violet-50/90 via-purple-50/60 to-indigo-50/80 dark:from-violet-950/40 dark:via-purple-950/30 dark:to-indigo-950/40 border-1.5 border-violet-300 dark:border-violet-600/60 hover:border-violet-400 text-violet-950 dark:text-violet-100 text-xs font-black shadow-xs hover:shadow-md hover:shadow-violet-500/15 active:scale-95 transition-all duration-200 cursor-pointer group shrink-0 ${className}`}
       title="Change Sort Order"
     >
-      <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-        <CurrentIcon className="w-3.5 h-3.5" />
+      <div className="w-5 h-5 rounded-full bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform">
+        <CurrentIcon className="w-3 h-3 text-white" />
       </div>
-      <span className="font-extrabold tracking-tight truncate">{current.label}</span>
-      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-transform group-hover:translate-y-0.5 ml-0.5" />
+      <span className="font-black tracking-tight truncate">{current.label}</span>
+      <ChevronDown className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 group-hover:text-violet-700 transition-transform group-hover:translate-y-0.5 ml-0.5" />
     </button>
   );
 }
@@ -197,7 +197,7 @@ export function KbSortBottomSheet({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600/20 via-purple-500/15 to-indigo-500/10 border border-violet-500/25 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-2xs shrink-0">
                     <SlidersHorizontal className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
@@ -244,7 +244,7 @@ export function KbSortBottomSheet({
                     }}
                     className={`w-full flex items-center justify-between gap-3 px-3.5 sm:px-4 py-3 sm:py-3.5 rounded-2xl text-left transition-all duration-150 cursor-pointer border ${
                       isSelected
-                        ? 'bg-primary/10 border-primary/30 shadow-2xs'
+                        ? 'bg-violet-500/10 dark:bg-violet-950/30 border-violet-500/35 shadow-2xs'
                         : 'bg-muted/30 hover:bg-muted/60 border-transparent active:bg-muted/80'
                     }`}
                   >
@@ -259,7 +259,7 @@ export function KbSortBottomSheet({
                         <div className="flex items-center gap-1.5">
                           <span
                             className={`text-xs sm:text-sm font-bold truncate ${
-                              isSelected ? 'text-primary font-extrabold' : 'text-foreground'
+                              isSelected ? 'text-violet-700 dark:text-violet-300 font-extrabold' : 'text-foreground'
                             }`}
                           >
                             {option.label}
@@ -282,7 +282,7 @@ export function KbSortBottomSheet({
                     {/* Selection Checkmark */}
                     <div className="shrink-0 flex items-center pl-2">
                       {isSelected ? (
-                        <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
+                        <div className="w-6 h-6 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-xs">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
                         </div>
                       ) : (

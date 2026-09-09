@@ -201,23 +201,23 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
               </div>
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-indigo-100/60 to-muted/90 flex items-center justify-center overflow-hidden">
-                {/* Soft radial primary ambient glow */}
-                <div className="absolute w-48 h-48 rounded-full bg-primary/15 blur-3xl group-hover:bg-primary/25 transition-all duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-100/90 via-slate-50/80 to-slate-100/60 dark:from-slate-900/90 dark:via-slate-800/80 dark:to-slate-900/60 flex items-center justify-center overflow-hidden">
+                {/* Soft ambient glow */}
+                <div className="absolute w-48 h-48 rounded-full bg-slate-300/25 dark:bg-slate-700/25 blur-3xl group-hover:bg-slate-300/40 transition-all duration-500 pointer-events-none" />
                 {/* Geometric pattern */}
                 <div
-                  className="absolute inset-0 opacity-[0.07] group-hover:opacity-[0.1] transition-opacity"
+                  className="absolute inset-0 opacity-[0.04] group-hover:opacity-[0.07] transition-opacity"
                   style={{
-                    backgroundImage: 'radial-gradient(oklch(0.40 0.22 260) 1.2px, transparent 1.2px)',
+                    backgroundImage: 'radial-gradient(oklch(0.50 0.05 260) 1px, transparent 1px)',
                     backgroundSize: '16px 16px',
                   }}
                 />
                 <div className="relative flex flex-col items-center justify-center text-center p-2 sm:p-4">
-                  <div className="w-11 h-11 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/95 border border-primary/30 shadow-md flex items-center justify-center text-primary group-hover:scale-110 group-hover:shadow-lg transition-all duration-300">
-                    <Tv className="w-5 h-5 sm:w-8 sm:h-8 text-primary" />
+                  <div className="w-11 h-11 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/95 dark:bg-slate-800/95 border border-slate-200/90 dark:border-slate-700 shadow-xs flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:scale-110 group-hover:text-violet-600 dark:group-hover:text-violet-400 group-hover:shadow-md transition-all duration-300">
+                    <Tv className="w-5 h-5 sm:w-8 sm:h-8" />
                   </div>
                   {brand.description && (
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2.5 line-clamp-1 max-w-[130px] sm:max-w-[200px] font-semibold">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground/80 mt-1 sm:mt-2.5 line-clamp-1 max-w-[130px] sm:max-w-[200px] font-medium">
                       {brand.description}
                     </p>
                   )}
@@ -225,21 +225,21 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
               </div>
             )}
 
-            {/* 2. FLOATING MODEL COUNT BADGE */}
+            {/* 2. FLOATING MODEL COUNT BADGE (Muted & Clean) */}
             <div className="absolute bottom-9 sm:bottom-12 right-2 sm:right-2 z-20">
               <Badge
                 variant="secondary"
-                className="bg-white/98 text-blue-700 border border-blue-400/40 backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-extrabold shadow-md group-hover:border-blue-500/60 group-hover:shadow-lg transition-all"
+                className="bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-bold shadow-xs group-hover:border-slate-300 group-hover:shadow-sm transition-all"
               >
-                <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
                 {modelCount} {modelCount === 1 ? 'Model' : 'Models'}
               </Badge>
             </div>
 
             {/* 3. SOLID BOTTOM BAR WITH CENTERED TITLE */}
-            <div className="relative z-20 px-2 sm:px-4 py-2.5 sm:py-3 bg-white border-t border-slate-200/80 flex items-center justify-center text-center">
+            <div className="relative z-20 px-2 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900/95 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-center text-center">
               <h3
-                className="text-xs sm:text-sm font-black text-slate-800 group-hover:text-blue-600 transition-colors tracking-tight truncate leading-tight w-full text-center"
+                className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors tracking-tight truncate leading-tight w-full text-center"
                 title={cleanName}
               >
                 {cleanName}

@@ -557,23 +557,23 @@ export function SetBrandThumbnailDialog({
                           </div>
                         ) : (
                           /* Default Icon canvas when no thumbnail - 100% matched to BrandFolderCard */
-                          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-indigo-100/60 to-muted/90 flex items-center justify-center overflow-hidden pointer-events-none">
-                            {/* Soft radial primary ambient glow */}
-                            <div className="absolute w-40 h-40 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+                          <div className="absolute inset-0 bg-gradient-to-br from-slate-100/90 via-slate-50/80 to-slate-100/60 dark:from-slate-900/90 dark:via-slate-800/80 dark:to-slate-900/60 flex items-center justify-center overflow-hidden pointer-events-none">
+                            {/* Soft ambient glow */}
+                            <div className="absolute w-40 h-40 rounded-full bg-slate-300/25 dark:bg-slate-700/25 blur-3xl pointer-events-none" />
                             {/* Geometric pattern */}
                             <div
-                              className="absolute inset-0 opacity-[0.07]"
+                              className="absolute inset-0 opacity-[0.04]"
                               style={{
-                                backgroundImage: 'radial-gradient(oklch(0.40 0.22 260) 1.2px, transparent 1.2px)',
+                                backgroundImage: 'radial-gradient(oklch(0.50 0.05 260) 1px, transparent 1px)',
                                 backgroundSize: '16px 16px',
                               }}
                             />
                             <div className="relative flex flex-col items-center justify-center text-center p-2">
-                              <div className="w-11 h-11 rounded-xl bg-white/95 border border-primary/30 shadow-md flex items-center justify-center text-primary">
-                                <Tv className="w-5 h-5 text-primary" />
+                              <div className="w-11 h-11 rounded-xl bg-white/95 dark:bg-slate-800/95 border border-slate-200/90 dark:border-slate-700 shadow-xs flex items-center justify-center text-slate-500 dark:text-slate-400">
+                                <Tv className="w-5 h-5" />
                               </div>
                               {currentDescription && (
-                                <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1 max-w-[130px] font-semibold">
+                                <p className="text-[10px] text-muted-foreground/80 mt-1 line-clamp-1 max-w-[130px] font-medium">
                                   {currentDescription}
                                 </p>
                               )}
@@ -585,9 +585,9 @@ export function SetBrandThumbnailDialog({
                         <div className="absolute bottom-9 right-2 z-20 pointer-events-none">
                           <Badge
                             variant="secondary"
-                            className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[10px] py-0.5 px-1.5 font-bold shadow-md"
+                            className="bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md gap-1 text-[10px] py-0.5 px-1.5 font-bold shadow-xs"
                           >
-                            <Tv className="w-3 h-3 text-primary" />
+                            <Tv className="w-3 h-3 text-slate-400" />
                             {modelCount} {modelCount === 1 ? 'Model' : 'Models'}
                           </Badge>
                         </div>

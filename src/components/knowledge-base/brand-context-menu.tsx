@@ -373,23 +373,23 @@ export function BrandContextMenu({
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent pointer-events-none" />
                           </div>
                         ) : (
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/90 via-indigo-100/70 to-muted/80 flex items-center justify-center overflow-hidden">
-                            {/* Soft radial primary ambient glow */}
-                            <div className="absolute w-36 h-36 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
+                          <div className="absolute inset-0 bg-gradient-to-br from-slate-100/90 via-slate-50/80 to-slate-100/60 dark:from-slate-900/90 dark:via-slate-800/80 dark:to-slate-900/60 flex items-center justify-center overflow-hidden">
+                            {/* Soft ambient glow */}
+                            <div className="absolute w-36 h-36 rounded-full bg-slate-300/25 dark:bg-slate-700/25 blur-2xl pointer-events-none" />
                             {/* Geometric pattern */}
                             <div
-                              className="absolute inset-0 opacity-[0.08]"
+                              className="absolute inset-0 opacity-[0.04]"
                               style={{
-                                backgroundImage: 'radial-gradient(oklch(0.40 0.22 260) 1.2px, transparent 1.2px)',
+                                backgroundImage: 'radial-gradient(oklch(0.50 0.05 260) 1px, transparent 1px)',
                                 backgroundSize: '14px 14px',
                               }}
                             />
                             <div className="relative flex flex-col items-center justify-center text-center p-2">
-                              <div className="w-10 h-10 rounded-2xl bg-white/95 border border-primary/30 shadow-md flex items-center justify-center text-primary mb-1">
-                                <Tv className="w-5 h-5 text-primary" />
+                              <div className="w-10 h-10 rounded-2xl bg-white/95 dark:bg-slate-800/95 border border-slate-200/90 dark:border-slate-700 shadow-xs flex items-center justify-center text-slate-500 dark:text-slate-400 mb-1">
+                                <Tv className="w-5 h-5" />
                               </div>
                               {currentDescription && (
-                                <p className="text-[9px] text-muted-foreground line-clamp-1 max-w-[125px] font-semibold">
+                                <p className="text-[9px] text-muted-foreground/80 line-clamp-1 max-w-[125px] font-medium">
                                   {currentDescription}
                                 </p>
                               )}
@@ -401,9 +401,9 @@ export function BrandContextMenu({
                         <div className="absolute bottom-9 right-1.5 z-20">
                           <Badge
                             variant="secondary"
-                            className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[9px] py-0.5 px-1.5 font-bold shadow-md"
+                            className="bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md gap-1 text-[9px] py-0.5 px-1.5 font-bold shadow-xs"
                           >
-                            <Tv className="w-2.5 h-2.5" />
+                            <Tv className="w-2.5 h-2.5 text-slate-400" />
                             {modelCount} {modelCount === 1 ? 'Model' : 'Models'}
                           </Badge>
                         </div>

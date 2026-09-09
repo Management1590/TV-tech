@@ -298,12 +298,12 @@ export function KbBrandViewContainer({
   return (
     <div className={`space-y-4 sm:space-y-6 max-w-7xl mx-auto min-h-[calc(100dvh-180px)] transition-all duration-300 ${isSearchFocused ? 'pb-[70vh]' : 'pb-16'}`}>
       {/* ========================================================================= */}
-      {/* 1. SEAMLESS EMBEDDED KNOWLEDGE BASE HEADER (No Floating Card CTA)         */}
+      {/* 1. SEAMLESS EMBEDDED KNOWLEDGE BASE HEADER (Muted & Clean)               */}
       {/* ========================================================================= */}
       <div id="brand-directory-header" className="flex items-center justify-between gap-2.5 sm:gap-4 px-1 pt-1 pb-0.5">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/30 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
-            <Tv className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-muted/70 dark:bg-slate-800/80 border border-border/70 flex items-center justify-center text-muted-foreground shadow-2xs shrink-0">
+            <Tv className="w-5 h-5 sm:w-6 sm:h-6 text-foreground/70" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -312,28 +312,28 @@ export function KbBrandViewContainer({
               </h1>
               <Badge
                 variant="outline"
-                className="bg-blue-500/10 text-blue-700 border-blue-400/30 text-[10px] sm:text-xs font-extrabold py-0.5 px-2.5 rounded-full shrink-0 shadow-2xs whitespace-nowrap"
+                className="bg-muted/60 dark:bg-slate-800/60 text-muted-foreground border-border/70 text-[10px] sm:text-xs font-bold py-0.5 px-2.5 rounded-full shrink-0 shadow-2xs whitespace-nowrap"
               >
                 {initialBrands.length} Available
               </Badge>
             </div>
-            <p className="hidden sm:block text-xs text-muted-foreground/80 mt-0.5 font-semibold tracking-wide">
+            <p className="hidden sm:block text-xs text-muted-foreground/70 mt-0.5 font-medium tracking-wide">
               Select a brand to explore TV model repair schematics, backlights, and diagnostic logs
             </p>
           </div>
         </div>
 
-        {/* Embedded Add Brand Button */}
+        {/* Highlighted Add Brand Button (Rich Knowledge Base Violet/Purple Theme) */}
         {!!userRole && (
           <div className="shrink-0">
             <CreateTvBrandDialog
               trigger={
                 <Button
                   type="button"
-                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-extrabold text-xs sm:text-sm shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
+                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-md shadow-violet-500/30 hover:shadow-lg hover:shadow-violet-500/40 active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
-                  <span className="whitespace-nowrap">Add Brand</span>
+                  <span className="whitespace-nowrap font-black">Add Brand</span>
                 </Button>
               }
             />
@@ -348,12 +348,12 @@ export function KbBrandViewContainer({
         ref={searchContainerRef}
         className={`scroll-mt-2 transition-all duration-200 bg-white dark:bg-slate-950/95 p-3 sm:p-4 rounded-3xl border ${
           isSearchFocused || searchQuery.trim()
-            ? 'shadow-md ring-2 ring-blue-500/20 border-blue-400/50'
-            : 'border-border/80 shadow-xs hover:shadow-sm'
+            ? 'shadow-md ring-2 ring-violet-500/25 border-violet-400/60'
+            : 'border-border/70 shadow-xs hover:shadow-sm hover:border-violet-300/40'
         }`}
       >
         <div className="space-y-2.5 sm:space-y-3">
-          {/* Row 1: Real-time In-Place Search Bar with Premium Badge */}
+          {/* Row 1: Real-time In-Place Search Bar Themed to Knowledge Base Purple */}
           <div
             className="relative w-full group cursor-text"
             onClick={() => {
@@ -362,9 +362,9 @@ export function KbBrandViewContainer({
             }}
           >
             <div className="relative flex items-center">
-              {/* Premium Theme Icon Badge */}
-              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-blue-600/20 via-indigo-500/15 to-primary/10 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-2xs pointer-events-none group-focus-within:border-blue-500/50 group-focus-within:scale-105 transition-all">
-                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+              {/* Premium Knowledge Base Violet Theme Icon Badge */}
+              <div className="absolute left-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-violet-600/20 via-purple-500/15 to-indigo-500/10 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-2xs pointer-events-none group-focus-within:border-violet-500/60 group-focus-within:scale-105 transition-all">
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600 dark:text-violet-400" />
               </div>
 
               <Input
@@ -385,7 +385,7 @@ export function KbBrandViewContainer({
                 }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
-                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-slate-50/80 dark:bg-slate-900 border-2 border-slate-200 hover:border-blue-400/50 focus-visible:border-blue-500 rounded-full shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-blue-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
+                className="pl-12 sm:pl-13 pr-14 h-11 sm:h-12 bg-violet-50/25 dark:bg-slate-900/90 border-2 border-violet-200/70 dark:border-violet-900/50 hover:border-violet-400/60 focus-visible:border-violet-500 rounded-full shadow-2xs hover:shadow-xs focus-visible:shadow-md focus-visible:ring-4 focus-visible:ring-violet-500/15 text-sm font-semibold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium transition-all duration-200"
               />
 
               {/* Clear / Dismiss Button or Quick Tag */}
@@ -404,7 +404,7 @@ export function KbBrandViewContainer({
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-muted-foreground/70 border border-border/80">
+                  <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-violet-100/70 dark:bg-violet-950/40 text-[10px] font-bold text-violet-700 dark:text-violet-300 border border-violet-200/70 dark:border-violet-800/50">
                     Search
                   </span>
                 )}
@@ -412,31 +412,31 @@ export function KbBrandViewContainer({
             </div>
           </div>
 
-          {/* Row 2: Sort Directory Control Bar (Title on Left, Sort Button Shifted to Right) */}
+          {/* Row 2: Sort Directory Control Bar (Muted Title on Left, Highlighted Sort Button on Right) */}
           <div className="flex items-center justify-between gap-3 pt-2 sm:pt-2.5 border-t border-border/50">
-            {/* Left: Explicit "Sort Directory" Title */}
+            {/* Left: Clean Muted "Sort Directory" Title */}
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 shrink-0">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+              <div className="w-7 h-7 rounded-full bg-muted/80 dark:bg-slate-800 border border-border/70 flex items-center justify-center text-muted-foreground shrink-0">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs sm:text-sm font-extrabold text-foreground tracking-tight whitespace-nowrap">
+                <span className="text-xs sm:text-sm font-bold text-foreground/80 tracking-tight whitespace-nowrap">
                   Sort Directory
                 </span>
-                <span className="text-[11px] text-muted-foreground/70 font-semibold hidden xs:inline truncate">
+                <span className="text-[11px] text-muted-foreground/60 font-medium hidden xs:inline truncate">
                   · {filteredBrands.length} {filteredBrands.length === 1 ? 'brand' : 'brands'}
                 </span>
               </div>
             </div>
 
-            {/* Right: Ultra-Premium iOS Sort Button Trigger (Shifted to Right) */}
+            {/* Right: Highlighted Sort Filter Button Trigger */}
             <KbSortButton
               sortBy={sortBy}
               onClick={() => {
                 inputRef.current?.blur();
                 setIsSortOpen(true);
               }}
-              className="h-9 sm:h-9.5 shrink-0 ml-auto shadow-2xs hover:shadow-xs"
+              className="h-9 sm:h-9.5 shrink-0 ml-auto shadow-xs"
             />
           </div>
         </div>
