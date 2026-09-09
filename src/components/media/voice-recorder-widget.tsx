@@ -124,6 +124,8 @@ export function VoiceRecorderWidget({
   const isStoppingRef = useRef<boolean>(false);
   const isLockedRef = useRef<boolean>(false);
   const cleanupListenersRef = useRef<(() => void) | null>(null);
+  const onMoveRef = useRef<((currX: number, currY: number) => void) | null>(null);
+  const onEndRef = useRef<((endX: number, endY: number) => void) | null>(null);
 
   // Synchronize ref with state
   useEffect(() => {
@@ -199,10 +201,17 @@ export function VoiceRecorderWidget({
     pendingCancelRef.current = false;
     isStoppingRef.current = false;
     isLockedRef.current = false;
+    onMoveRef.current = null;
+    onEndRef.current = null;
 
     if (recordButtonRef.current) {
-      recordButtonRef.current.style.transform = 'translate3d(0, 0, 0) scale(1)';
-      recordButtonRef.current.style.transition = 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      const resetTransform = 'translate3d(0, 0, 0) scale(1)';
+      recordButtonRef.current.style.transform = resetTransform;
+      (recordButtonRef.current.style as any).webkitTransform = resetTransform;
+      recordButtonRef.current.style.transition =
+        'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      (recordButtonRef.current.style as any).webkitTransition =
+        '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
     }
 
     setIsHolding(false);
@@ -519,9 +528,17 @@ export function VoiceRecorderWidget({
     axisRef.current = 'none';
     lockedAtRef.current = Date.now();
     unlockBodyScroll();
+    onMoveRef.current = null;
+    onEndRef.current = null;
+
     if (recordButtonRef.current) {
-      recordButtonRef.current.style.transform = 'translate3d(0, 0, 0) scale(1)';
-      recordButtonRef.current.style.transition = 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      const resetTransform = 'translate3d(0, 0, 0) scale(1)';
+      recordButtonRef.current.style.transform = resetTransform;
+      (recordButtonRef.current.style as any).webkitTransform = resetTransform;
+      recordButtonRef.current.style.transition =
+        'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      (recordButtonRef.current.style as any).webkitTransition =
+        '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
     }
     triggerHaptic([30, 45]);
     toast.info('Hands-free mode — click Send when ready', { duration: 2500 });
@@ -532,7 +549,7 @@ export function VoiceRecorderWidget({
   // - Directional Axis Lock: sideways slide cannot go up; upward slide cannot go sideways!
   // - Smooth, seamless 60/120fps direct hardware transform
   // - Discard only upon release at the bin icon (no auto-cancel mid-slide)
-  // - Flawless on both Mobile (touch) and Desktop Window View (mouse)
+  // - Flawless on both Mobile (Safari/Chrome touch) and Desktop (mouse)
   // ============================================================
   const startPhysicalGestureTracking = (clientX: number, clientY: number) => {
     if (cleanupListenersRef.current) {
@@ -551,8 +568,13 @@ export function VoiceRecorderWidget({
     axisRef.current = 'none';
 
     if (recordButtonRef.current) {
-      recordButtonRef.current.style.transform = 'translate3d(0, 0, 0) scale(1.26)';
-      recordButtonRef.current.style.transition = 'transform 0.15s ease-out';
+      const initTransform = 'translate3d(0, 0, 0) scale(1.26)';
+      recordButtonRef.current.style.transform = initTransform;
+      (recordButtonRef.current.style as any).webkitTransform = initTransform;
+      recordButtonRef.current.style.transition =
+        'transform 0.15s ease-out, -webkit-transform 0.15s ease-out';
+      (recordButtonRef.current.style as any).webkitTransition =
+        '-webkit-transform 0.15s ease-out';
     }
 
     const onMove = (currX: number, currY: number) => {
@@ -587,10 +609,13 @@ export function VoiceRecorderWidget({
       dragOffsetRef.current = { x: dx, y: dy };
       setDragOffset({ x: dx, y: dy });
 
-      // Direct DOM update for instant zero-lag hardware-accelerated movement
+      // Direct DOM update for instant zero-lag hardware-accelerated movement in all browsers
       if (recordButtonRef.current) {
-        recordButtonRef.current.style.transform = `translate3d(-${dx}px, -${dy}px, 0) scale(1.26)`;
+        const trans = `translate3d(-${dx}px, -${dy}px, 0) scale(1.26)`;
+        recordButtonRef.current.style.transform = trans;
+        (recordButtonRef.current.style as any).webkitTransform = trans;
         recordButtonRef.current.style.transition = 'none';
+        (recordButtonRef.current.style as any).webkitTransition = 'none';
       }
     };
 
@@ -613,9 +638,13 @@ export function VoiceRecorderWidget({
       axisRef.current = 'none';
 
       if (recordButtonRef.current) {
-        recordButtonRef.current.style.transform = 'translate3d(0, 0, 0) scale(1)';
+        const resetTransform = 'translate3d(0, 0, 0) scale(1)';
+        recordButtonRef.current.style.transform = resetTransform;
+        (recordButtonRef.current.style as any).webkitTransform = resetTransform;
         recordButtonRef.current.style.transition =
-          'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+          'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        (recordButtonRef.current.style as any).webkitTransition =
+          '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
       }
 
       // 1. User slid sideways to the bin icon and released -> DISCARD!
@@ -641,6 +670,9 @@ export function VoiceRecorderWidget({
       stopAndUpload();
     };
 
+    onMoveRef.current = onMove;
+    onEndRef.current = onEnd;
+
     // Robust document & window listeners (Capture phase guarantees events on both Desktop & Mobile)
     const handleDocPointerMove = (e: PointerEvent) => {
       onMove(e.clientX, e.clientY);
@@ -662,9 +694,7 @@ export function VoiceRecorderWidget({
     const handleDocTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         if (!isLockedRef.current && isDownRef.current) {
-          try {
-            e.preventDefault(); // Prevent mobile screen scrolling while sliding
-          } catch {}
+          if (e.cancelable) e.preventDefault();
         }
         onMove(e.touches[0].clientX, e.touches[0].clientY);
       }
@@ -685,6 +715,9 @@ export function VoiceRecorderWidget({
       window.removeEventListener('touchmove', handleDocTouchMove, { capture: true });
       window.removeEventListener('touchend', handleDocTouchEnd, { capture: true });
       window.removeEventListener('touchcancel', handleDocTouchEnd, { capture: true });
+
+      onMoveRef.current = null;
+      onEndRef.current = null;
 
       try {
         if (recordButtonRef.current && pointerIdRef.current !== null) {
@@ -743,6 +776,83 @@ export function VoiceRecorderWidget({
     startRecording();
   };
 
+  // Direct Button Pointer Move Handler (Crucial for Safari when pointer capture routes to target!)
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (isDownRef.current && onMoveRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      onMoveRef.current(e.clientX, e.clientY);
+    }
+  };
+
+  // Direct Button Pointer Up Handler
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (isDownRef.current && onEndRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      onEndRef.current(e.clientX, e.clientY);
+    }
+  };
+
+  // Touch handlers for Mobile Safari / WebKit touch gestures
+  const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
+    if (isDownRef.current) {
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    if (isLockedRef.current && (status === 'recording' || status === 'starting')) {
+      if (Date.now() - lockedAtRef.current < 300) return;
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      triggerHaptic(35);
+      stopAndUpload();
+      return;
+    }
+
+    if (disabled || status === 'uploading' || status === 'recording' || status === 'starting') {
+      return;
+    }
+
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    triggerHaptic(30);
+    setIsLocked(false);
+    isLockedRef.current = false;
+    lockBodyScroll();
+    startPhysicalGestureTracking(touch.clientX, touch.clientY);
+    startRecording();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLButtonElement>) => {
+    if (isDownRef.current && onMoveRef.current && e.touches.length > 0) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      const touch = e.touches[0];
+      onMoveRef.current(touch.clientX, touch.clientY);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLButtonElement>) => {
+    if (isDownRef.current && onEndRef.current) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      const endX =
+        e.changedTouches.length > 0
+          ? e.changedTouches[0].clientX
+          : startCoordRef.current?.x || 0;
+      const endY =
+        e.changedTouches.length > 0
+          ? e.changedTouches[0].clientY
+          : startCoordRef.current?.y || 0;
+      onEndRef.current(endX, endY);
+    }
+  };
+
   // Button Click Handler (Fallback)
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -770,7 +880,7 @@ export function VoiceRecorderWidget({
   // RENDER: EMBEDDED INLINE WIDGET
   // ============================================================
   return (
-    <div className="relative flex items-center justify-end select-none">
+    <div className="relative flex items-center justify-end select-none touch-none">
       {/* ------------------------------------------------------------ */}
       {/* 1. SLIDE-UP LOCK TARGET: Directly above mic button            */}
       {/* As the user slides UP, the mic button moves towards this badge*/}
@@ -780,8 +890,9 @@ export function VoiceRecorderWidget({
           onClick={lockToHandsFree}
           style={{
             transform: `translateY(-${Math.min(dragOffset.y * 0.35, 12)}px)`,
+            WebkitTransform: `translateY(-${Math.min(dragOffset.y * 0.35, 12)}px)`,
           }}
-          className="absolute right-1 -top-14 z-20 flex flex-col items-center select-none cursor-pointer transition-transform"
+          className="absolute right-1 -top-14 z-20 flex flex-col items-center select-none cursor-pointer transition-transform touch-none"
           title="Slide up or click to lock hands-free"
         >
           <div
@@ -917,15 +1028,34 @@ export function VoiceRecorderWidget({
             e.preventDefault();
           }}
           onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
           onClick={handleClick}
           disabled={disabled || status === 'uploading'}
           style={{
             transform: isHolding
               ? `translate3d(-${dragOffset.x}px, -${dragOffset.y}px, 0) scale(1.26)`
               : 'translate3d(0, 0, 0) scale(1)',
+            WebkitTransform: isHolding
+              ? `translate3d(-${dragOffset.x}px, -${dragOffset.y}px, 0) scale(1.26)`
+              : 'translate3d(0, 0, 0) scale(1)',
             transition: isHolding
               ? 'none'
-              : 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+              : 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+            WebkitTransition: isHolding
+              ? 'none'
+              : '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+            touchAction: 'none',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
+            WebkitAppearance: 'none',
+            willChange: 'transform',
           }}
           className={`w-11 h-11 rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 ${
             status === 'uploading'
