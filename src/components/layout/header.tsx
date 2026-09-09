@@ -99,7 +99,10 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
   }
 
   return (
-    <header className="relative z-40 bg-background/95 backdrop-blur-xl border-b border-border/70 shadow-2xs transition-all" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <header
+      className="relative z-40 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-x border-border/70 rounded-b-2xl sm:rounded-b-3xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.40)] transition-all"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Top-Left Back Button / Logo Branding */}
         {shouldShowBackButton ? (
@@ -201,7 +204,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               variant="outline"
               size="sm"
               onClick={() => setIsCreateStaffOpen(true)}
-              className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 rounded-xl sm:rounded-2xl text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200/80 shadow-2xs transition-all gap-1.5 cursor-pointer shrink-0 flex items-center justify-center"
+              className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 rounded-2xl text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200/80 shadow-2xs transition-all gap-1.5 cursor-pointer shrink-0 flex items-center justify-center"
               title="Create new Staff account"
             >
               <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
@@ -217,7 +220,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               size="sm"
               onClick={() => setIsSignOutOpen(true)}
               disabled={isPending}
-              className="h-8 sm:h-9 px-2 sm:px-3 rounded-xl sm:rounded-2xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs transition-all gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0"
+              className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs transition-all gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0"
               title="Sign out of TV Tech OS"
             >
               {isPending ? (

@@ -434,7 +434,7 @@ export function CommandPalette() {
           }
           setOpen(true);
         }}
-        className={`flex items-center justify-between gap-3 px-3.5 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 w-full max-w-md text-xs rounded-xl border transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-sm-2xs ${
+        className={`flex items-center justify-between gap-3 px-3.5 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 w-full max-w-md text-xs rounded-2xl border transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-sm-2xs ${
           isKbRoute
             ? 'bg-primary/5 hover:bg-primary/5 border-primary/20 hover:border-primary/25 text-primary hover:shadow-sm'
             : 'bg-muted/90 hover:bg-white border-border/80 hover:border-primary/40 text-muted-foreground hover:text-foreground hover:shadow-sm'
