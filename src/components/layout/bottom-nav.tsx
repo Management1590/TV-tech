@@ -1,14 +1,8 @@
 'use client';
 
-<<<<<<< HEAD
 import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-=======
-import React, { useState, useEffect, useRef, useId } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
 import { LayoutGrid, FolderTree, BookOpen, ShoppingBag, BarChart3 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -21,10 +15,6 @@ const ROUTE_THEMES: Record<
   { gradient: string; shadow: string }
 > = {
   '/': {
-<<<<<<< HEAD
-=======
-    // Vibrant Rose/Pink gradient matching reference screenshot
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
     gradient: 'linear-gradient(135deg, #ff2a6d 0%, #db0058 100%)',
     shadow: 'rgba(225, 29, 72, 0.45)',
   },
@@ -66,7 +56,6 @@ const STAFF_NAV_ITEMS = [
 
 export const BottomNav: React.FC<BottomNavProps> = ({ userRole = 'STAFF' }) => {
   const pathname = usePathname();
-<<<<<<< HEAD
 
   // Route visibility rules:
   // 1. Dashboard: '/' (fixed)
@@ -88,10 +77,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ userRole = 'STAFF' }) => {
     isKnowledgeBaseRoot;
 
   if (!shouldShowBottomNav) return null;
-=======
-  const isItemDetailPage = pathname.startsWith('/inventory/items/');
-  if (isItemDetailPage) return null;
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
 
   const isAdmin = userRole === 'ADMIN';
   const navItems = isAdmin ? ADMIN_NAV_ITEMS : STAFF_NAV_ITEMS;
@@ -106,16 +91,10 @@ function NavBar({
   navItems: { label: string; href: string; icon: any }[];
   pathname: string;
 }) {
-<<<<<<< HEAD
   const router = useRouter();
   const maskId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const [barWidth, setBarWidth] = useState(364);
-=======
-  const maskId = useId();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [barWidth, setBarWidth] = useState(380);
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
 
   const [activeIdx, setActiveIdx] = useState(() => {
     const idx = navItems.findIndex(
@@ -126,7 +105,6 @@ function NavBar({
     return idx >= 0 ? idx : 0;
   });
 
-<<<<<<< HEAD
   // Hold & Slide Drag State
   const [isDragging, setIsDragging] = useState(false);
   const [dragX, setDragX] = useState<number | null>(null);
@@ -134,8 +112,6 @@ function NavBar({
   const activeIdxRef = useRef(activeIdx);
   activeIdxRef.current = activeIdx;
 
-=======
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
   useEffect(() => {
     const idx = navItems.findIndex(
       (item) =>
@@ -145,7 +121,6 @@ function NavBar({
     if (idx !== -1) setActiveIdx(idx);
   }, [pathname, navItems]);
 
-<<<<<<< HEAD
   // Prefetch tabs for instant navigation upon release
   useEffect(() => {
     navItems.forEach((item) => {
@@ -157,8 +132,6 @@ function NavBar({
     });
   }, [navItems, router]);
 
-=======
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
   // Responsive width tracking
   useEffect(() => {
     const updateWidth = () => {
@@ -174,18 +147,13 @@ function NavBar({
 
   const tabCount = navItems.length;
   const tabWidth = barWidth / (tabCount || 1);
-<<<<<<< HEAD
   const restingActiveX = (activeIdx + 0.5) * tabWidth;
   const currentX = isDragging && dragX !== null ? dragX : restingActiveX;
 
-=======
-  const activeX = (activeIdx + 0.5) * tabWidth;
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
   const activeItem = navItems[activeIdx] ?? navItems[0];
   const activeTheme = ROUTE_THEMES[activeItem?.href] ?? DEFAULT_THEME;
   const ActiveIcon = activeItem?.icon;
 
-<<<<<<< HEAD
   const getRelativeX = useCallback(
     (clientX: number) => {
       if (!containerRef.current) return restingActiveX;
@@ -311,34 +279,17 @@ function NavBar({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         className="relative w-full max-w-[364px] h-[64px] pointer-events-auto touch-none select-none cursor-grab active:cursor-grabbing"
-=======
-  return (
-    <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center items-end px-3 select-none pointer-events-none"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
-    >
-      <div
-        ref={containerRef}
-        className="relative w-full max-w-[390px] h-[88px] pointer-events-auto"
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
       >
         {/* SVG Container with Mask for Notch Curve */}
         <svg
           width={barWidth}
-<<<<<<< HEAD
           height={64}
           viewBox={`0 0 ${barWidth} 64`}
           className="absolute inset-0 overflow-visible drop-shadow-[0_10px_24px_rgba(0,0,0,0.10)] dark:drop-shadow-[0_12px_28px_rgba(0,0,0,0.50)]"
-=======
-          height={88}
-          viewBox={`0 0 ${barWidth} 88`}
-          className="absolute inset-0 overflow-visible drop-shadow-[0_14px_32px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_16px_36px_rgba(0,0,0,0.55)]"
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
         >
           <defs>
             <mask id={maskId}>
               {/* White fills everything (solid/visible) */}
-<<<<<<< HEAD
               <rect x="0" y="0" width={barWidth} height="64" fill="white" />
               {/* Sliding Notch Cutout */}
               <g
@@ -354,21 +305,6 @@ function NavBar({
                   d="M -35 14 
                      C -22 14, -20 39, 0 39 
                      C 20 39, 22 14, 35 14 
-=======
-              <rect x="0" y="0" width={barWidth} height="88" fill="white" />
-              {/* Sliding Notch Cutout */}
-              <g
-                style={{
-                  transform: `translateX(${activeX}px)`,
-                  transition: 'transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1)',
-                }}
-              >
-                {/* Organic smooth scoop: bar top is at y=22, dips to y=55 with gentle shoulders */}
-                <path
-                  d="M -44 22 
-                     C -28 22, -26 55, 0 55 
-                     C 26 55, 28 22, 44 22 
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
                      Z"
                   fill="black"
                 />
@@ -379,19 +315,11 @@ function NavBar({
           {/* White in light mode, zinc-900 in dark mode */}
           <rect
             x="0"
-<<<<<<< HEAD
             y="14"
             width={barWidth}
             height="48"
             rx="24"
             ry="24"
-=======
-            y="22"
-            width={barWidth}
-            height="62"
-            rx="31"
-            ry="31"
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
             className="fill-white dark:fill-zinc-900"
             mask={`url(#${maskId})`}
           />
@@ -399,7 +327,6 @@ function NavBar({
 
         {/* Floating Active Button (elevated, sliding with activeX) */}
         <div
-<<<<<<< HEAD
           className="absolute top-0 left-0 flex items-center justify-center pointer-events-none z-10"
           style={{
             width: '42px',
@@ -413,41 +340,21 @@ function NavBar({
             transition: isDragging
               ? 'transform 0.04s linear, background 0.25s ease, box-shadow 0.25s ease'
               : 'transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease',
-=======
-          className="absolute top-0 left-0 flex items-center justify-center cursor-pointer pointer-events-none z-10"
-          style={{
-            width: '52px',
-            height: '52px',
-            borderRadius: '50%',
-            background: activeTheme.gradient,
-            boxShadow: `0 12px 26px -2px ${activeTheme.shadow}`,
-            transform: `translateX(${activeX - 26}px) translateY(8px)`,
-            transition:
-              'transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease',
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
           }}
         >
           {ActiveIcon && (
             <ActiveIcon
               key={activeItem.href}
-<<<<<<< HEAD
               className={`w-5 h-5 text-white transition-transform duration-200 ${
                 isDragging ? 'scale-115' : 'scale-105'
               }`}
-=======
-              className="w-6 h-6 text-white transition-transform duration-300 scale-105"
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
               strokeWidth={2.2}
             />
           )}
         </div>
 
         {/* Clickable Tab Targets */}
-<<<<<<< HEAD
         <div className="absolute inset-x-0 bottom-0 flex items-center h-[48px] z-20">
-=======
-        <div className="absolute inset-x-0 bottom-0 flex items-center h-[62px] z-20">
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
           {navItems.map((item, idx) => {
             const Icon = item.icon;
             const isActive = idx === activeIdx;
@@ -456,7 +363,6 @@ function NavBar({
               <Link
                 key={item.href}
                 href={item.href}
-<<<<<<< HEAD
                 draggable={false}
                 onDragStart={(e) => e.preventDefault()}
                 onClick={(e) => {
@@ -468,14 +374,6 @@ function NavBar({
               >
                 <Icon
                   className={`w-[18px] h-[18px] transition-all duration-200 ${
-=======
-                onClick={() => setActiveIdx(idx)}
-                className="flex-1 flex flex-col items-center justify-center h-full active:scale-90 transition-transform duration-150 outline-none"
-                aria-label={item.label}
-              >
-                <Icon
-                  className={`w-5 h-5 transition-all duration-200 ${
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
                     isActive
                       ? 'opacity-0 scale-75'
                       : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 scale-100 opacity-100'
@@ -488,11 +386,7 @@ function NavBar({
         </div>
 
         {/* Subtle iOS Home indicator line at bottom */}
-<<<<<<< HEAD
         <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-20 h-0.5 bg-zinc-300/80 dark:bg-zinc-700/80 rounded-full pointer-events-none" />
-=======
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full pointer-events-none" />
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
       </div>
     </nav>
   );

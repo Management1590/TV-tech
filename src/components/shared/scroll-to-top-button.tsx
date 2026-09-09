@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { usePathname } from 'next/navigation';
 import { ArrowUp } from 'lucide-react';
 
@@ -20,14 +19,6 @@ export function ScrollToTopButton() {
     pathname.startsWith('/analytics') ||
     pathname.startsWith('/purchase-manager');
 
-=======
-import { ArrowUp } from 'lucide-react';
-
-export function ScrollToTopButton() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
-
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -68,7 +59,6 @@ export function ScrollToTopButton() {
   const strokeDashoffset = circumference - (scrollProgress / 100) * circumference;
 
   return (
-<<<<<<< HEAD
     <div
       className={`fixed z-50 animate-in fade-in zoom-in-95 duration-200 right-4 sm:right-8 ${
         hasBottomNav
@@ -76,9 +66,6 @@ export function ScrollToTopButton() {
           : 'bottom-5 md:bottom-8'
       }`}
     >
-=======
-    <div className="fixed z-50 animate-in fade-in zoom-in-95 duration-200 right-4 sm:right-8 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:bottom-8">
->>>>>>> e1cff0fb5a1296da79e52d5d95b5cdf97ea374a0
       <button
         type="button"
         onClick={scrollToTop}
