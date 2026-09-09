@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
   UploadCloud,
   Link as LinkIcon,
@@ -17,14 +19,6 @@ import {
   FolderOpen,
   X,
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,6 +62,24 @@ export function UploadKbMediaDialog({
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadStatusText, setUploadStatusText] = useState<string>('Preparing...');
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const dragControls = useDragControls();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock background scroll when bottom sheet is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -253,26 +265,104 @@ export function UploadKbMediaDialog({
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !isUploading && onClose()}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:w-full sm:max-w-xl max-h-[90dvh] overflow-y-auto overflow-x-hidden rounded-3xl p-4 sm:p-6 border border-border/80 shadow-2xl bg-white text-foreground box-border">
-        <DialogHeader className="space-y-1.5 pr-6 sm:pr-0">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-violet-600/15 to-purple-600/10 border border-violet-500/25 flex items-center justify-center text-violet-600 shadow-sm shrink-0">
-              <UploadCloud className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base sm:text-lg font-black text-foreground tracking-tight truncate">
-                Upload Media Files
-              </DialogTitle>
-              <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-                Add photos and video clips to <span className="font-bold text-foreground/90">{folderName}</span>
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+  if (!mounted) return null;
 
-        <div className="space-y-3.5 py-1 w-full max-w-full overflow-hidden">
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Soft Blurred Backdrop Layer */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] will-change-opacity cursor-pointer touch-none"
+            onClick={() => {
+              if (!isUploading) onClose();
+            }}
+          />
+
+          {/* iOS Style Bottom Sheet Container */}
+          <div
+            className="fixed inset-x-0 bottom-0 z-[111] flex flex-col justify-end items-center select-none pointer-events-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !isUploading) {
+                onClose();
+              }
+            }}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{
+                y: '100%',
+                transition: {
+                  duration: 0.22,
+                  ease: [0.32, 0, 0.67, 0],
+                },
+              }}
+              transition={{
+                type: 'spring',
+                damping: 30,
+                stiffness: 340,
+                mass: 0.8,
+              }}
+              drag="y"
+              dragControls={dragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0 }}
+              dragElastic={{ top: 0, bottom: 0.2 }}
+              onDragEnd={(_, info) => {
+                if ((info.offset.y > 80 || info.velocity.y > 320) && !isUploading) {
+                  onClose();
+                }
+              }}
+              className="pointer-events-auto w-full max-w-xl mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-x border-border/80 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden will-change-transform transform-gpu select-text"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drag Handle */}
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="pt-2.5 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none"
+              >
+                <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
+              </div>
+
+              {/* Native Header */}
+              <div
+                onPointerDown={(e) => {
+                  const target = e.target as HTMLElement | null;
+                  if (target?.closest('button') || target?.closest('a') || target?.closest('input')) return;
+                  dragControls.start(e);
+                }}
+                className="px-5 sm:px-6 pt-0.5 pb-2.5 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
+              >
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-violet-600/15 to-purple-600/10 border border-violet-500/25 flex items-center justify-center text-violet-600 shadow-sm shrink-0">
+                    <UploadCloud className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight truncate">
+                      Upload Media Files
+                    </h2>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+                      Add photos and video clips to <span className="font-bold text-foreground/90">{folderName}</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isUploading}
+                  className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 px-5 sm:px-6 py-3 w-full max-w-full overflow-y-auto no-scrollbar flex-1">
           {/* Mode Switch Tabs */}
           <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted/80 border border-border/70 rounded-2xl w-full box-border">
             <button
@@ -525,13 +615,14 @@ export function UploadKbMediaDialog({
           )}
         </div>
 
-        <DialogFooter className="pt-3 border-t border-border/70 flex flex-row items-center justify-end gap-2 w-full">
+        {/* Fixed Bottom Footer with Safe Area Insets */}
+        <div className="px-5 sm:px-6 pt-2.5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/70 bg-white dark:bg-slate-900 flex flex-row items-center justify-end gap-2.5 w-full shrink-0">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={isUploading}
-            className="rounded-xl sm:rounded-2xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs font-bold border-border/80 cursor-pointer"
+            className="rounded-xl sm:rounded-2xl h-9 sm:h-10 px-4 text-xs font-bold border-border/80 cursor-pointer"
           >
             Cancel
           </Button>
@@ -564,8 +655,12 @@ export function UploadKbMediaDialog({
               </>
             )}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+        </div>
+      </motion.div>
+    </div>
+  </>
+)}
+</AnimatePresence>,
+document.body
+);
 }
