@@ -128,10 +128,10 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
           </div>
 
           {/* 2. FLOATING ITEM/TYPE BADGE (Matching Inventory & Brand Folder Cards) */}
-          <div className="absolute bottom-9 sm:bottom-12 right-2 sm:right-2 z-20">
+          <div className="absolute bottom-[44px] sm:bottom-[60px] right-2 sm:right-2.5 z-20">
             <Badge
               variant="secondary"
-              className={`backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-extrabold shadow-md group-hover:shadow-lg transition-all border ${theme.badgeStyle}`}
+              className={`backdrop-blur-md gap-1 text-[10px] sm:text-xs py-0.5 px-2 font-black shadow-xs group-hover:shadow-sm transition-all border ${theme.badgeStyle}`}
             >
               {isBacklight ? (
                 <Lightbulb className="w-3 h-3 text-amber-600 shrink-0" />
@@ -145,14 +145,14 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
           </div>
 
           {/* 3. BOTTOM BAR (Folder Name Centered - matching Inventory folder-card) */}
-          <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-4 py-2.5 sm:py-3 bg-white border-t border-slate-200/80 flex items-center justify-center text-center">
+          <div className="absolute bottom-0 inset-x-0 z-20 px-2 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900/95 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-center">
             <h3
               className={`text-xs sm:text-sm font-black tracking-tight truncate leading-tight w-full text-center transition-colors ${
                 isBacklight
-                  ? 'text-amber-800 group-hover:text-amber-600'
+                  ? 'text-amber-800 dark:text-amber-300 group-hover:text-amber-600 dark:group-hover:text-amber-400'
                   : isMoreInfo
-                  ? 'text-indigo-800 group-hover:text-indigo-600'
-                  : 'text-slate-800 group-hover:text-blue-600'
+                  ? 'text-indigo-800 dark:text-indigo-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
+                  : 'text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400'
               }`}
               title={folder.name}
             >

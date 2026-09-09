@@ -209,10 +209,10 @@ export function FolderCard({ folder, linkHref, userRole = 'STAFF' }: FolderCardP
             )}
 
             {/* 2. FLOATING ITEM COUNT BADGE */}
-            <div className="absolute bottom-9 sm:bottom-12 right-2 sm:right-2 z-20">
+            <div className="absolute bottom-[44px] sm:bottom-[60px] right-2 sm:right-2.5 z-20">
               <Badge
                 variant="secondary"
-                className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 sm:gap-1.5 text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2.5 font-bold shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all"
+                className="bg-white/95 text-primary border border-primary/30 backdrop-blur-md gap-1 text-[10px] sm:text-xs py-0.5 px-2 font-bold shadow-xs group-hover:border-primary/50 group-hover:shadow-sm transition-all"
               >
                 <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                 {itemCount} {itemCount === 1 ? 'item' : 'items'}
