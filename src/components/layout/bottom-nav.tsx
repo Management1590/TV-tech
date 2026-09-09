@@ -94,7 +94,9 @@ function NavBar({
   const router = useRouter();
   const maskId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [barWidth, setBarWidth] = useState(364);
+  const [barWidth, setBarWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 390
+  );
 
   const [activeIdx, setActiveIdx] = useState(() => {
     const idx = navItems.findIndex(
@@ -267,25 +269,27 @@ function NavBar({
     setDragX(null);
   };
 
+  const topY = 14;
+  const cornerR = 20;
+  const barHeight = 64;
+  const barPath = `M 0,${topY + cornerR} Q 0,${topY} ${cornerR},${topY} L ${Math.max(cornerR, barWidth - cornerR)},${topY} Q ${barWidth},${topY} ${barWidth},${topY + cornerR} L ${barWidth},${barHeight} L 0,${barHeight} Z`;
+
   return (
-    <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center items-end px-2.5 select-none pointer-events-none"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 2px)' }}
-    >
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex flex-col items-center select-none pointer-events-none">
       <div
         ref={containerRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
-        className="relative w-full max-w-[364px] h-[64px] pointer-events-auto touch-none select-none cursor-grab active:cursor-grabbing"
+        className="relative w-full h-[64px] pointer-events-auto touch-none select-none cursor-grab active:cursor-grabbing"
       >
         {/* SVG Container with Mask for Notch Curve */}
         <svg
           width={barWidth}
           height={64}
           viewBox={`0 0 ${barWidth} 64`}
-          className="absolute inset-0 overflow-visible drop-shadow-[0_10px_24px_rgba(0,0,0,0.10)] dark:drop-shadow-[0_12px_28px_rgba(0,0,0,0.50)]"
+          className="absolute inset-0 overflow-visible drop-shadow-[0_-4px_16px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_-6px_20px_rgba(0,0,0,0.45)]"
         >
           <defs>
             <mask id={maskId}>
@@ -312,14 +316,9 @@ function NavBar({
             </mask>
           </defs>
 
-          {/* White in light mode, zinc-900 in dark mode */}
-          <rect
-            x="0"
-            y="14"
-            width={barWidth}
-            height="48"
-            rx="24"
-            ry="24"
+          {/* White in light mode, zinc-900 in dark mode - touches side and bottom edges with rounded top corners */}
+          <path
+            d={barPath}
             className="fill-white dark:fill-zinc-900"
             mask={`url(#${maskId})`}
           />
@@ -354,7 +353,7 @@ function NavBar({
         </div>
 
         {/* Clickable Tab Targets */}
-        <div className="absolute inset-x-0 bottom-0 flex items-center h-[48px] z-20">
+        <div className="absolute inset-x-0 bottom-0 flex items-center h-[50px] z-20 pb-1">
           {navItems.map((item, idx) => {
             const Icon = item.icon;
             const isActive = idx === activeIdx;
@@ -373,7 +372,7 @@ function NavBar({
                 aria-label={item.label}
               >
                 <Icon
-                  className={`w-[18px] h-[18px] transition-all duration-200 ${
+                  className={`w-5 h-5 transition-all duration-200 ${
                     isActive
                       ? 'opacity-0 scale-75'
                       : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 scale-100 opacity-100'
@@ -385,6 +384,11 @@ function NavBar({
           })}
         </div>
       </div>
+      {/* Seamless fill for safe area under the navbar */}
+      <div
+        className="w-full bg-white dark:bg-zinc-900 pointer-events-auto"
+        style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
+      />
     </nav>
   );
 }
