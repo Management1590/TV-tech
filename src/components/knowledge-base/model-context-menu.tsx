@@ -297,7 +297,7 @@ export function ModelContextMenu({
                 onClick={() => setIsRenameOpen(true)}
                 className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted focus:bg-muted"
               >
-                <Pencil className="w-3.5 h-3.5 text-primary" />
+                <Pencil className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                 <span>Rename Model</span>
               </DropdownMenuItem>
             )}
@@ -414,8 +414,8 @@ export function ModelContextMenu({
                   >
                     {/* Model Preview Card Inside Sheet */}
                     <div className="w-full p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-slate-50/90 dark:bg-slate-800/60 border border-border/80 flex items-start gap-3.5 shadow-2xs transition-all">
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-500/10 border border-blue-400/20 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
-                        <Monitor className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-violet-600/20 via-purple-500/15 to-indigo-500/10 border border-violet-500/25 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                        <Monitor className="w-5 h-5 sm:w-6 sm:h-6 text-violet-600 dark:text-violet-400" />
                       </div>
                       <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-start sm:items-center gap-2 flex-wrap min-w-0">
@@ -459,7 +459,7 @@ export function ModelContextMenu({
                           }}
                           className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
                         >
-                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center justify-center shrink-0">
                             <Pencil className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -601,7 +601,7 @@ export function ModelContextMenu({
                   {/* Header */}
                   <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 flex items-center justify-center shrink-0">
                         <Pencil className="w-4 h-4" />
                       </div>
                       <div>
@@ -665,7 +665,7 @@ export function ModelContextMenu({
                               ? 'border-red-500 focus-visible:ring-red-500/30 text-red-900 bg-red-50/30'
                               : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
                               ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
-                              : 'border-border/80 focus-visible:ring-primary/30'
+                              : 'border-border/80 focus-visible:ring-violet-500/25 focus-visible:border-violet-500'
                           }`}
                         />
 
@@ -759,7 +759,7 @@ export function ModelContextMenu({
                             }}
                             placeholder="Optional (e.g. 55)"
                             disabled={isPending}
-                            className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16"
+                            className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                           />
                           <div className="absolute right-3 text-xs font-bold text-muted-foreground pointer-events-none">
                             Inches (&quot;)
@@ -783,7 +783,7 @@ export function ModelContextMenu({
                           placeholder="Optional specifications, chassis, panel, or repair notes..."
                           rows={2}
                           disabled={isPending}
-                          className="rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-xs sm:text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary/30 resize-none min-h-[52px]"
+                          className="rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-xs sm:text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:border-violet-500 resize-none min-h-[52px]"
                         />
                       </div>
                     </div>
@@ -813,7 +813,7 @@ export function ModelContextMenu({
                             ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-red-500/20'
                             : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
                             ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20'
-                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary shadow-md shadow-blue-500/20'
+                            : 'bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 shadow-md shadow-violet-500/25'
                         }`}
                       >
                         {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -936,7 +936,7 @@ export function ModelContextMenu({
                   <div className="p-5 sm:px-6 space-y-3.5 flex-1 overflow-y-auto no-scrollbar">
                     {/* Model Item Preview Card */}
                     <div className="p-3.5 bg-muted/40 border border-border/70 rounded-2xl flex items-start gap-3.5">
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
                         <Monitor className="w-5 h-5 sm:w-6 sm:h-6" />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
@@ -1077,7 +1077,7 @@ export function ModelContextMenu({
                       className="px-5 sm:px-6 pt-0.5 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
                     >
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 flex items-center justify-center shrink-0">
                           <FileText className="w-4 h-4" />
                         </div>
                         <div>
@@ -1112,7 +1112,7 @@ export function ModelContextMenu({
                           onBlur={persistentDescBlur}
                           placeholder="Optional specifications, chassis series, display panel, or service remarks..."
                           rows={3}
-                          className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
+                          className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                           autoFocus
                         />
                       </div>
@@ -1133,7 +1133,7 @@ export function ModelContextMenu({
                         <Button
                           type="submit"
                           disabled={isPending}
-                          className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                          className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold gap-2 cursor-pointer shadow-md shadow-violet-500/25 active:scale-95 transition-all"
                         >
                           {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                           Save Description

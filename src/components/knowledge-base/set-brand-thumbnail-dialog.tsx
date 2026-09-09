@@ -317,7 +317,7 @@ export function SetBrandThumbnailDialog({
                 className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 flex items-center justify-center shrink-0">
                     <ImagePlus className="w-4 h-4" />
                   </div>
                   <div>
@@ -325,7 +325,7 @@ export function SetBrandThumbnailDialog({
                       Brand Thumbnail & Silhouette
                     </h2>
                     <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">
-                      Upload and adjust position for <span className="text-primary font-semibold">&ldquo;{brandName}&rdquo;</span>
+                      Upload and adjust position for <span className="text-violet-600 dark:text-violet-400 font-semibold">&ldquo;{brandName}&rdquo;</span>
                     </p>
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export function SetBrandThumbnailDialog({
                         onClick={() => setMode('upload')}
                         className={`flex-1 text-xs h-7.5 rounded-xl font-bold transition-all cursor-pointer ${
                           mode === 'upload'
-                            ? 'bg-primary hover:bg-primary text-primary-foreground shadow-xs'
+                            ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-xs'
                             : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
@@ -377,7 +377,7 @@ export function SetBrandThumbnailDialog({
                         onClick={() => setMode('url')}
                         className={`flex-1 text-xs h-7.5 rounded-xl font-bold transition-all cursor-pointer ${
                           mode === 'url'
-                            ? 'bg-primary hover:bg-primary text-primary-foreground shadow-xs'
+                            ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-xs'
                             : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
@@ -389,9 +389,9 @@ export function SetBrandThumbnailDialog({
                     {mode === 'upload' ? (
                       <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-border/80 hover:border-primary/50 active:scale-[0.99] rounded-2xl p-2.5 flex items-center justify-center gap-3 cursor-pointer bg-muted/40 hover:bg-muted/70 transition-all text-left group"
+                        className="border-2 border-dashed border-border/80 hover:border-violet-500/50 active:scale-[0.99] rounded-2xl p-2.5 flex items-center justify-center gap-3 cursor-pointer bg-muted/40 hover:bg-violet-500/5 transition-all text-left group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                           <UploadCloud className="w-4 h-4" />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -413,7 +413,7 @@ export function SetBrandThumbnailDialog({
                             handleResetPosition();
                           }}
                           placeholder="https://example.com/images/brand-photo.jpg"
-                          className="bg-muted/40 border-border/80 text-xs h-9 rounded-xl focus-visible:ring-primary"
+                          className="bg-muted/40 border-border/80 text-xs h-9 rounded-xl focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                         />
                       </div>
                     )}
@@ -422,7 +422,7 @@ export function SetBrandThumbnailDialog({
                   /* Ultra-Compact File Info Bar (Frees up vertical space so sheet never scrolls) */
                   <div className="flex items-center justify-between px-3 py-1.5 rounded-2xl bg-muted/50 border border-border/80 shadow-2xs">
                     <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-                      <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                      <div className="w-6 h-6 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
                         <Sparkles className="w-3 h-3" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -469,7 +469,7 @@ export function SetBrandThumbnailDialog({
                 <div className="space-y-1.5 p-2 rounded-2xl bg-muted/40 border border-border/80">
                   <div className="flex items-center justify-between px-0.5">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      <Sparkles className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                       <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
                         Folder Silhouette Preview
                       </span>
@@ -477,7 +477,7 @@ export function SetBrandThumbnailDialog({
 
                     {previewUrl ? (
                       <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/20 gap-1 py-0 px-1.5 font-bold">
+                        <Badge variant="outline" className="text-[9px] bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800/50 gap-1 py-0 px-1.5 font-bold">
                           <Move className="w-2.5 h-2.5" /> Drag to pan
                         </Badge>
                         <Button
@@ -651,7 +651,7 @@ export function SetBrandThumbnailDialog({
                         onTouchStart={(e) => e.stopPropagation()}
                         onTouchMove={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="flex-1 accent-primary h-1 bg-muted rounded-lg cursor-pointer"
+                        className="flex-1 accent-violet-600 h-1 bg-muted rounded-lg cursor-pointer"
                       />
 
                       <Button
@@ -706,7 +706,7 @@ export function SetBrandThumbnailDialog({
               type="button"
               onClick={handleSave}
               disabled={isPending}
-              className="h-9 text-xs rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-2 shadow-sm"
+              className="h-9 text-xs rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold gap-2 shadow-md shadow-violet-500/20 active:scale-[0.98] transition-all"
             >
               {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Save Changes

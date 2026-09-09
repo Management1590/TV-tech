@@ -63,7 +63,7 @@ export function LinkPartToTvModelDialog({ modelId, modelName }: LinkPartToTvMode
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger>
-        <Button size="sm" variant="outline" className="text-xs h-8 gap-1.5 border-primary/40 text-primary hover:text-primary">
+        <Button size="sm" variant="outline" className="text-xs h-8 gap-1.5 border-violet-500/30 text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-950/40">
           <Plus className="h-3.5 w-3.5" /> Link Spare Part
         </Button>
       </DialogTrigger>
@@ -71,7 +71,7 @@ export function LinkPartToTvModelDialog({ modelId, modelName }: LinkPartToTvMode
       <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-border/60">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold flex items-center gap-2">
-            <Link2 className="h-4 w-4 text-primary" />
+            <Link2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
             Link Spare Part to {modelName}
           </DialogTitle>
         </DialogHeader>
@@ -84,7 +84,7 @@ export function LinkPartToTvModelDialog({ modelId, modelName }: LinkPartToTvMode
               placeholder="Search spare part name, short code, or location..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-9 text-xs h-9"
+              className="pl-9 text-xs h-9 focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
               autoFocus
             />
             {isSearching && (
@@ -114,7 +114,7 @@ export function LinkPartToTvModelDialog({ modelId, modelName }: LinkPartToTvMode
                   onClick={() => setSelectedItemId(item.id)}
                   className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
                     isSelected
-                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-medium'
                       : 'border-border/40 hover:border-border hover:bg-muted/30'
                   }`}
                 >
@@ -134,7 +134,7 @@ export function LinkPartToTvModelDialog({ modelId, modelName }: LinkPartToTvMode
                         #{item.shortCode}
                       </Badge>
                     )}
-                    {isSelected && <Check className="h-4 w-4 text-primary" />}
+                    {isSelected && <Check className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
                   </div>
                 </div>
               );
@@ -157,7 +157,7 @@ export function LinkPartToTvModelDialog({ modelId, modelName }: LinkPartToTvMode
               size="sm"
               disabled={!selectedItemId || isPending}
               onClick={handleLink}
-              className="text-xs h-8 gap-1.5"
+              className="text-xs h-8 gap-1.5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-semibold shadow-xs shadow-violet-500/20 active:scale-95 transition-all cursor-pointer"
             >
               {isPending ? (
                 <>

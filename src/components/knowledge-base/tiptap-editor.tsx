@@ -246,14 +246,14 @@ export function TiptapEditor({
       {/* Editor Header & Status Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/20 border-b border-border/60">
         <div className="flex items-center gap-2 min-w-0">
-          <FileText className="h-4 w-4 text-primary shrink-0" />
+          <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
           <h3 className="font-semibold text-sm truncate">{pageTitle}</h3>
         </div>
 
         {/* Status Indicator & Save Button */}
         <div className="flex items-center gap-2">
           {saveStatus === 'SAVING' && (
-            <Badge variant="outline" className="text-[11px] gap-1 text-primary border-primary/20">
+            <Badge variant="outline" className="text-[11px] gap-1 text-violet-600 border-violet-500/20">
               <Loader2 className="h-3 w-3 animate-spin" /> Saving...
             </Badge>
           )}
@@ -273,7 +273,7 @@ export function TiptapEditor({
               size="sm"
               onClick={handleManualSave}
               disabled={saveStatus === 'SAVING'}
-              className="h-7 text-xs px-2.5 gap-1.5"
+              className="h-7 text-xs px-2.5 gap-1.5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-semibold shadow-xs shadow-violet-500/20 active:scale-95 transition-all cursor-pointer"
             >
               <Save className="h-3.5 w-3.5" /> Save
             </Button>

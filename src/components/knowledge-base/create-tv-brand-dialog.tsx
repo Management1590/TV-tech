@@ -407,7 +407,7 @@ export function CreateTvBrandDialog({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600/20 via-purple-500/15 to-indigo-500/10 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-2xs shrink-0">
                         <Tv className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
@@ -432,12 +432,12 @@ export function CreateTvBrandDialog({
                       <div className="flex items-center gap-1">
                         <div
                           className={`h-1.5 rounded-full transition-all duration-300 ${
-                            step === 1 ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/30'
+                            step === 1 ? 'w-5 bg-violet-600' : 'w-1.5 bg-muted-foreground/30'
                           }`}
                         />
                         <div
                           className={`h-1.5 rounded-full transition-all duration-300 ${
-                            step === 2 ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/30'
+                            step === 2 ? 'w-5 bg-violet-600' : 'w-1.5 bg-muted-foreground/30'
                           }`}
                         />
                       </div>
@@ -509,7 +509,7 @@ export function CreateTvBrandDialog({
                               required
                               autoFocus
                               disabled={isPending}
-                              className="h-10 sm:h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold transition-all"
+                              className="h-10 sm:h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold transition-all focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                             />
                           </div>
 
@@ -526,13 +526,13 @@ export function CreateTvBrandDialog({
                               placeholder="Optional technical guidelines, chassis series, or service remarks..."
                               rows={2}
                               disabled={isPending}
-                              className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
+                              className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                             />
                           </div>
 
                           {/* Next Step Teaser Card - Hidden on mobile to ensure 100% visibility of all buttons */}
-                          <div className="hidden sm:flex items-center gap-2.5 p-3 rounded-2xl bg-primary/5 border border-primary/15 text-xs text-muted-foreground">
-                            <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <div className="hidden sm:flex items-center gap-2.5 p-3 rounded-2xl bg-violet-50/80 dark:bg-violet-950/30 border border-violet-200/60 dark:border-violet-800/40 text-xs text-muted-foreground">
+                            <div className="w-7 h-7 rounded-xl bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 flex items-center justify-center shrink-0">
                               <Sparkles className="w-3.5 h-3.5" />
                             </div>
                             <p className="text-[11px] leading-tight text-foreground/80">
@@ -574,7 +574,7 @@ export function CreateTvBrandDialog({
                                   }}
                                   className={`flex-1 text-xs h-7.5 rounded-xl font-bold transition-all cursor-pointer ${
                                     logoMode === 'upload'
-                                      ? 'bg-primary hover:bg-primary text-primary-foreground shadow-xs'
+                                      ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-xs'
                                       : 'text-muted-foreground hover:text-foreground'
                                   }`}
                                 >
@@ -591,7 +591,7 @@ export function CreateTvBrandDialog({
                                   }}
                                   className={`flex-1 text-xs h-7.5 rounded-xl font-bold transition-all cursor-pointer ${
                                     logoMode === 'url'
-                                      ? 'bg-primary hover:bg-primary text-primary-foreground shadow-xs'
+                                      ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-xs'
                                       : 'text-muted-foreground hover:text-foreground'
                                   }`}
                                 >
@@ -606,9 +606,9 @@ export function CreateTvBrandDialog({
                                     e.stopPropagation();
                                     fileInputRef.current?.click();
                                   }}
-                                  className="border-2 border-dashed border-border/80 hover:border-primary/50 active:scale-[0.99] rounded-2xl p-2.5 flex items-center justify-center gap-3 cursor-pointer bg-muted/40 hover:bg-muted/70 transition-all text-left group"
+                                  className="border-2 border-dashed border-border/80 hover:border-violet-500/50 active:scale-[0.99] rounded-2xl p-2.5 flex items-center justify-center gap-3 cursor-pointer bg-muted/40 hover:bg-violet-50/30 transition-all text-left group"
                                 >
-                                  <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                  <div className="w-8 h-8 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-800/50 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                                     <UploadCloud className="w-4 h-4" />
                                   </div>
                                   <div className="min-w-0 flex-1">
@@ -635,7 +635,7 @@ export function CreateTvBrandDialog({
                                     }
                                   }}
                                   placeholder="https://example.com/images/brand-photo.jpg"
-                                  className="bg-muted/40 border-border/80 text-xs h-9 rounded-xl focus-visible:ring-primary"
+                                  className="bg-muted/40 border-border/80 text-xs h-9 rounded-xl focus-visible:ring-violet-500"
                                 />
                               )}
                             </div>
@@ -643,7 +643,7 @@ export function CreateTvBrandDialog({
                             /* Ultra-Compact File Info Bar (Frees up vertical space so sheet never scrolls) */
                             <div className="flex items-center justify-between px-3 py-1.5 rounded-2xl bg-muted/50 border border-border/80 shadow-2xs">
                               <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-                                <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                                <div className="w-6 h-6 rounded-lg bg-violet-50 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-800/50 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
                                   <Sparkles className="w-3 h-3" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -700,7 +700,7 @@ export function CreateTvBrandDialog({
                           <div className="space-y-1.5 p-2 rounded-2xl bg-muted/40 border border-border/80">
                             <div className="flex items-center justify-between px-0.5">
                               <div className="flex items-center gap-1.5">
-                                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                                <Sparkles className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                                 <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
                                   Folder Silhouette Preview
                                 </span>
@@ -708,7 +708,7 @@ export function CreateTvBrandDialog({
 
                               {previewUrl ? (
                                 <div className="flex items-center gap-1.5">
-                                  <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/20 gap-1 py-0 px-1.5 font-bold">
+                                  <Badge variant="outline" className="text-[9px] bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border-violet-200/80 dark:border-violet-800/50 gap-1 py-0 px-1.5 font-bold">
                                     <Move className="w-2.5 h-2.5" /> Drag to adjust
                                   </Badge>
                                   <Button
@@ -882,7 +882,7 @@ export function CreateTvBrandDialog({
                                   onTouchStart={(e) => e.stopPropagation()}
                                   onTouchMove={(e) => e.stopPropagation()}
                                   onPointerDown={(e) => e.stopPropagation()}
-                                  className="flex-1 accent-primary h-1 bg-muted rounded-lg cursor-pointer"
+                                  className="flex-1 accent-violet-600 h-1 bg-muted rounded-lg cursor-pointer"
                                 />
 
                                 <Button
@@ -940,7 +940,7 @@ export function CreateTvBrandDialog({
                             setStep(2);
                           }}
                           disabled={!name.trim()}
-                          className="rounded-2xl text-xs h-9.5 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold gap-1.5 shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+                          className="rounded-2xl text-xs h-9.5 px-5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-black gap-1.5 shadow-md shadow-violet-500/30 active:scale-95 transition-all cursor-pointer"
                         >
                           <span>Next: Thumbnail</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -970,7 +970,7 @@ export function CreateTvBrandDialog({
                             handleCreateBrand();
                           }}
                           disabled={isPending || !name.trim()}
-                          className="rounded-2xl text-xs h-9.5 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold gap-2 shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+                          className="rounded-2xl text-xs h-9.5 px-5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-black gap-2 shadow-md shadow-violet-500/30 active:scale-95 transition-all cursor-pointer"
                         >
                           {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                           <span>Create Brand Folder</span>

@@ -341,7 +341,7 @@ export function CreateTvModelDialog({
                     className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
+                      <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 flex items-center justify-center shrink-0 shadow-2xs">
                         <Monitor className="w-4 h-4" />
                       </div>
                       <div>
@@ -436,7 +436,7 @@ export function CreateTvModelDialog({
                               ? 'border-red-500 focus-visible:ring-red-500/30 text-red-900 bg-red-50/30'
                               : similarityResult.level === 'WARN_5' || similarityResult.level === 'WARN'
                               ? 'border-amber-400 focus-visible:ring-amber-400/40 text-foreground bg-amber-50/20'
-                              : 'border-border/80 focus-visible:ring-primary/30'
+                              : 'border-border/80 focus-visible:ring-violet-500/25 focus-visible:border-violet-500'
                           }`}
                         />
 
@@ -530,7 +530,7 @@ export function CreateTvModelDialog({
                             }}
                             placeholder="Optional (e.g. 55)"
                             disabled={isPending}
-                            className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-primary/30"
+                            className="h-10 rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-sm font-bold pr-16 transition-all focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                           />
                           <div className="absolute right-3 text-xs font-bold text-muted-foreground pointer-events-none">
                             Inches (&quot;)
@@ -554,7 +554,7 @@ export function CreateTvModelDialog({
                           placeholder="Optional specifications, chassis, panel, or repair notes..."
                           rows={2}
                           disabled={isPending}
-                          className="rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-xs sm:text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary/30 resize-none min-h-[52px]"
+                          className="rounded-xl bg-muted/40 hover:bg-white focus:bg-white border-border/80 text-xs sm:text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:border-violet-500 resize-none min-h-[52px]"
                         />
                       </div>
                     </div>

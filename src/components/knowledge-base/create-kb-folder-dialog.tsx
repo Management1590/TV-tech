@@ -108,7 +108,7 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
       <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs gap-2 shadow-sm cursor-pointer"
+        className="h-10 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold text-xs gap-2 shadow-sm shadow-violet-500/20 cursor-pointer"
       >
         <FolderPlus className="w-4 h-4" />
         Add Folder
@@ -187,7 +187,7 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
                     className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 flex items-center justify-center shrink-0">
                         <FolderPlus className="w-4 h-4" />
                       </div>
                       <div>
@@ -223,7 +223,7 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
                           value={folderName}
                           onChange={(e) => setFolderName(e.target.value)}
                           required
-                          className="h-11 rounded-xl bg-muted/50 border-border/80 text-sm font-semibold"
+                          className="h-11 rounded-xl bg-muted/50 border-border/80 text-sm font-semibold focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                           autoFocus
                           disabled={isPending}
                         />
@@ -251,7 +251,7 @@ export function CreateKbFolderDialog({ modelId, modelNumber }: CreateKbFolderDia
                       <Button
                         type="submit"
                         disabled={isPending || !folderName.trim()}
-                        className="rounded-xl text-xs h-9.5 px-4 bg-primary hover:bg-primary/90 font-semibold gap-2 shadow-sm text-primary-foreground"
+                        className="rounded-xl text-xs h-9.5 px-4 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 font-bold gap-2 shadow-md shadow-violet-500/20 text-white active:scale-95 transition-all"
                       >
                         {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Create Folder

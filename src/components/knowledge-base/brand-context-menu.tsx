@@ -450,7 +450,7 @@ export function BrandContextMenu({
                       }}
                       className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center justify-center shrink-0">
                         <Pencil className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -601,7 +601,7 @@ export function BrandContextMenu({
                   {/* Header */}
                   <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center justify-center shrink-0">
                         <Pencil className="w-4 h-4" />
                       </div>
                       <div>
@@ -636,7 +636,7 @@ export function BrandContextMenu({
                           }
                         }}
                         required
-                        className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold"
+                        className="h-11 rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm font-semibold focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                         autoFocus
                       />
                     </div>
@@ -657,7 +657,7 @@ export function BrandContextMenu({
                       <Button
                         type="submit"
                         disabled={isPending || !newName.trim() || newName.trim() === brandName}
-                        className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white font-bold gap-2 cursor-pointer shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+                        className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-black gap-2 cursor-pointer shadow-md shadow-violet-500/30 active:scale-95 transition-all"
                       >
                         {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Save Changes
@@ -762,7 +762,7 @@ export function BrandContextMenu({
                         onBlur={persistentDescBlur}
                         placeholder="Optional technical guidelines, chassis series, or service remarks..."
                         rows={3}
-                        className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none"
+                        className="rounded-2xl bg-muted/40 hover:bg-muted/60 focus:bg-white border-border/80 text-sm transition-all resize-none focus-visible:ring-violet-500/25 focus-visible:border-violet-500"
                         autoFocus
                       />
                     </div>
@@ -783,7 +783,7 @@ export function BrandContextMenu({
                       <Button
                         type="submit"
                         disabled={isPending}
-                        className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                        className="rounded-2xl text-xs h-10 px-5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-black gap-2 cursor-pointer shadow-md shadow-violet-500/30 active:scale-95 transition-all"
                       >
                         {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Save Description
