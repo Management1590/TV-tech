@@ -376,13 +376,13 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
       </div>
 
       {/* ========================================================================= */}
-      {/* MOBILE PORTAL OVERLAY: iOS Spring Bottom Slide & Center Card Studio       */}
+      {/* MOBILE / KB PORTAL: iOS Spring Bottom Sheet (Single Page Layout)           */}
       {/* ========================================================================= */}
-      {mounted && createPortal(
+      {mounted && typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {mobileOpen && (
             <div
-              className="fixed inset-0 z-[100] flex flex-col justify-between items-center p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:hidden select-none"
+              className="fixed inset-x-0 bottom-0 z-[100] flex flex-col justify-end items-center select-none"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
                   e.preventDefault();
@@ -391,13 +391,13 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                 }
               }}
             >
-              {/* Backdrop Blur Layer */}
+              {/* Soft Blurred iOS Backdrop Layer */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-md -z-10"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 will-change-opacity cursor-pointer touch-none"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -405,149 +405,157 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                 }}
               />
 
-              {/* Top Pill / Dismiss Button */}
+              {/* iOS Style Bottom Sheet Page */}
               <motion.div
-                initial={{ opacity: 0, y: -16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="relative z-10 w-full flex items-center justify-between pt-1 px-1 pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="text-[11px] font-extrabold tracking-wider uppercase text-white bg-white/20 px-3 py-1 rounded-full border border-white/30 backdrop-blur-md shadow-md">
-                  User Account
-                </span>
-                <button
-                  type="button"
-                  aria-label="Close profile menu"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setMobileOpen(false);
-                  }}
-                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 border border-white/30 text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </motion.div>
-
-              {/* Center: Floating Full Profile Details Card (iOS Spring Pop) */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.82, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.88, y: 10 }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{
+                  y: '100%',
+                  transition: {
+                    duration: 0.22,
+                    ease: [0.32, 0, 0.67, 0],
+                  },
+                }}
                 transition={{
                   type: 'spring',
-                  damping: 24,
+                  damping: 30,
                   stiffness: 340,
                   mass: 0.8,
                 }}
-                className="relative z-10 w-full max-w-[300px] my-auto py-2 pointer-events-auto filter drop-shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="bg-card rounded-3xl p-5 border border-border shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
-                  {/* Subtle Top Gradient Accent */}
-                  <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary" />
-
-                  {/* Large Profile Avatar with Glow */}
-                  <div className="relative mb-3 mt-1">
-                    <div
-                      className={`w-16 h-16 rounded-2xl font-black text-xl flex items-center justify-center text-white shadow-xl ${
-                        isAdmin
-                          ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
-                          : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
-                      }`}
-                    >
-                      {initials}
-                    </div>
-                  </div>
-
-                  {/* FULL NAME - Untruncated */}
-                  <h2 className="font-black text-base sm:text-lg text-foreground tracking-tight leading-snug break-words max-w-full px-1">
-                    {displayName}
-                  </h2>
-
-                  {/* FULL EMAIL - Untruncated */}
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground font-medium mt-1.5 break-all max-w-full px-1">
-                    <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="select-text">{userEmail}</span>
-                  </div>
-
-                  {/* Role Badge */}
-                  <div className="mt-3">
-                    <Badge
-                      variant="secondary"
-                      className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                        isAdmin
-                          ? 'bg-primary/5 text-primary border-primary/20'
-                          : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                      }`}
-                    >
-                      <Shield className="w-3.5 h-3.5 mr-1 text-primary" />
-                      {isAdmin ? 'Super Administrator' : 'Staff Technician'}
-                    </Badge>
-                  </div>
-
-                  {/* Account Status Info Box */}
-                  <div className="w-full mt-4 p-3 bg-muted/50 border border-border rounded-2xl space-y-2 text-xs text-left">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground font-medium">Session</span>
-                      <span className="font-bold text-emerald-600 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Active (Live)
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground font-medium">Access</span>
-                      <span className="font-semibold text-foreground">
-                        {isAdmin ? 'Full Administrative' : 'Staff Access'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Bottom: Smooth Slide-up Actions Sheet (iOS Spring Slide Up) */}
-              <motion.div
-                initial={{ opacity: 0, y: 70, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 50, scale: 0.96 }}
-                transition={{
-                  type: 'spring',
-                  damping: 26,
-                  stiffness: 320,
-                  mass: 0.85,
-                  delay: 0.03,
+                drag="y"
+                dragConstraints={{ top: 0 }}
+                dragElastic={{ top: 0, bottom: 0.2 }}
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 80 || info.velocity.y > 320) {
+                    setMobileOpen(false);
+                  }
                 }}
-                className="relative z-10 w-full max-w-sm flex flex-col gap-2 pointer-events-auto"
+                className="relative z-10 w-full max-w-md mx-auto bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-t-[36px] border-t border-border/70 shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden will-change-transform transform-gpu"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Actions Box */}
-                <div className="bg-card rounded-3xl p-2 border border-border shadow-2xl flex flex-col gap-1">
-                  {/* Admin Option: Add Staff */}
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setMobileOpen(false);
-                        setIsCreateStaffOpen(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
-                    >
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
-                        <UserPlus className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="leading-tight text-foreground font-bold">Create Staff Account</div>
-                        <div className="text-[11px] font-normal text-muted-foreground">Add technician credentials</div>
-                      </div>
-                    </button>
-                  )}
+                {/* Top Drag Indicator Handle */}
+                <div className="pt-3 pb-1 flex justify-center w-full cursor-grab active:cursor-grabbing shrink-0 touch-none">
+                  <div className="w-10 h-1.5 rounded-full bg-muted-foreground/25 hover:bg-muted-foreground/40 transition-colors" />
+                </div>
 
-                  {/* Sign Out Action */}
-                  <div className={isAdmin ? 'border-t border-border/50 my-0.5 pt-0.5' : ''}>
+                {/* Compact Native Sheet Header */}
+                <div className="px-5 sm:px-6 pt-1 pb-3 border-b border-border/60 shrink-0 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary/20 via-blue-600/15 to-indigo-500/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-sm sm:text-base font-black tracking-tight text-foreground leading-tight truncate">
+                        User Account
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Profile credentials & system session
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-7 h-7 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Single Page Scrollable Sheet Body */}
+                <div className="overflow-y-auto px-5 sm:px-6 py-4 space-y-4 no-scrollbar flex flex-col items-center w-full">
+                  {/* Profile Card Showcase */}
+                  <div className="w-full bg-gradient-to-b from-muted/50 via-muted/30 to-muted/10 dark:from-slate-800/60 dark:to-slate-900/40 rounded-3xl border border-border/70 p-5 flex flex-col items-center text-center relative overflow-hidden shadow-xs">
+                    {/* Top Accent Gradient Line */}
+                    <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-primary via-blue-600 to-indigo-600" />
+
+                    {/* Ambient Glow */}
+                    <div className="absolute top-2 w-28 h-28 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+
+                    {/* Large Profile Avatar with Glow */}
+                    <div className="relative mb-2 mt-1">
+                      <div
+                        className={`w-16 h-16 rounded-2xl font-black text-xl flex items-center justify-center text-white shadow-xl ring-4 ring-primary/10 ${
+                          isAdmin
+                            ? 'bg-gradient-to-tr from-primary via-blue-600 to-indigo-600'
+                            : 'bg-gradient-to-tr from-indigo-500 to-indigo-700'
+                        }`}
+                      >
+                        {initials}
+                      </div>
+                    </div>
+
+                    {/* FULL NAME - Untruncated */}
+                    <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight leading-snug break-words max-w-full">
+                      {displayName}
+                    </h3>
+
+                    {/* FULL EMAIL */}
+                    <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground font-medium mt-1 break-all max-w-full">
+                      <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span className="select-text">{userEmail}</span>
+                    </div>
+
+                    {/* Role Badge */}
+                    <div className="mt-2.5">
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs font-bold px-3 py-1 rounded-full border shadow-2xs ${
+                          isAdmin
+                            ? 'bg-primary/10 text-primary border-primary/20'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                        }`}
+                      >
+                        <Shield className="w-3.5 h-3.5 mr-1 text-primary" />
+                        {isAdmin ? 'Super Administrator' : 'Staff Technician'}
+                      </Badge>
+                    </div>
+
+                    {/* Live Session & Status Details */}
+                    <div className="w-full mt-4 p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs border border-border/70 rounded-2xl space-y-2 text-xs text-left shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground font-medium">Session Status</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          Active (Live)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground font-medium">Access Tier</span>
+                        <span className="font-semibold text-foreground">
+                          {isAdmin ? 'Full Administrative' : 'Staff Technician Access'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Group Card */}
+                  <div className="w-full bg-muted/40 dark:bg-slate-800/40 rounded-2xl border border-border/60 p-1.5 space-y-1">
+                    {/* Admin Option: Add Staff */}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setMobileOpen(false);
+                          setIsCreateStaffOpen(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left group"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <UserPlus className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="leading-tight text-foreground font-bold">Create Staff Account</div>
+                          <div className="text-[11px] font-normal text-muted-foreground">Add technician credentials</div>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Sign Out Action */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -556,9 +564,9 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                         setMobileOpen(false);
                         setIsSignOutOpen(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50/80 active:bg-red-100/80 active:scale-[0.98] rounded-2xl transition-all cursor-pointer text-left"
+                      className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50/80 dark:hover:bg-red-950/40 active:bg-red-100/80 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left group"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-red-50/80 text-red-600 border border-red-200/80 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 border border-red-200/80 dark:border-red-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                         <LogOut className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -567,20 +575,20 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                       </div>
                     </button>
                   </div>
+
+                  {/* Cancel Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full h-11 rounded-full text-xs font-bold text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/70 border border-border/70 transition-all cursor-pointer mt-1 active:scale-[0.99]"
+                  >
+                    Cancel
+                  </Button>
                 </div>
 
-                {/* Standalone iOS Style Cancel Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setMobileOpen(false);
-                  }}
-                  className="w-full py-3.5 bg-card text-foreground font-extrabold text-sm rounded-2xl border border-border shadow-lg active:bg-muted active:scale-[0.98] transition-all text-center cursor-pointer"
-                >
-                  Cancel
-                </button>
+                {/* Safe Area Spacer */}
+                <div className="pb-[calc(1rem+env(safe-area-inset-bottom,0px))]" />
               </motion.div>
             </div>
           )}
