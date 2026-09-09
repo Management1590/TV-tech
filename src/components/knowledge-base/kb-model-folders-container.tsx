@@ -62,7 +62,7 @@ export function KbModelFoldersContainer({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-blue-600" />
+            <FolderOpen className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
             <span>Technical Folders</span>
             <span className="text-muted-foreground/70 font-bold">({displayFolders.length})</span>
           </h2>

@@ -68,36 +68,36 @@ export default async function TvModelDetailPage({
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
         <Link
           href={`/knowledge-base/brands/${model.brand.id}`}
-          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-slate-50 hover:text-blue-600 active:bg-muted/80 text-foreground/70 transition-all font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-200/80 hover:text-slate-900 text-slate-600 dark:text-slate-300 transition-all font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer group"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
+          <ArrowLeft className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
           <span>{cleanBrandName}</span>
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-        <span className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-700 border border-blue-400/20 font-extrabold shrink-0 min-h-[34px] inline-flex items-center gap-1">
+        <span className="px-2.5 py-1.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-800 dark:text-slate-100 border border-slate-300/80 dark:border-slate-600/80 font-black shrink-0 min-h-[34px] inline-flex items-center gap-1">
           {cleanModelNumber}
         </span>
       </nav>
 
       {/* Model Header Banner (Mobile-Optimized & Balanced) */}
-      <div className="relative p-4 sm:p-6 bg-white border border-border/70 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+      <div className="relative p-4 sm:p-6 bg-white dark:bg-slate-900 border border-border/70 rounded-2xl sm:rounded-3xl shadow-2xs">
         <div className="flex items-start gap-3.5 sm:gap-4 pr-10 sm:pr-0">
-          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600/15 to-indigo-500/10 border border-blue-400/20 flex items-center justify-center text-blue-600 shrink-0 shadow-2xs">
-            <Monitor className="w-5 h-5 sm:w-7 sm:h-7" />
+          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0 shadow-2xs">
+            <Monitor className="w-5 h-5 sm:w-7 sm:h-7 text-slate-500 dark:text-slate-400" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] leading-tight min-w-0">
+              <h1 className="text-xl sm:text-3xl font-black tracking-tight text-foreground break-words [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty] leading-tight min-w-0">
                 {cleanModelNumber}
               </h1>
               <span className="text-xs text-muted-foreground/70 font-bold">({cleanBrandName})</span>
               {model.screenSize && (
-                <Badge variant="outline" className="text-[10px] sm:text-xs font-extrabold bg-slate-50 text-slate-700 border-slate-200 px-1.5 py-0.5">
+                <Badge variant="outline" className="text-[10px] sm:text-xs font-black bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700/90 px-2 py-0.5 rounded-md">
                   {model.screenSize}&quot;
                 </Badge>
               )}
               {model.displayType && (
-                <Badge variant="secondary" className="text-[9px] sm:text-[10px] uppercase font-extrabold bg-blue-50 text-blue-700 border-blue-200/60 px-1.5 py-0.5">
+                <Badge variant="secondary" className="text-[9px] sm:text-[10px] uppercase font-black bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700/90 px-2 py-0.5 rounded-md">
                   {model.displayType}
                 </Badge>
               )}
@@ -105,7 +105,7 @@ export default async function TvModelDetailPage({
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5 flex-wrap">
               {model.chassisNo && (
-                <span className="font-mono text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md text-[11px] border border-slate-200">
+                <span className="font-mono text-slate-600 dark:text-slate-300 font-bold bg-slate-100/90 dark:bg-slate-800/90 px-2 py-0.5 rounded-md text-[11px] border border-slate-200/90 dark:border-slate-700/90">
                   Chassis: {model.chassisNo}
                 </span>
               )}
