@@ -226,10 +226,10 @@ export function BrandFolderCard({ brand, userRole = 'STAFF' }: BrandFolderCardPr
             )}
 
             {/* 2. FLOATING MODEL COUNT BADGE (Minimalist Premium Icon + Number) */}
-            <div className="absolute bottom-9 sm:bottom-12 right-2 sm:right-2 z-20">
+            <div className="absolute bottom-[44px] sm:bottom-[52px] right-2 sm:right-2.5 z-20">
               <Badge
                 variant="secondary"
-                className="bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md gap-1 text-[10px] sm:text-xs py-0.5 px-2 font-black shadow-xs group-hover:border-slate-300 group-hover:shadow-sm transition-all"
+                className="bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md gap-1 text-[10px] sm:text-xs py-0.5 px-1.5 font-black shadow-xs group-hover:border-slate-300 group-hover:shadow-sm transition-all"
                 title={`${modelCount} ${modelCount === 1 ? 'Model' : 'Models'}`}
               >
                 <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 dark:text-slate-400 shrink-0" />

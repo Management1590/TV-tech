@@ -813,10 +813,10 @@ export function CreateTvBrandDialog({
                                   )}
 
                                   {/* 2. Floating Model Count Badge - 100% matched to BrandFolderCard */}
-                                  <div className="absolute bottom-9 right-2 z-20 pointer-events-none">
+                                  <div className="absolute bottom-[42px] right-2 z-20 pointer-events-none">
                                     <Badge
                                       variant="secondary"
-                                      className="bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md gap-1 text-[10px] py-0.5 px-2 font-black shadow-xs"
+                                      className="bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md gap-1 text-[10px] py-0.5 px-1.5 font-black shadow-xs"
                                       title="0 Models"
                                     >
                                       <Tv className="w-3 h-3 text-slate-400 dark:text-slate-400 shrink-0" />
