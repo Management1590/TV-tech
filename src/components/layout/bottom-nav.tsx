@@ -92,11 +92,11 @@ function NavBar({
   pathname: string;
 }) {
   const router = useRouter();
-  const maskId = useId();
+  const rawMaskId = useId();
+  const maskId = `nav-notch-mask-${rawMaskId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [barWidth, setBarWidth] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth : 390
-  );
+  const [mounted, setMounted] = useState(false);
+  const [barWidth, setBarWidth] = useState(390);
 
   const [activeIdx, setActiveIdx] = useState(() => {
     const idx = navItems.findIndex(
@@ -134,17 +134,44 @@ function NavBar({
     });
   }, [navItems, router]);
 
-  // Responsive width tracking
+  // Responsive width tracking with ResizeObserver & immediate client viewport initialization
   useEffect(() => {
+    setMounted(true);
+
     const updateWidth = () => {
-      if (containerRef.current) {
-        const w = containerRef.current.offsetWidth;
-        if (w > 0) setBarWidth(w);
+      const containerW = containerRef.current?.offsetWidth;
+      const winW =
+        typeof window !== 'undefined'
+          ? window.innerWidth || document.documentElement.clientWidth
+          : 390;
+      const w = containerW && containerW > 0 ? containerW : winW;
+      if (w > 0) {
+        setBarWidth(w);
       }
     };
+
     updateWidth();
+
+    // Use ResizeObserver to track container resizing dynamically
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const w = entry.contentRect.width;
+          if (w > 0) setBarWidth(w);
+        }
+      });
+      observer.observe(containerRef.current);
+    }
+
     window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    window.addEventListener('orientationchange', updateWidth);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateWidth);
+      window.removeEventListener('orientationchange', updateWidth);
+    };
   }, []);
 
   const tabCount = navItems.length;
@@ -274,8 +301,10 @@ function NavBar({
   const barHeight = 64;
   const barPath = `M 0,${topY + cornerR} Q 0,${topY} ${cornerR},${topY} L ${Math.max(cornerR, barWidth - cornerR)},${topY} Q ${barWidth},${topY} ${barWidth},${topY + cornerR} L ${barWidth},${barHeight} L 0,${barHeight} Z`;
 
+  if (!mounted) return null;
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex flex-col items-center select-none pointer-events-none">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex flex-col w-full select-none pointer-events-none">
       <div
         ref={containerRef}
         onPointerDown={handlePointerDown}
