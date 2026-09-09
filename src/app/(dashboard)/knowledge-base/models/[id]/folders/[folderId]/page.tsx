@@ -135,17 +135,13 @@ export default async function KbFolderDetailPage({
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
         <Link
           href={`/knowledge-base/models/${folder.model.id}`}
-          className="px-2.5 py-1.5 rounded-xl bg-white border border-border/80 hover:bg-slate-50 hover:text-blue-600 active:bg-muted/80 text-foreground/70 transition-all font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-muted-foreground hover:text-foreground transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
+          <ArrowLeft className="w-3.5 h-3.5 text-muted-foreground" />
           <span>{cleanModelNumber}</span>
         </Link>
-        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-        <span className={`px-2.5 py-1.5 rounded-xl font-extrabold shrink-0 min-h-[34px] inline-flex items-center gap-1 ${
-          isBacklight
-            ? 'bg-amber-50 text-amber-700 border border-amber-300/50'
-            : 'bg-indigo-50 text-indigo-700 border border-indigo-300/50'
-        }`}>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+        <span className="px-2.5 py-1.5 rounded-xl font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
           {folder.name}
         </span>
       </nav>

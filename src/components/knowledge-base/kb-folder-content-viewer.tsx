@@ -31,6 +31,7 @@ import {
   GripVertical,
   Eye,
   FolderOpen,
+  CornerDownRight,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ import {
 import { DocumentDialog } from './document-dialog';
 import { DeleteWarningDialog } from './delete-warning-dialog';
 import { UploadKbMediaDialog } from './upload-kb-media-dialog';
+import { KbPointingArrow } from './kb-pointing-arrow';
 import {
   UniversalMediaPlayerModal,
   UniversalMediaItem,
@@ -98,9 +100,8 @@ export function KbFolderContentViewer({
 }: KbFolderContentViewerProps) {
   const isAdmin = !!userRole;
 
-  // Global View vs Edit Mode State (pre-enabled if folder is empty / newly created)
-  const isInitiallyEmpty = mediaAttachments.length === 0 && pages.length === 0;
-  const [isGlobalEditMode, setIsGlobalEditMode] = useState<boolean>(isInitiallyEmpty);
+  // Global View vs Edit Mode State: Always start in clean View Mode by default
+  const [isGlobalEditMode, setIsGlobalEditMode] = useState<boolean>(false);
 
   // Media state
   const [mediaList, setMediaList] = useState<MediaItem[]>(mediaAttachments);
@@ -125,6 +126,19 @@ export function KbFolderContentViewer({
   const [editingDoc, setEditingDoc] = useState<{ id?: string; title: string; description: string } | null>(null);
   const [isSavingDoc, setIsSavingDoc] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Pointing Arrow Refs for iOS-Style Empty State Guides
+  const mediaCardRef = useRef<HTMLDivElement>(null);
+  const mediaAnchorRef = useRef<HTMLDivElement>(null);
+  const mediaButtonRef = useRef<HTMLButtonElement>(null);
+
+  const audioCardRef = useRef<HTMLDivElement>(null);
+  const audioAnchorRef = useRef<HTMLDivElement>(null);
+  const audioButtonRef = useRef<HTMLDivElement>(null);
+
+  const docCardRef = useRef<HTMLDivElement>(null);
+  const docAnchorRef = useRef<HTMLDivElement>(null);
+  const docButtonRef = useRef<HTMLButtonElement>(null);
 
   const photoVideoList: UniversalMediaItem[] = mediaList
     .filter((m) => m.mediaType === 'IMAGE' || m.mediaType === 'VIDEO')
@@ -782,17 +796,11 @@ export function KbFolderContentViewer({
       {/* ========================================================================= */}
       <div className="p-4 sm:p-6 bg-white border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 sm:gap-4">
-          <div
-            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs transition-all duration-300 ${
-              isGlobalEditMode
-                ? 'bg-amber-500/15 border border-amber-300/80 text-amber-600 ring-4 ring-amber-500/10'
-                : 'bg-primary/15 border border-primary/20 text-primary'
-            }`}
-          >
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-500 dark:text-slate-400">
             {isGlobalEditMode ? (
-              <SlidersHorizontal className="w-5 h-5 sm:w-6 sm:h-6 animate-in zoom-in-75 duration-200 text-amber-600" />
+              <SlidersHorizontal className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600 dark:text-slate-300" />
             ) : (
-              <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600 dark:text-slate-300" />
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -802,22 +810,22 @@ export function KbFolderContentViewer({
               </h1>
               <Badge
                 variant="secondary"
-                className="bg-primary/10 text-primary border-primary/20 text-[10px] sm:text-xs font-bold py-0.5 px-2"
+                className={`text-[10px] sm:text-xs font-semibold py-0.5 px-2 transition-colors ${
+                  !isGlobalEditMode
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-700/80'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                }`}
               >
                 Photo • Audio • Text
               </Badge>
               <Badge
                 variant="outline"
-                className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 transition-colors ${
-                  isGlobalEditMode
-                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                    : 'bg-muted/80 text-muted-foreground border-border/80'
-                }`}
+                className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80 text-[10px] sm:text-xs font-medium px-2 py-0.5"
               >
                 {isGlobalEditMode ? '⚡ Edit Mode' : '👁️ View Mode'}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
+            <p className="text-xs text-muted-foreground/70 mt-0.5 truncate font-normal">
               {modelName} • Troubleshooting & Repair Knowledge
             </p>
           </div>
@@ -872,11 +880,11 @@ export function KbFolderContentViewer({
 
       {/* Editing Mode Workspace Alert Banner */}
       {isGlobalEditMode && (
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-1">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-1">
           <div className="flex items-center gap-2.5">
             <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-            <span className="text-amber-950 font-medium">
-              <strong className="font-bold text-amber-900">Editing Mode is active:</strong> You can upload media, record voice notes, add docs, and organize items across all sections.
+            <span className="text-slate-600 dark:text-slate-300 font-normal">
+              <strong className="font-bold text-slate-800 dark:text-slate-200">Editing Mode is active:</strong> You can upload media, record voice notes, add docs, and organize items across all sections.
             </span>
           </div>
           <Button
@@ -888,7 +896,7 @@ export function KbFolderContentViewer({
               setIsAudioEditMode(false);
               setIsDocEditMode(false);
             }}
-            className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 self-end sm:self-auto shadow-xs active:scale-95"
+            className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 self-end sm:self-auto shadow-xs active:scale-95 cursor-pointer"
           >
             Switch to View Mode
           </Button>
@@ -898,81 +906,50 @@ export function KbFolderContentViewer({
       {/* ========================================================================= */}
       {/* SECTION 1 (TOP): 📷 PHOTO & VIDEO AREA (Single Expandable Grid + Edit Mode)*/}
       {/* ========================================================================= */}
-      <Card className="bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-5">
+      <Card
+        ref={mediaCardRef}
+        className="relative bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-5 overflow-visible"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/70 pb-3.5 sm:pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600/15 via-indigo-600/15 to-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-2xs shrink-0">
-              <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-2xs shrink-0 transition-colors ${
+                !isGlobalEditMode
+                  ? 'bg-blue-500/15 border border-blue-300/80 text-blue-600 dark:bg-blue-950/60 dark:border-blue-700/80 dark:text-blue-400'
+                  : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <ImageIcon
+                className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${
+                  !isGlobalEditMode ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                <CardTitle
+                  className={`text-base sm:text-lg font-black tracking-tight transition-colors ${
+                    !isGlobalEditMode ? 'text-blue-700 dark:text-blue-400' : 'text-foreground'
+                  }`}
+                >
                   Photo & Video Gallery
                 </CardTitle>
-                <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/20 text-[10px] sm:text-xs font-bold px-2 py-0.5">
+                <Badge
+                  variant="secondary"
+                  className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 transition-colors ${
+                    !isGlobalEditMode
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200/80 dark:border-blue-700/80'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
                   {photoVideoList.length} Media
                 </Badge>
               </div>
-              <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
+              <p className="hidden sm:block text-xs text-muted-foreground/70 mt-0.5">
                 High-resolution panel photos, board schematics, and video demonstrations with native desktop/mobile viewer.
               </p>
             </div>
           </div>
-
-          {/* Action buttons (Only visible in Edit Mode) */}
-          {isAdmin && isGlobalEditMode && (
-            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto animate-in fade-in">
-              {photoVideoList.length > 0 && (
-                <Button
-                  type="button"
-                  variant={isEditMode ? 'default' : 'outline'}
-                  onClick={() => {
-                    setIsEditMode(!isEditMode);
-                    if (isEditMode) {
-                      if (isSavingOrder) {
-                        toast.info('Saving media order in background...');
-                      } else {
-                        toast.success('Organizing finished.');
-                      }
-                    }
-                  }}
-                  className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-xs font-bold gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer justify-center ${
-                    isEditMode
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-amber-500/20'
-                      : 'bg-white hover:bg-muted/50 border-border/80 text-foreground/80 hover:text-foreground'
-                  }`}
-                >
-                  {isEditMode ? (
-                    isSavingOrder ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Done</span>
-                      </>
-                    )
-                  ) : (
-                    <>
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Organize</span>
-                    </>
-                  )}
-                </Button>
-              )}
-
-              <Button
-                type="button"
-                onClick={() => setIsUploadDialogOpen(true)}
-                className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:via-indigo-500 hover:to-primary text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm hover:shadow-md active:scale-95 border border-white/20"
-              >
-                <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>Upload</span>
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Edit Mode Active Banner (within Photo Section) */}
@@ -981,7 +958,7 @@ export function KbFolderContentViewer({
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                <strong>Organize & Delete Mode:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to drag photos/videos freely.
+                <strong>Manage Mode Active:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to rearrange or delete photos/videos freely.
               </span>
             </div>
             <Button
@@ -1010,39 +987,36 @@ export function KbFolderContentViewer({
         )}
 
         {photoVideoList.length === 0 ? (
-          <div
-            onClick={() => {
-              if (!isGlobalEditMode) setIsGlobalEditMode(true);
-              setIsUploadDialogOpen(true);
-            }}
-            className="p-8 sm:p-12 text-center bg-gradient-to-b from-blue-50/40 via-muted/30 to-muted/50 border-2 border-primary/30 border-dashed rounded-3xl space-y-3.5 hover:border-primary/60 hover:bg-blue-50/50 transition-all cursor-pointer group shadow-xs"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600/15 via-indigo-600/15 to-primary/10 border border-primary/25 flex items-center justify-center mx-auto text-primary group-hover:scale-110 group-hover:shadow-md transition-all">
-              <UploadCloud className="w-7 h-7" />
+          isAdmin && isGlobalEditMode ? (
+            <div className="py-14 sm:py-20 px-6 text-center bg-muted/15 border border-border/50 rounded-3xl flex flex-col items-center justify-center space-y-3">
+              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-muted/50 text-muted-foreground/50 flex items-center justify-center">
+                <ImageIcon className="w-6 h-6 sm:w-7 sm:h-7 stroke-[1.5]" />
+              </div>
+              <div className="space-y-1 max-w-sm">
+                <p className="text-sm sm:text-base font-semibold text-foreground/80 tracking-tight">
+                  No photos or videos added yet
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  High-resolution panel photos, board schematics, and video demonstrations for this model.
+                </p>
+              </div>
+              <div ref={mediaAnchorRef} className="h-2 w-16" />
             </div>
-            <div className="space-y-1">
-              <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight">
-                Upload Photos & Videos
-              </p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                Tap here or drag & drop repair schematics, panel photos, or diagnostic videos for this model.
-              </p>
+          ) : (
+            <div className="p-8 sm:p-12 text-center bg-muted/20 border border-border/60 rounded-3xl space-y-2.5">
+              <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
+                <ImageIcon className="w-6 h-6 stroke-[1.75]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">No photos or videos added yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-sm mx-auto">
+                  {isAdmin
+                    ? 'Clean View Mode active. Switch to Edit Mode to upload photos or videos.'
+                    : 'No photos or videos have been uploaded to this folder yet.'}
+                </p>
+              </div>
             </div>
-            <div className="pt-1">
-              <Button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isGlobalEditMode) setIsGlobalEditMode(true);
-                  setIsUploadDialogOpen(true);
-                }}
-                className="h-10 px-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-primary hover:from-blue-500 hover:to-primary text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-2"
-              >
-                <UploadCloud className="w-4 h-4" />
-                <span>Upload Media Now</span>
-              </Button>
-            </div>
-          </div>
+          )
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4.5 pt-1">
@@ -1084,13 +1058,13 @@ export function KbFolderContentViewer({
                         onClick={() => handleCardClick(idx)}
                         className="w-full h-full bg-foreground flex items-center justify-center relative select-none"
                       >
-                        <Film className="w-8 h-8 text-primary/80 opacity-60" />
+                        <Film className="w-8 h-8 text-white/50 opacity-60" />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/20 transition-colors">
-                          <div className="w-10 h-10 rounded-2xl bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                            <Play className="w-5 h-5 fill-primary ml-0.5" />
+                          <div className="w-10 h-10 rounded-2xl bg-white/95 text-slate-800 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-5 h-5 fill-slate-800 ml-0.5" />
                           </div>
                         </div>
-                        <Badge className="absolute top-2 left-2 text-[10px] bg-primary text-white font-bold py-0 px-1.5 shadow-sm pointer-events-none">
+                        <Badge className="absolute top-2 left-2 text-[10px] bg-slate-900/80 text-white font-bold py-0 px-1.5 shadow-sm backdrop-blur-xs pointer-events-none">
                           Video
                         </Badge>
                       </div>
@@ -1107,7 +1081,7 @@ export function KbFolderContentViewer({
                         />
                         {!isEditMode && (
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
-                            <div className="w-9 h-9 rounded-xl bg-white/90 text-primary flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity scale-90 group-hover:scale-100">
+                            <div className="w-9 h-9 rounded-xl bg-white/90 text-slate-800 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity scale-90 group-hover:scale-100">
                               <Maximize2 className="w-4 h-4" />
                             </div>
                           </div>
@@ -1189,57 +1163,33 @@ export function KbFolderContentViewer({
             )}
           </div>
         )}
-      </Card>
 
-      {/* ========================================================================= */}
-      {/* SECTION 2 (MIDDLE): 🎙️ AUDIO & DIRECT VOICE RECORDER                       */}
-      {/* ========================================================================= */}
-      <Card className="bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/70 pb-3.5 sm:pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-violet-600/15 to-purple-600/10 border border-violet-500/25 flex items-center justify-center text-violet-600 shadow-2xs shrink-0">
-              <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-base sm:text-lg font-black text-foreground tracking-tight">
-                  Audio & Voice Notes
-                </CardTitle>
-                <Badge variant="secondary" className="bg-violet-50 text-violet-700 border-violet-200 text-[10px] sm:text-xs font-bold px-2 py-0.5">
-                  {audioList.length} Tracks
-                </Badge>
-              </div>
-              <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
-                Record voice notes directly from website (tap or hold) for troubleshooting logs, chime audio, and diagnostics.
-              </p>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-            {/* Organize & Delete Mode Toggle Button (Left) */}
-            {isAdmin && isGlobalEditMode && audioList.length > 0 && (
+        {/* BOTTOM ACTION BAR (Strictly Edit Mode Only) */}
+        {isAdmin && isGlobalEditMode && (
+          <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-border/60 mt-2">
+            {/* Bottom-left: Rectangle Manage button (Prominent Blue Tone) */}
+            {photoVideoList.length > 0 ? (
               <Button
                 type="button"
-                variant={isAudioEditMode ? 'default' : 'outline'}
+                variant="outline"
                 size="sm"
                 onClick={() => {
-                  setIsAudioEditMode(!isAudioEditMode);
-                  if (isAudioEditMode) {
+                  setIsEditMode(!isEditMode);
+                  if (isEditMode) {
                     if (isSavingOrder) {
-                      toast.info('Saving audio order in background...');
+                      toast.info('Saving media order in background...');
                     } else {
-                      toast.success('Voice notes organizing finished.');
+                      toast.success('Organizing finished.');
                     }
                   }
                 }}
-                className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
-                  isAudioEditMode
-                    ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20'
-                    : 'border-violet-200 bg-violet-50/60 hover:bg-violet-100/80 text-violet-800'
+                className={`h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl font-black text-xs sm:text-sm gap-2 transition-all cursor-pointer shadow-sm ${
+                  isEditMode
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-500/30 ring-2 ring-blue-400/40'
+                    : 'bg-blue-100 dark:bg-blue-950/90 hover:bg-blue-200 dark:hover:bg-blue-900 text-blue-800 dark:text-blue-200 border-2 border-blue-400 dark:border-blue-500 shadow-sm hover:shadow active:scale-95'
                 }`}
               >
-                {isAudioEditMode ? (
+                {isEditMode ? (
                   isSavingOrder ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
@@ -1247,31 +1197,106 @@ export function KbFolderContentViewer({
                     </>
                   ) : (
                     <>
-                      <Check className="w-3.5 h-3.5 text-white" />
+                      <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
                       <span>Done</span>
                     </>
                   )
                 ) : (
                   <>
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-violet-600" />
-                    <span>Organize</span>
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-blue-700 dark:text-blue-300 stroke-[2.5]" />
+                    <span>Manage</span>
                   </>
                 )}
               </Button>
+            ) : (
+              <div />
             )}
 
-            {/* Direct Voice Recorder Widget (Only visible in Edit Mode!) */}
-            {isAdmin && isGlobalEditMode && (
-              <div className="w-full sm:w-auto animate-in fade-in duration-150">
-                <VoiceRecorderWidget
-                  entityId={entityId}
-                  onRecordingComplete={(newMedia) => {
-                    setMediaList((prev) => [...prev, newMedia]);
-                  }}
-                  disabled={isUploadingMedia}
-                />
+            {/* Bottom-right: Rounded shape icon for photo/video upload */}
+            <div className="relative">
+              {photoVideoList.length === 0 && (
+                <>
+                  {/* Highlighted Breathing Aura (same as arrow) */}
+                  <span className="absolute -inset-2 rounded-full bg-blue-500/25 blur-md animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
+                  {/* Ripple Beacon Ring */}
+                  <span className="absolute -inset-1.5 rounded-full border-2 border-blue-400/50 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
+                </>
+              )}
+              <button
+                ref={mediaButtonRef}
+                type="button"
+                onClick={() => setIsUploadDialogOpen(true)}
+                title="Upload Photos & Videos"
+                aria-label="Upload Photos & Videos"
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full text-white flex items-center justify-center transition-all cursor-pointer border border-white/40 group relative z-10 active:scale-95 ${
+                  photoVideoList.length === 0
+                    ? 'bg-gradient-to-tr from-sky-400 via-blue-600 to-indigo-600 shadow-[0_4px_20px_rgba(37,99,235,0.5),0_0_20px_rgba(56,189,248,0.4)] animate-[pulse_3s_ease-in-out_infinite] ring-2 ring-blue-400/40'
+                    : 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-md hover:shadow-lg ring-2 ring-blue-400/20'
+                }`}
+              >
+                <UploadCloud className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* iOS-Style Pointing Arrow Guide */}
+        {photoVideoList.length === 0 && isAdmin && isGlobalEditMode && (
+          <KbPointingArrow
+            containerRef={mediaCardRef}
+            startRef={mediaAnchorRef}
+            targetRef={mediaButtonRef}
+            colorScheme="blue"
+          />
+        )}
+      </Card>
+
+      {/* ========================================================================= */}
+      {/* SECTION 2 (MIDDLE): 🎙️ AUDIO & DIRECT VOICE RECORDER                       */}
+      {/* ========================================================================= */}
+      <Card
+        ref={audioCardRef}
+        className="relative bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-5 overflow-visible"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/70 pb-3.5 sm:pb-4">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-2xs shrink-0 transition-colors ${
+                !isGlobalEditMode
+                  ? 'bg-violet-500/15 border border-violet-300/80 text-violet-600 dark:bg-violet-950/60 dark:border-violet-700/80 dark:text-violet-400'
+                  : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <Mic
+                className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${
+                  !isGlobalEditMode ? 'text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle
+                  className={`text-base sm:text-lg font-black tracking-tight transition-colors ${
+                    !isGlobalEditMode ? 'text-violet-700 dark:text-violet-400' : 'text-foreground'
+                  }`}
+                >
+                  Audio & Voice Notes
+                </CardTitle>
+                <Badge
+                  variant="secondary"
+                  className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 transition-colors ${
+                    !isGlobalEditMode
+                      ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/80 dark:text-violet-300 border border-violet-200/80 dark:border-violet-700/80'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {audioList.length} Tracks
+                </Badge>
               </div>
-            )}
+              <p className="hidden sm:block text-xs text-muted-foreground/70 mt-0.5">
+                Record voice notes directly from website (tap or hold) for troubleshooting logs, chime audio, and diagnostics.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -1281,7 +1306,7 @@ export function KbFolderContentViewer({
             <div className="flex items-center gap-2.5">
               <span className="flex h-2.5 w-2.5 rounded-full bg-violet-600 animate-pulse shrink-0" />
               <span>
-                <strong>Organize & Delete Mode Active:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to rearrange audio tracks freely.
+                <strong>Manage Mode Active:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to rearrange audio tracks freely.
               </span>
             </div>
             <Button
@@ -1311,32 +1336,36 @@ export function KbFolderContentViewer({
         )}
 
         {audioList.length === 0 ? (
-          <div className="p-8 sm:p-12 text-center bg-violet-50/40 border-2 border-violet-200/70 border-dashed rounded-3xl space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600/15 via-purple-600/15 to-indigo-600/15 border border-violet-300/50 flex items-center justify-center mx-auto text-violet-600 shadow-sm">
-              <Mic className="w-7 h-7" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-base font-extrabold text-foreground tracking-tight">
-                {isGlobalEditMode ? 'Record Diagnostic Voice Notes' : 'No Voice Notes Recorded'}
-              </p>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                {isGlobalEditMode
-                  ? 'Record diagnostic audio, chime patterns, component beep codes, or verbal repair instructions directly from your browser.'
-                  : 'No audio logs or voice notes have been recorded for this folder yet.'}
-              </p>
-            </div>
-            {isAdmin && isGlobalEditMode && (
-              <div className="inline-flex justify-center pt-1 animate-in fade-in duration-150">
-                <VoiceRecorderWidget
-                  entityId={entityId}
-                  onRecordingComplete={(newMedia) => {
-                    setMediaList((prev) => [...prev, newMedia]);
-                  }}
-                  disabled={isUploadingMedia}
-                />
+          isAdmin && isGlobalEditMode ? (
+            <div className="py-14 sm:py-20 px-6 text-center bg-muted/15 border border-border/50 rounded-3xl flex flex-col items-center justify-center space-y-3">
+              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-muted/50 text-muted-foreground/50 flex items-center justify-center">
+                <Mic className="w-6 h-6 sm:w-7 sm:h-7 stroke-[1.5]" />
               </div>
-            )}
-          </div>
+              <div className="space-y-1 max-w-sm">
+                <p className="text-sm sm:text-base font-semibold text-foreground/80 tracking-tight">
+                  No voice notes recorded yet
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  Record diagnostic audio, chime patterns, component beep codes, or verbal repair instructions.
+                </p>
+              </div>
+              <div ref={audioAnchorRef} className="h-2 w-16" />
+            </div>
+          ) : (
+            <div className="p-8 sm:p-12 text-center bg-muted/20 border border-border/60 rounded-3xl space-y-2.5">
+              <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
+                <Mic className="w-6 h-6 stroke-[1.75]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">No voice notes recorded yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-sm mx-auto">
+                  {isAdmin
+                    ? 'Clean View Mode active. Switch to Edit Mode to record diagnostic voice notes.'
+                    : 'No audio logs or voice notes have been recorded for this folder yet.'}
+                </p>
+              </div>
+            </div>
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {audioList.map((audio, idx) => {
@@ -1374,78 +1403,127 @@ export function KbFolderContentViewer({
             })}
           </div>
         )}
+
+        {/* BOTTOM ACTION BAR (Strictly Edit Mode Only) */}
+        {isAdmin && isGlobalEditMode && (
+          <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-border/60 mt-2">
+            {/* Bottom-left: Rectangle Manage button (Prominent Violet Tone) */}
+            {audioList.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsAudioEditMode(!isAudioEditMode);
+                  if (isAudioEditMode) {
+                    if (isSavingOrder) {
+                      toast.info('Saving audio order in background...');
+                    } else {
+                      toast.success('Voice notes organizing finished.');
+                    }
+                  }
+                }}
+                className={`h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl font-black text-xs sm:text-sm gap-2 transition-all cursor-pointer shadow-sm ${
+                  isAudioEditMode
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md shadow-violet-500/30 ring-2 ring-violet-400/40'
+                    : 'bg-violet-100 dark:bg-violet-950/90 hover:bg-violet-200 dark:hover:bg-violet-900 text-violet-800 dark:text-violet-200 border-2 border-violet-400 dark:border-violet-500 shadow-sm hover:shadow active:scale-95'
+                }`}
+              >
+                {isAudioEditMode ? (
+                  isSavingOrder ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                      <span>Done</span>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-violet-700 dark:text-violet-300 stroke-[2.5]" />
+                    <span>Manage</span>
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div />
+            )}
+
+            {/* Bottom-right: Mic record button — always stays here */}
+            <div ref={audioButtonRef} className="relative animate-in fade-in duration-150 shrink-0">
+              <VoiceRecorderWidget
+                entityId={entityId}
+                onRecordingComplete={(newMedia) => {
+                  setMediaList((prev) => [...prev, newMedia]);
+                }}
+                disabled={isUploadingMedia}
+                compact={true}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* iOS-Style Pointing Arrow Guide */}
+        {audioList.length === 0 && isAdmin && isGlobalEditMode && (
+          <KbPointingArrow
+            containerRef={audioCardRef}
+            startRef={audioAnchorRef}
+            targetRef={audioButtonRef}
+            colorScheme="violet"
+          />
+        )}
       </Card>
 
       {/* ========================================================================= */}
       {/* SECTION 3 (BOTTOM): 📝 DOCUMENTS & TECHNICAL NOTES                        */}
       {/* ========================================================================= */}
-      <Card className="bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-6">
+      <Card
+        ref={docCardRef}
+        className="relative bg-white border border-border/80 shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-4 sm:space-y-6 overflow-visible"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/70 pb-3.5 sm:pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-600/15 to-teal-600/10 border border-emerald-500/25 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0">
-              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-2xs shrink-0 transition-colors ${
+                !isGlobalEditMode
+                  ? 'bg-emerald-500/15 border border-emerald-300/80 text-emerald-600 dark:bg-emerald-950/60 dark:border-emerald-700/80 dark:text-emerald-400'
+                  : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <FileText
+                className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${
+                  !isGlobalEditMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                <CardTitle
+                  className={`text-base sm:text-lg font-black tracking-tight transition-colors ${
+                    !isGlobalEditMode ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
+                  }`}
+                >
                   Documents & Notes
                 </CardTitle>
-                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] sm:text-xs font-bold px-2 py-0.5">
+                <Badge
+                  variant="secondary"
+                  className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 transition-colors ${
+                    !isGlobalEditMode
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-700/80'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
                   {pageList.length} Docs
                 </Badge>
               </div>
-              <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
+              <p className="hidden sm:block text-xs text-muted-foreground/70 mt-0.5">
                 Technical logs, voltage test readings, component fault notes, and repair guides.
               </p>
             </div>
           </div>
-
-          {/* Action buttons (Only visible in Edit Mode) */}
-          {isAdmin && isGlobalEditMode && (
-            <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto animate-in fade-in">
-              {/* Organize & Delete Mode Toggle Button (Left) */}
-              {pageList.length > 0 && (
-                <Button
-                  type="button"
-                  variant={isDocEditMode ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setIsDocEditMode(!isDocEditMode);
-                    if (isDocEditMode) {
-                      toast.success('Document organizing finished.');
-                    }
-                  }}
-                  className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm gap-1.5 transition-all cursor-pointer shadow-xs justify-center ${
-                    isDocEditMode
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20'
-                      : 'border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/80 text-emerald-800'
-                  }`}
-                >
-                  {isDocEditMode ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white" />
-                      <span>Done</span>
-                    </>
-                  ) : (
-                    <>
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Organize</span>
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {/* Create Document Modal Button (Right) */}
-              <Button
-                type="button"
-                onClick={handleOpenCreateDoc}
-                className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm hover:shadow-md active:scale-95 border border-white/20"
-              >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>New Doc</span>
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Document Edit Mode Informational Banner */}
@@ -1454,7 +1532,7 @@ export function KbFolderContentViewer({
             <div className="flex items-center gap-2.5">
               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
               <span>
-                <strong>Organize & Delete Mode Active:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to reorder documents freely.
+                <strong>Manage Mode Active:</strong> Drag & drop on PC, or <strong>press & hold</strong> on mobile to reorder documents freely.
               </span>
             </div>
             <Button
@@ -1474,29 +1552,36 @@ export function KbFolderContentViewer({
 
         {/* Documents Stack Feed (Sequential cards visible directly) */}
         {pageList.length === 0 ? (
-          <div className="p-10 sm:p-12 text-center bg-muted/50 border border-border/80 border-dashed rounded-3xl space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center mx-auto text-emerald-600">
-              <FileText className="w-6 h-6" />
+          isAdmin && isGlobalEditMode ? (
+            <div className="py-14 sm:py-20 px-6 text-center bg-muted/15 border border-border/50 rounded-3xl flex flex-col items-center justify-center space-y-3">
+              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-muted/50 text-muted-foreground/50 flex items-center justify-center">
+                <FileText className="w-6 h-6 sm:w-7 sm:h-7 stroke-[1.5]" />
+              </div>
+              <div className="space-y-1 max-w-sm">
+                <p className="text-sm sm:text-base font-semibold text-foreground/80 tracking-tight">
+                  No documents added yet
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  Add technical specs, fault descriptions, voltage readings, and diagnostic procedures.
+                </p>
+              </div>
+              <div ref={docAnchorRef} className="h-2 w-16" />
             </div>
-            <div>
-              <p className="text-sm font-bold text-foreground">No documents added yet</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                {isGlobalEditMode
-                  ? 'Add technical specs, fault descriptions, voltage readings, and diagnostic procedures.'
-                  : 'Clean View Mode active. Switch to Edit Mode to create technical notes or documents.'}
-              </p>
+          ) : (
+            <div className="p-8 sm:p-12 text-center bg-muted/20 border border-border/60 rounded-3xl space-y-2.5">
+              <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
+                <FileText className="w-6 h-6 stroke-[1.75]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">No documents added yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-sm mx-auto">
+                  {isAdmin
+                    ? 'Clean View Mode active. Switch to Edit Mode to create technical notes or documents.'
+                    : 'No technical documents have been added to this folder yet.'}
+                </p>
+              </div>
             </div>
-            {isAdmin && isGlobalEditMode && (
-              <Button
-                type="button"
-                onClick={handleOpenCreateDoc}
-                className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer inline-flex items-center gap-1.5"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Create First Document</span>
-              </Button>
-            )}
-          </div>
+          )
         ) : (
           <div className="space-y-4">
             {pageList.map((doc, idx) => {
@@ -1551,11 +1636,11 @@ export function KbFolderContentViewer({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       {isGlobalEditMode && isDocEditMode ? (
-                        <Badge className="bg-emerald-600 text-white font-extrabold text-xs px-2 py-0.5 shadow-sm shrink-0 mt-0.5 cursor-grab">
+                        <Badge className="bg-slate-700 text-white font-extrabold text-xs px-2 py-0.5 shadow-sm shrink-0 mt-0.5 cursor-grab">
                           #{idx + 1}
                         </Badge>
                       ) : (
-                        <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-700 shrink-0 mt-0.5">
+                        <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0 mt-0.5">
                           <FileText className="w-4 h-4" />
                         </div>
                       )}
@@ -1580,7 +1665,7 @@ export function KbFolderContentViewer({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenEditDoc(doc)}
-                            className="h-8 px-3 rounded-xl text-xs font-bold gap-1 text-foreground/80 hover:text-emerald-700 hover:bg-emerald-50 border border-border/60 shadow-2xs cursor-pointer"
+                            className="h-8 px-3 rounded-xl text-xs font-bold gap-1 text-foreground/80 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 border border-border/60 shadow-2xs cursor-pointer"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit</span>
@@ -1609,7 +1694,7 @@ export function KbFolderContentViewer({
 
                   {/* Description: Smaller & Highly Readable */}
                   <div className="pt-2 border-t border-muted">
-                    <p className="text-sm sm:text-[15px] text-foreground/80 font-normal leading-relaxed whitespace-pre-wrap selection:bg-emerald-100">
+                    <p className="text-sm sm:text-[15px] text-foreground/80 font-normal leading-relaxed whitespace-pre-wrap selection:bg-slate-200 dark:selection:bg-slate-700">
                       {cleanDescription || <span className="italic text-muted-foreground">No description provided.</span>}
                     </p>
                   </div>
@@ -1617,6 +1702,81 @@ export function KbFolderContentViewer({
               );
             })}
           </div>
+        )}
+
+        {/* BOTTOM ACTION BAR (Strictly Edit Mode Only) */}
+        {isAdmin && isGlobalEditMode && (
+          <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-border/60 mt-2">
+            {/* Bottom-left: Rectangle Manage button (Prominent Emerald Tone) */}
+            {pageList.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsDocEditMode(!isDocEditMode);
+                  if (isDocEditMode) {
+                    toast.success('Document organizing finished.');
+                  }
+                }}
+                className={`h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl font-black text-xs sm:text-sm gap-2 transition-all cursor-pointer shadow-sm ${
+                  isDocEditMode
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-500/30 ring-2 ring-emerald-400/40'
+                    : 'bg-emerald-100 dark:bg-emerald-950/90 hover:bg-emerald-200 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border-2 border-emerald-400 dark:border-emerald-500 shadow-sm hover:shadow active:scale-95'
+                }`}
+              >
+                {isDocEditMode ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                    <span>Done</span>
+                  </>
+                ) : (
+                  <>
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300 stroke-[2.5]" />
+                    <span>Manage</span>
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div />
+            )}
+
+            {/* Bottom-right: Rounded shape icon for creating new document */}
+            <div className="relative">
+              {pageList.length === 0 && (
+                <>
+                  {/* Highlighted Breathing Aura (same as arrow) */}
+                  <span className="absolute -inset-2 rounded-full bg-emerald-500/25 blur-md animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
+                  {/* Ripple Beacon Ring */}
+                  <span className="absolute -inset-1.5 rounded-full border-2 border-emerald-400/50 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
+                </>
+              )}
+              <button
+                ref={docButtonRef}
+                type="button"
+                onClick={handleOpenCreateDoc}
+                title="Create New Document"
+                aria-label="Create New Document"
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full text-white flex items-center justify-center transition-all cursor-pointer border border-white/40 group relative z-10 active:scale-95 ${
+                  pageList.length === 0
+                    ? 'bg-gradient-to-tr from-emerald-400 via-emerald-600 to-teal-600 shadow-[0_4px_20px_rgba(5,150,105,0.5),0_0_20px_rgba(52,211,153,0.4)] animate-[pulse_3s_ease-in-out_infinite] ring-2 ring-emerald-400/40'
+                    : 'bg-gradient-to-tr from-emerald-600 to-teal-600 shadow-md hover:shadow-lg ring-2 ring-emerald-400/20'
+                }`}
+              >
+                <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* iOS-Style Pointing Arrow Guide */}
+        {pageList.length === 0 && isAdmin && isGlobalEditMode && (
+          <KbPointingArrow
+            containerRef={docCardRef}
+            startRef={docAnchorRef}
+            targetRef={docButtonRef}
+            colorScheme="emerald"
+          />
         )}
       </Card>
 

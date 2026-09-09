@@ -1,10 +1,10 @@
 /**
  * In-Browser Video Compression Utility
- * Intelligently compresses large smartphone & camera videos (> 40MB) using WhatsApp HD quality standards:
+ * Intelligently compresses videos using WhatsApp HD quality standards:
  * - Full HD 1080p / 720p with crystal visual clarity
  * - High-profile AVC1 / VP9 encoding @ 2.2 - 3.2 Mbps
  * - Crisp text, fine PCB board traces, and chip markings preserved with zero blockiness
- * - Only videos > 40MB are compressed; videos <= 40MB remain 100% untouched.
+ * - Every video goes through compression.
  */
 
 export interface CompressionResult {
@@ -36,7 +36,7 @@ export function optimizeCloudinaryVideoUrl(url: string | null | undefined): stri
 }
 
 /**
- * Compresses a video file in the browser before upload if it exceeds 40MB.
+ * Compresses a video file in the browser before upload.
  * Retains pristine WhatsApp HD visual sharpness while cutting file size significantly.
  */
 export async function compressVideoIfNeeded(
@@ -50,17 +50,11 @@ export async function compressVideoIfNeeded(
     file.type.startsWith('video/') ||
     /\.(mp4|mov|mkv|webm|3gp|3gpp|hevc|avi|m4v)$/i.test(file.name);
 
-  if (!isVideo) {
+  if (!isVideo || originalSize <= 0) {
     return { file, wasCompressed: false, originalSize, compressedSize: originalSize };
   }
 
-  // 2. Only compress if strictly larger than 40MB (videos <= 40MB remain untouched)
-  const MIN_SIZE_FOR_COMPRESSION = 40 * 1024 * 1024; // 40MB threshold
-  if (originalSize <= MIN_SIZE_FOR_COMPRESSION) {
-    return { file, wasCompressed: false, originalSize, compressedSize: originalSize };
-  }
-
-  // 3. Verify browser environment and MediaRecorder support
+  // 2. Verify browser environment and MediaRecorder support
   if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') {
     return { file, wasCompressed: false, originalSize, compressedSize: originalSize };
   }
@@ -93,7 +87,7 @@ export async function compressVideoIfNeeded(
 
   try {
     const originalMB = (originalSize / (1024 * 1024)).toFixed(1);
-    const estimatedTargetMB = Math.max(15, Math.round((originalSize / (1024 * 1024)) * 0.35));
+    const estimatedTargetMB = Math.max(1, Math.round((originalSize / (1024 * 1024)) * 0.35));
 
     if (onProgress) {
       onProgress(5, `Preparing WhatsApp HD compression (${originalMB} MB → ~${estimatedTargetMB} MB)...`);

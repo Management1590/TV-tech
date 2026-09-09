@@ -255,9 +255,8 @@ export async function uploadMediaWithProgress(
   let activeFile = file;
 
   // 1. WhatsApp HD In-Browser Video Compression (~65-75% size reduction with crystal clarity)
-  // ONLY applies to videos strictly ABOVE 40 MB (videos <= 40 MB remain 100% untouched)
-  const VIDEO_COMPRESSION_THRESHOLD = 40 * 1024 * 1024; // 40MB
-  if (mediaType === 'VIDEO' && file.size > VIDEO_COMPRESSION_THRESHOLD) {
+  // Every video goes through compression
+  if (mediaType === 'VIDEO') {
     try {
       const comp = await compressVideoIfNeeded(file, (pct, status) => {
         if (onProgress) {

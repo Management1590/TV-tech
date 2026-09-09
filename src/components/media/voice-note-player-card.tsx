@@ -7,7 +7,6 @@ import {
   Volume2,
   VolumeX,
   Trash2,
-  Download,
   Mic,
   Music,
   ChevronLeft,
@@ -212,7 +211,7 @@ export function VoiceNotePlayerCard({
         {/* Play Button + Info */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {isEditMode && (
-            <div className="text-violet-400 hover:text-violet-600 cursor-grab active:cursor-grabbing shrink-0 pr-0.5">
+            <div className="text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing shrink-0 pr-0.5">
               <GripVertical className="w-4 h-4" />
             </div>
           )}
@@ -220,7 +219,7 @@ export function VoiceNotePlayerCard({
           <button
             type="button"
             onClick={togglePlay}
-            className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white flex items-center justify-center shadow-md shadow-violet-500/25 shrink-0 transition-all active:scale-95 cursor-pointer"
+            className="w-11 h-11 rounded-2xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center shadow-md shadow-slate-900/10 shrink-0 transition-all active:scale-95 cursor-pointer"
             title={isPlaying ? 'Pause' : 'Play Voice Note'}
           >
             {isPlaying ? (
@@ -236,7 +235,7 @@ export function VoiceNotePlayerCard({
                 {filename || 'Voice Note Recording'}
               </p>
               {isEditMode && (
-                <Badge className="bg-violet-600 text-white font-extrabold text-[10px] px-1.5 py-0 shadow-sm shrink-0">
+                <Badge className="bg-slate-700 text-white font-extrabold text-[10px] px-1.5 py-0 shadow-sm shrink-0">
                   #{index + 1}
                 </Badge>
               )}
@@ -245,28 +244,16 @@ export function VoiceNotePlayerCard({
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
               <span>{dateFormatted}</span>
               <span>•</span>
-              <span className="font-mono text-violet-700 font-semibold">
+              <span className="font-mono text-muted-foreground font-semibold">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Action buttons (Download or Edit actions) */}
-        <div className="flex items-center gap-1 shrink-0">
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            download={filename || 'voice_note'}
-            className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Download Audio"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </a>
-
-          {/* Delete Button (Visible in Edit Mode) */}
-          {isEditMode && isAdmin && onDelete && (
+        {/* Delete Button (Visible in Edit Mode) */}
+        {isEditMode && isAdmin && onDelete && (
+          <div className="flex items-center gap-1 shrink-0">
             <Button
               type="button"
               variant="destructive"
@@ -277,8 +264,8 @@ export function VoiceNotePlayerCard({
             >
               <Trash2 className="w-3.5 h-3.5 text-white" />
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Progress Timeline Bar */}
@@ -290,7 +277,7 @@ export function VoiceNotePlayerCard({
           step="0.1"
           value={progress}
           onChange={handleSeek}
-          className="w-full h-1.5 bg-muted/80 rounded-lg appearance-none cursor-pointer accent-violet-600 hover:h-2 transition-all"
+          className="w-full h-1.5 bg-muted/80 rounded-lg appearance-none cursor-pointer accent-slate-700 dark:accent-slate-400 hover:h-2 transition-all"
         />
       </div>
     </div>
