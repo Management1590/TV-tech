@@ -164,22 +164,22 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 active:bg-slate-200 border border-slate-200/90 dark:border-slate-700/90 text-foreground transition-all duration-200 min-w-0 max-w-full cursor-pointer text-left group shadow-2xs"
+              className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl sm:rounded-3xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 active:bg-slate-200 border border-slate-200/90 dark:border-slate-700/90 text-foreground transition-all duration-200 min-w-0 max-w-full cursor-pointer text-left group shadow-2xs"
               title="View account details & permissions"
             >
               <div
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-xs shrink-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-xs shrink-0"
               >
                 {initials}
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-xs sm:text-sm font-extrabold text-foreground truncate group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-none">
+                  <span className="text-xs sm:text-sm md:text-base font-extrabold text-foreground truncate max-w-[150px] sm:max-w-[220px] md:max-w-xs group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-tight">
                     {displayName}
                   </span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" title="Active Session" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-800 shrink-0" title="Active Session" />
                 </div>
-                <span className="text-[10px] text-muted-foreground font-semibold mt-0.5 leading-none truncate">
+                <span className="text-[11px] sm:text-xs text-muted-foreground font-semibold mt-0.5 leading-none truncate">
                   {isAdmin ? 'Super Admin' : 'Staff Technician'}
                 </span>
               </div>
@@ -192,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
         )}
 
         {/* User Profile & Actions Toolbar */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Admin-only: Create New Staff Account Button */}
           {isAdmin && (
             <Button
@@ -216,15 +216,15 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               size="sm"
               onClick={() => setIsSignOutOpen(true)}
               disabled={isPending}
-              className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-rose-50/80 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200/80 dark:hover:border-rose-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs transition-all gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0 group"
+              className="h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-rose-50/80 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200/80 dark:hover:border-rose-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0 group"
               title="Sign out of TV Tech OS"
+              aria-label="Sign Out"
             >
               {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+                <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
               ) : (
-                <LogOut className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors" />
+                <LogOut className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors" />
               )}
-              <span>Sign Out</span>
             </Button>
           )}
 
@@ -233,19 +233,19 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
             <div className="hidden sm:block">
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-muted/90 hover:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group"
+                  className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl bg-muted/90 hover:bg-muted/80 border border-border/80 text-foreground transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary group"
                   aria-label="User profile menu"
                 >
                   <div
-                    className="w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-2xs"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center text-white bg-slate-700 dark:bg-slate-700 shadow-2xs shrink-0"
                   >
                     {initials}
                   </div>
                   <div className="hidden md:flex flex-col text-left">
-                    <span className="text-xs font-bold text-foreground leading-none group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                    <span className="text-xs sm:text-sm font-extrabold text-foreground leading-tight group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                       {displayName}
                     </span>
-                    <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                    <span className="text-[11px] text-muted-foreground font-semibold mt-0.5 leading-none">
                       {isAdmin ? 'Super Admin' : 'Staff Technician'}
                     </span>
                   </div>
