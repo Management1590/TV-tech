@@ -110,10 +110,8 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
               '0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -3px rgba(100,116,145,0.12), 0 20px 40px -4px rgba(100,116,145,0.08)',
           }}
         >
-          {/* Background Canvas & Thematic Icon */}
-          <div
-            className={`absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden pb-8 sm:pb-11 ${theme.bgCanvas}`}
-          >
+          {/* Background Canvas & Pattern (fills whole folder) */}
+          <div className={`absolute inset-0 w-full h-full overflow-hidden ${theme.bgCanvas}`}>
             {/* Ambient background glow */}
             <div
               className={`absolute w-44 h-44 rounded-full ${theme.glowColor} blur-3xl group-hover:scale-125 transition-transform duration-500 pointer-events-none`}
@@ -128,35 +126,37 @@ export function KbFolderCard({ folder, modelId, userRole = 'STAFF' }: KbFolderCa
                 backgroundSize: '16px 16px',
               }}
             />
+          </div>
 
-            {/* Combined Center Emblem (Thematic Icon + Information Capsule) */}
-            <div className="relative flex flex-col items-center justify-center text-center p-2 z-10">
+          {/* Centered Emblem Container (optically & geometrically centered between folder shoulder and bottom bar) */}
+          <div className="absolute top-[16px] sm:top-[24px] bottom-[42px] sm:bottom-[50px] inset-x-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="relative flex flex-col items-center justify-center text-center p-1 pointer-events-auto">
               <div
-                className={`flex flex-col items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl sm:rounded-3xl border backdrop-blur-md group-hover:scale-105 group-hover:shadow-lg transition-all duration-300 ${theme.emblemCard}`}
+                className={`flex flex-col items-center justify-center px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl sm:rounded-3xl border backdrop-blur-md group-hover:scale-105 group-hover:shadow-lg transition-all duration-300 ${theme.emblemCard}`}
               >
                 {/* Center Icon */}
                 <div className="flex items-center justify-center mb-1 sm:mb-1.5">
                   {isBacklight ? (
-                    <Lightbulb className="w-5 h-5 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400 shrink-0" />
                   ) : isMoreInfo ? (
-                    <Info className="w-5 h-5 sm:w-7 sm:h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <Info className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
                   ) : (
-                    <Folder className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
+                    <Folder className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
                   )}
                 </div>
 
                 {/* Combined Information Capsule */}
                 <div
-                  className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-tight border ${theme.pillStyle}`}
+                  className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-normal border ${theme.pillStyle}`}
                 >
                   {isBacklight ? (
-                    <Lightbulb className="w-2.5 h-2.5 shrink-0 opacity-75" />
+                    <Lightbulb className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-80" />
                   ) : isMoreInfo ? (
-                    <Sparkles className="w-2.5 h-2.5 shrink-0 opacity-75" />
+                    <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-80" />
                   ) : (
-                    <Folder className="w-2.5 h-2.5 shrink-0 opacity-75" />
+                    <Folder className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-80" />
                   )}
-                  <span className="whitespace-nowrap">{theme.badgeLabel}</span>
+                  <span className="whitespace-nowrap leading-none">{theme.badgeLabel}</span>
                 </div>
               </div>
             </div>
