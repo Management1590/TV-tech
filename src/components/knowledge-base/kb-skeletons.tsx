@@ -10,7 +10,7 @@ export function FolderSilhouetteClip({ clipId }: { clipId: string }) {
     <svg className="w-0 h-0 absolute pointer-events-none" aria-hidden="true">
       <defs>
         <clipPath id={`folder-skeleton-clip-${clipId}`} clipPathUnits="objectBoundingBox">
-          <path d="M 0.06,1 A 0.06,0.08 0 0,1 0,0.92 L 0,0.08 A 0.06,0.08 0 0,1 0.06,0 L 0.30,0 C 0.34,0 0.33,0.135 0.37,0.135 L 0.94,0.135 A 0.06,0.08 0 0,1 1,0.215 L 1,0.92 A 0.06,0.08 0 0,1 0.94,1 Z" />
+          <path d="M 0.16,1 A 0.16,0.16 0 0,1 0,0.84 L 0,0.14 A 0.14,0.14 0 0,1 0.14,0 L 0.33,0 C 0.40,0 0.41,0.15 0.48,0.15 L 0.86,0.15 A 0.14,0.14 0 0,1 1,0.29 L 1,0.84 A 0.16,0.16 0 0,1 0.84,1 Z" />
         </clipPath>
       </defs>
     </svg>
