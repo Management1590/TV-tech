@@ -77,6 +77,17 @@ export function UploadItemMediaDialog({
     }
   }, [open, hasExistingMedia]);
 
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB Cloudinary limit
+  const MAX_PHOTO_SIZE = 9 * 1024 * 1024;   // 9MB Photo limit
+
+  const { isImage: isSelectedPhoto, isVideo: isSelectedVideo } = selectedFile
+    ? detectMediaKind(selectedFile.name, selectedFile.type)
+    : { isImage: false, isVideo: false };
+
+  const isOversizedVideo = Boolean(selectedFile && isSelectedVideo && selectedFile.size > MAX_VIDEO_SIZE);
+  const isOversizedPhoto = Boolean(selectedFile && isSelectedPhoto && selectedFile.size > MAX_PHOTO_SIZE);
+  const isOversized = isOversizedVideo || isOversizedPhoto;
+
   const handleFileSelect = (file: File) => {
     if (!file) return;
 
@@ -85,6 +96,16 @@ export function UploadItemMediaDialog({
     if (!isImage && !isVideo && !isAudio) {
       toast.error('Please select an image, video, or audio file');
       return;
+    }
+
+    if (isVideo && file.size > MAX_VIDEO_SIZE) {
+      toast.error(
+        `"${file.name}" (${formatFileSize(file.size)}) exceeds Cloudinary's 100MB limit. Upload is disabled for videos over 100MB.`
+      );
+    } else if (isImage && file.size > MAX_PHOTO_SIZE) {
+      toast.error(
+        `"${file.name}" (${formatFileSize(file.size)}) exceeds the 9MB photo limit. Upload is disabled for photos over 9MB.`
+      );
     }
 
     setSelectedFile(file);
@@ -131,6 +152,14 @@ export function UploadItemMediaDialog({
   const handleUpload = async () => {
     if (mode === 'upload' && !selectedFile) {
       toast.error('Please select a file to upload');
+      return;
+    }
+    if (mode === 'upload' && isOversizedVideo) {
+      toast.error('Video exceeds Cloudinary 100MB limit. Upload is disabled.');
+      return;
+    }
+    if (mode === 'upload' && isOversizedPhoto) {
+      toast.error('Photo exceeds 9MB limit. Upload is disabled.');
       return;
     }
     if (mode === 'url' && !imageUrl.trim()) {
@@ -265,7 +294,7 @@ export function UploadItemMediaDialog({
                       High-resolution photos (JPG, PNG, WebP, GIF), 4K video clips, or audio
                     </p>
                     <Badge variant="outline" className="mt-2 text-[10px] bg-primary/5 border-primary/20 text-primary">
-                      No File Size Limit
+                      Max Video: 100MB • Max Photo: 9MB
                     </Badge>
                   </div>
                   <input
@@ -298,12 +327,27 @@ export function UploadItemMediaDialog({
                       {selectedFile.name}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-[10px] bg-background border-border text-muted-foreground font-mono">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] bg-background font-mono ${
+                          isOversized ? 'border-destructive text-destructive' : 'border-border text-muted-foreground'
+                        }`}
+                      >
                         {formatFileSize(selectedFile.size)}
                       </Badge>
-                      <span className="text-[11px] text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Ready
-                      </span>
+                      {isOversizedVideo ? (
+                        <span className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-semibold">
+                          <AlertCircle className="w-3 h-3" /> Exceeds 100MB
+                        </span>
+                      ) : isOversizedPhoto ? (
+                        <span className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-semibold">
+                          <AlertCircle className="w-3 h-3" /> Exceeds 9MB
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-emerald-600 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Ready
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -379,6 +423,20 @@ export function UploadItemMediaDialog({
             />
           </div>
 
+          {/* Oversized Warning Alert */}
+          {isOversizedVideo && (
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Video exceeds Cloudinary&apos;s 100MB limit. Upload is disabled for files over 100MB.</span>
+            </div>
+          )}
+          {isOversizedPhoto && (
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Photo exceeds the 9MB limit. Upload is disabled for photos over 9MB. Please select a photo under 9MB.</span>
+            </div>
+          )}
+
           {/* Upload Progress Bar & Status */}
           {isUploading && (
             <div className="space-y-2 p-3.5 bg-primary/5 border border-primary/20 rounded-xl">
@@ -407,10 +465,24 @@ export function UploadItemMediaDialog({
           <Button
             type="button"
             onClick={handleUpload}
-            disabled={isUploading || (mode === 'upload' && !selectedFile) || (mode === 'url' && !imageUrl.trim())}
-            className="bg-primary hover:bg-primary text-foreground text-xs h-9 px-5 rounded-xl font-semibold shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+            disabled={
+              isUploading ||
+              (mode === 'upload' && (!selectedFile || isOversized)) ||
+              (mode === 'url' && !imageUrl.trim())
+            }
+            className="bg-primary hover:bg-primary text-foreground text-xs h-9 px-5 rounded-xl font-semibold shadow-[0_0_15px_rgba(59,130,246,0.3)] disabled:opacity-50"
           >
-            {isUploading ? (
+            {isOversizedVideo ? (
+              <>
+                <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                Video &gt; 100MB (Upload Disabled)
+              </>
+            ) : isOversizedPhoto ? (
+              <>
+                <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                Photo &gt; 9MB (Upload Disabled)
+              </>
+            ) : isUploading ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
                 Uploading...

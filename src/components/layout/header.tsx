@@ -299,7 +299,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                       <span className="text-[11px] font-medium">Session Status</span>
                       <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Active (Live)
+                        Active (Infinite)
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-muted-foreground px-1">
@@ -503,7 +503,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                         <span className="text-muted-foreground font-medium">Session Status</span>
                         <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          Active (Live)
+                          Active (Infinite)
                         </span>
                       </div>
                       <div className="flex items-center justify-between">

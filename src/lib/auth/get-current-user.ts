@@ -8,6 +8,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { UserRole } from '@prisma/client';
+import { SESSION_COOKIE_NAME } from '@/lib/auth/session-config';
 
 export interface CurrentUser {
   id: string;
@@ -25,7 +26,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     const cookieStore = await cookies();
 
     // 1. Check direct session cookie first for fast lookup
-    const sessionCookie = cookieStore.get('tv-tech-session');
+    const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
     if (sessionCookie?.value) {
       try {
         const sessionData = JSON.parse(sessionCookie.value);
@@ -41,6 +42,20 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
               email: user.email,
               fullName: user.fullName,
               role: sessionData.role === 'ADMIN' ? UserRole.ADMIN : user.role,
+            };
+          }
+
+          // Resilient admin fallback for environment-configured admin
+          const envAdminEmail = (process.env.ADMIN_EMAIL || 'admin@modernelectronics.com').toLowerCase().trim();
+          if (
+            (sessionData.role === 'ADMIN' || sessionData.authProvider === 'ENV_ADMIN') &&
+            sessionData.email?.toLowerCase().trim() === envAdminEmail
+          ) {
+            return {
+              id: sessionData.userId || 'env-admin-master',
+              email: sessionData.email,
+              fullName: 'MODERN ELECTRONICS Admin',
+              role: UserRole.ADMIN,
             };
           }
         }

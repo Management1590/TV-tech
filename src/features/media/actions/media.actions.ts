@@ -13,17 +13,22 @@ export interface UploadMediaResult {
   media?: any;
 }
 
-// No artificial size limits for images
-const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
+// Cloudinary maximum file size limit
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB Cloudinary limit
+const MAX_PHOTO_SIZE = 9 * 1024 * 1024;   // 9MB strict photo limit
 const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
 
 /**
  * Uploads a media file (Image, Video, or Audio) to Cloudinary or Supabase,
  * registers it in the Entity Registry, and links it to the target entity.
- * Supports unlimited image sizes and all common image formats.
+ * Supports WhatsApp HD photo and video compression standards.
  */
 import { detectMediaKind } from '@/lib/media-detect';
-import { optimizeCloudinaryVideoUrl } from '@/lib/video-compressor';
+import {
+  optimizeCloudinaryVideoUrl,
+  optimizeCloudinaryImageUrl,
+  evaluateSmartSkipping,
+} from '@/lib/video-compressor';
 
 export async function uploadMediaAction(formData: FormData): Promise<UploadMediaResult> {
   const user = await getCurrentUser();
@@ -45,12 +50,13 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
 
     let mediaType: MediaType = MediaType.IMAGE;
     if (detectedType === 'VIDEO') {
-      if (size > MAX_VIDEO_SIZE) return { success: false, error: 'Video size exceeds maximum 500MB limit.' };
+      if (size > MAX_VIDEO_SIZE) return { success: false, error: 'Video size exceeds Cloudinary 100MB limit. Upload is disabled for videos over 100MB.' };
       mediaType = MediaType.VIDEO;
     } else if (detectedType === 'AUDIO') {
       if (size > MAX_AUDIO_SIZE) return { success: false, error: 'Audio size exceeds maximum 100MB limit.' };
       mediaType = MediaType.AUDIO;
     } else {
+      if (size > MAX_PHOTO_SIZE) return { success: false, error: 'Photo size exceeds 9MB limit. Upload is disabled for photos over 9MB.' };
       mediaType = MediaType.IMAGE;
     }
 
@@ -103,8 +109,28 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
 
     const rawUrl = uploadResult.url || uploadResult.secure_url;
     const rawSecureUrl = uploadResult.secure_url || uploadResult.url;
-    const finalUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawUrl) : rawUrl;
-    const finalSecureUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawSecureUrl) : rawSecureUrl;
+
+    let finalUrl = rawUrl;
+    let finalSecureUrl = rawSecureUrl;
+
+    if (mediaType === MediaType.VIDEO) {
+      const duration = uploadResult.duration || 0;
+      const sizeBytes = uploadResult.bytes || size;
+      const skipCheck = evaluateSmartSkipping({ duration, sizeBytes });
+      finalUrl = optimizeCloudinaryVideoUrl(rawUrl, {
+        skipCompression: skipCheck.shouldSkip,
+        duration,
+        sizeBytes,
+      });
+      finalSecureUrl = optimizeCloudinaryVideoUrl(rawSecureUrl, {
+        skipCompression: skipCheck.shouldSkip,
+        duration,
+        sizeBytes,
+      });
+    } else if (mediaType === MediaType.IMAGE) {
+      finalUrl = optimizeCloudinaryImageUrl(rawUrl, 2560);
+      finalSecureUrl = optimizeCloudinaryImageUrl(rawSecureUrl, 2560);
+    }
 
     // Register in database
     const media = await createMediaAttachment({

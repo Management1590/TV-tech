@@ -12,6 +12,7 @@ import { assertPermission, UnauthorizedError } from '../src/lib/auth/rbac-guard'
 import { PERMISSIONS } from '../src/lib/auth/permissions';
 import { DEFAULT_KB_TEMPLATES } from '../src/features/knowledge-base/services/tv-model.service';
 import { PurchasePdfTemplate } from '../src/features/purchase-manager/templates/purchase-pdf-template';
+import { SESSION_COOKIE_NAME, INFINITE_SESSION_MAX_AGE, getSessionCookieOptions } from '../src/lib/auth/session-config';
 
 before(() => {
   if (!process.env.DATABASE_URL) {
@@ -208,4 +209,29 @@ describe('TV Tech OS: Master Production Quality Test Suite', () => {
       assert.ok(typeof PurchasePdfTemplate === 'function');
     });
   });
+
+  // ------------------------------------------------------------
+  // SECTION 8: AUTHENTICATION & INFINITE SESSION DURATION
+  // ------------------------------------------------------------
+  describe('Authentication: Infinite Session Duration & Sliding Expiration', () => {
+    it('Enforces tv-tech-session as session cookie key', () => {
+      assert.strictEqual(SESSION_COOKIE_NAME, 'tv-tech-session');
+    });
+
+    it('Enforces infinite session duration (100 years / ~3.15 billion seconds)', () => {
+      assert.ok(INFINITE_SESSION_MAX_AGE >= 3_000_000_000, `Expected maxAge >= 3B seconds, got ${INFINITE_SESSION_MAX_AGE}`);
+    });
+
+    it('Generates HTTP-only, secure lax cookie options with 100-year expiration', () => {
+      const options = getSessionCookieOptions();
+      assert.strictEqual(options.httpOnly, true);
+      assert.strictEqual(options.sameSite, 'lax');
+      assert.strictEqual(options.path, '/');
+      assert.strictEqual(options.maxAge, INFINITE_SESSION_MAX_AGE);
+      assert.ok(options.expires instanceof Date);
+      // Expiration must be set well into the future (at least year 2120)
+      assert.ok(options.expires.getFullYear() >= 2120, `Expected year >= 2120, got ${options.expires.getFullYear()}`);
+    });
+  });
 });
+

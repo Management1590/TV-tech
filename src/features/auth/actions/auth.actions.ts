@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { UserRole } from '@prisma/client';
+import { SESSION_COOKIE_NAME, getSessionCookieOptions } from '@/lib/auth/session-config';
 
 export interface AuthResult {
   success: boolean;
@@ -63,21 +64,19 @@ export async function loginAction(email: string, password: string): Promise<Auth
         console.warn('Database pool warning during admin login, proceeding with verified env auth:', dbErr);
       }
 
-      // Set secure HTTP-only session cookie
+      // Set secure HTTP-only infinite session cookie
       const cookieStore = await cookies();
-      cookieStore.set('tv-tech-session', JSON.stringify({
-        userId: adminUserId,
-        email: adminEmail,
-        role: UserRole.ADMIN,
-        authProvider: 'ENV_ADMIN',
-        timestamp: Date.now(),
-      }), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        path: '/',
-      });
+      cookieStore.set(
+        SESSION_COOKIE_NAME,
+        JSON.stringify({
+          userId: adminUserId,
+          email: adminEmail,
+          role: UserRole.ADMIN,
+          authProvider: 'ENV_ADMIN',
+          timestamp: Date.now(),
+        }),
+        getSessionCookieOptions()
+      );
 
       return { success: true, role: UserRole.ADMIN };
     }
@@ -155,21 +154,19 @@ export async function loginAction(email: string, password: string): Promise<Auth
       return { success: false, error: 'Account is disabled. Contact administration.' };
     }
 
-    // Set secure session cookie for Staff
+    // Set secure HTTP-only infinite session cookie for Staff
     const cookieStore = await cookies();
-    cookieStore.set('tv-tech-session', JSON.stringify({
-      userId: user.id,
-      email: user.email,
-      role: user.role || UserRole.STAFF,
-      authProvider: 'SUPABASE_STAFF',
-      timestamp: Date.now(),
-    }), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-    });
+    cookieStore.set(
+      SESSION_COOKIE_NAME,
+      JSON.stringify({
+        userId: user.id,
+        email: user.email,
+        role: user.role || UserRole.STAFF,
+        authProvider: 'SUPABASE_STAFF',
+        timestamp: Date.now(),
+      }),
+      getSessionCookieOptions()
+    );
 
     return { success: true, role: user.role };
   } catch (error: any) {
@@ -190,7 +187,7 @@ export async function logoutAction(): Promise<void> {
   }
 
   const cookieStore = await cookies();
-  cookieStore.delete('tv-tech-session');
+  cookieStore.delete(SESSION_COOKIE_NAME);
   redirect('/login');
 }
 

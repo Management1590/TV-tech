@@ -100,8 +100,11 @@ export function KbFolderContentViewer({
 }: KbFolderContentViewerProps) {
   const isAdmin = !!userRole;
 
-  // Global View vs Edit Mode State: Always start in clean View Mode by default
-  const [isGlobalEditMode, setIsGlobalEditMode] = useState<boolean>(false);
+  // Check whether folder is initially empty (no photos/videos, audio notes, or documents)
+  const isInitialEmpty = (mediaAttachments?.length ?? 0) === 0 && (pages?.length ?? 0) === 0;
+
+  // Global View vs Edit Mode State: When the folder is empty, automatically show in Editing Mode
+  const [isGlobalEditMode, setIsGlobalEditMode] = useState<boolean>(isInitialEmpty);
 
   // Media state
   const [mediaList, setMediaList] = useState<MediaItem[]>(mediaAttachments);
@@ -126,6 +129,23 @@ export function KbFolderContentViewer({
   const [editingDoc, setEditingDoc] = useState<{ id?: string; title: string; description: string } | null>(null);
   const [isSavingDoc, setIsSavingDoc] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Automatically activate Edit Mode when navigating to an empty folder or when folderId updates
+  useEffect(() => {
+    setMediaList(mediaAttachments);
+    setPageList(pages);
+    const empty = (mediaAttachments?.length ?? 0) === 0 && (pages?.length ?? 0) === 0;
+    if (empty) {
+      setIsGlobalEditMode(true);
+    }
+  }, [folderId, mediaAttachments, pages]);
+
+  // When all contents in the folder are deleted and the folder becomes empty, automatically switch to Edit Mode
+  useEffect(() => {
+    if (mediaList.length === 0 && pageList.length === 0) {
+      setIsGlobalEditMode(true);
+    }
+  }, [mediaList.length, pageList.length]);
 
   // Pointing Arrow Refs for iOS-Style Empty State Guides
   const mediaCardRef = useRef<HTMLDivElement>(null);
@@ -884,7 +904,15 @@ export function KbFolderContentViewer({
           <div className="flex items-center gap-2.5">
             <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
             <span className="text-slate-600 dark:text-slate-300 font-normal">
-              <strong className="font-bold text-slate-800 dark:text-slate-200">Editing Mode is active:</strong> You can upload media, record voice notes, add docs, and organize items across all sections.
+              {mediaList.length === 0 && pageList.length === 0 ? (
+                <>
+                  <strong className="font-bold text-slate-800 dark:text-slate-200">Empty Folder (Editing Mode active):</strong> Upload photos/videos, record voice notes, or create documents below to populate this folder.
+                </>
+              ) : (
+                <>
+                  <strong className="font-bold text-slate-800 dark:text-slate-200">Editing Mode is active:</strong> You can upload media, record voice notes, add docs, and organize items across all sections.
+                </>
+              )}
             </span>
           </div>
           <Button

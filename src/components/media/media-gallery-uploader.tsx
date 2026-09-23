@@ -52,8 +52,30 @@ export function MediaGalleryUploader({ entityId, mediaItems, userRole = 'ADMIN' 
     let successCount = 0;
     let failCount = 0;
 
+    const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB Cloudinary limit
+    const MAX_PHOTO_SIZE = 9 * 1024 * 1024;   // 9MB Photo limit
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(file.name);
+      const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|bmp|avif|heic)$/i.test(file.name);
+
+      if (isVideo && file.size > MAX_VIDEO_SIZE) {
+        failCount++;
+        toast.error(
+          `"${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB) exceeds Cloudinary's 100MB limit. Upload is disabled for videos over 100MB.`
+        );
+        continue;
+      }
+
+      if (isImage && file.size > MAX_PHOTO_SIZE) {
+        failCount++;
+        toast.error(
+          `"${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB) exceeds the 9MB photo limit. Upload is disabled for photos over 9MB.`
+        );
+        continue;
+      }
+
       const purpose = mediaItems.length === 0 && i === 0 ? 'PRIMARY' : 'GALLERY';
 
       const result = await uploadMediaWithProgress(

@@ -5,16 +5,12 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { SESSION_COOKIE_NAME, getSessionCookieOptions } from '@/lib/auth/session-config';
 
 const PUBLIC_PATHS = ['/login', '/api/auth'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  // Allow public paths
-  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
 
   // Allow static assets and Next.js internals
   if (
@@ -26,7 +22,28 @@ export function middleware(request: NextRequest) {
   }
 
   // Check session cookie
-  const session = request.cookies.get('tv-tech-session');
+  const session = request.cookies.get(SESSION_COOKIE_NAME);
+
+  // If user is on /login but already authenticated, redirect appropriately and refresh cookie
+  if (pathname === '/login' && session?.value) {
+    let userRole = 'STAFF';
+    try {
+      const sessionData = JSON.parse(session.value);
+      userRole = sessionData.role || 'STAFF';
+    } catch {
+      userRole = 'STAFF';
+    }
+
+    const redirectPath = userRole === 'STAFF' ? '/inventory' : (request.nextUrl.searchParams.get('redirect') || '/');
+    const response = NextResponse.redirect(new URL(redirectPath, request.url));
+    response.cookies.set(SESSION_COOKIE_NAME, session.value, getSessionCookieOptions());
+    return response;
+  }
+
+  // Allow public paths (e.g. /login for unauthenticated users, /api/auth)
+  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
 
   if (!session?.value) {
     // Return 401 for unauthorized API calls (except auth endpoints)
@@ -57,20 +74,17 @@ export function middleware(request: NextRequest) {
       pathname.startsWith('/purchase-manager') ||
       pathname.startsWith('/analytics')
     ) {
-      return NextResponse.redirect(new URL('/inventory', request.url));
+      const redirectResponse = NextResponse.redirect(new URL('/inventory', request.url));
+      redirectResponse.cookies.set(SESSION_COOKIE_NAME, session.value, getSessionCookieOptions());
+      return redirectResponse;
     }
   }
 
-  // If user is on /login but already authenticated, redirect appropriately
-  if (pathname === '/login' && session?.value) {
-    if (userRole === 'STAFF') {
-      return NextResponse.redirect(new URL('/inventory', request.url));
-    }
-    const redirectParam = request.nextUrl.searchParams.get('redirect') || '/';
-    return NextResponse.redirect(new URL(redirectParam, request.url));
-  }
-
-  return NextResponse.next();
+  // Sliding Session Renewal: Re-set infinite session cookie on every authenticated request
+  // so that the 400-day browser expiration window is continuously rolled forward into the future.
+  const response = NextResponse.next();
+  response.cookies.set(SESSION_COOKIE_NAME, session.value, getSessionCookieOptions());
+  return response;
 }
 
 export const config = {

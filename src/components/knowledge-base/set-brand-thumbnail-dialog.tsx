@@ -117,6 +117,11 @@ export function SetBrandThumbnailDialog({
       return;
     }
 
+    if (file.size > 9 * 1024 * 1024) {
+      toast.error(`"${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB) exceeds the 9MB photo limit.`);
+      return;
+    }
+
     const objectUrl = URL.createObjectURL(file);
     setSelectedFile(file);
     setPreviewUrl(objectUrl);

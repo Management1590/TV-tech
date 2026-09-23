@@ -124,6 +124,11 @@ export function SetItemThumbnailDialog({
       return;
     }
 
+    if (file.size > 9 * 1024 * 1024) {
+      toast.error(`"${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB) exceeds the 9MB photo limit.`);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;

@@ -6,12 +6,17 @@ import { MediaType, StorageProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { detectMediaKind } from '@/lib/media-detect';
-import { optimizeCloudinaryVideoUrl } from '@/lib/video-compressor';
+import {
+  optimizeCloudinaryVideoUrl,
+  optimizeCloudinaryImageUrl,
+  evaluateSmartSkipping,
+} from '@/lib/video-compressor';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes max duration for large video uploads
+export const maxDuration = 300; // 5 minutes max duration for uploads
 
-const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB strictly matching Cloudinary limit
+const MAX_PHOTO_SIZE = 9 * 1024 * 1024;   // 9MB strict photo limit
 const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
 
 export async function POST(req: NextRequest) {
@@ -37,7 +42,10 @@ export async function POST(req: NextRequest) {
     let mediaType: MediaType = MediaType.IMAGE;
     if (detectedType === 'VIDEO') {
       if (size > MAX_VIDEO_SIZE) {
-        return NextResponse.json({ success: false, error: 'Video size exceeds maximum 500MB limit.' }, { status: 400 });
+        return NextResponse.json({
+          success: false,
+          error: `Video size (${(size / 1024 / 1024).toFixed(1)} MB) exceeds Cloudinary's 100MB limit. Upload is disabled for videos over 100MB.`,
+        }, { status: 400 });
       }
       mediaType = MediaType.VIDEO;
     } else if (detectedType === 'AUDIO') {
@@ -46,6 +54,12 @@ export async function POST(req: NextRequest) {
       }
       mediaType = MediaType.AUDIO;
     } else {
+      if (size > MAX_PHOTO_SIZE) {
+        return NextResponse.json({
+          success: false,
+          error: `Photo size (${(size / 1024 / 1024).toFixed(1)} MB) exceeds the 9MB limit. Upload is disabled for photos over 9MB.`,
+        }, { status: 400 });
+      }
       mediaType = MediaType.IMAGE;
     }
 
@@ -53,7 +67,7 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Stream upload directly to Cloudinary with chunking support
+    // Stream upload directly to Cloudinary with WhatsApp HD compression settings
     const uploadResult: any = await new Promise((resolve, reject) => {
       const uploadOptions: any = {
         folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
@@ -64,6 +78,7 @@ export async function POST(req: NextRequest) {
       if (mediaType === MediaType.AUDIO) {
         uploadOptions.format = 'mp3';
       } else if (mediaType === MediaType.VIDEO) {
+        uploadOptions.format = 'mp4';
         uploadOptions.chunk_size = 6 * 1024 * 1024;
       }
 
@@ -96,11 +111,31 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Register in database
+    // Register in database with WhatsApp HD delivery URLs and 1:4 video skipping
     const rawUrl = uploadResult.url || uploadResult.secure_url;
     const rawSecureUrl = uploadResult.secure_url || uploadResult.url;
-    const finalUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawUrl) : rawUrl;
-    const finalSecureUrl = mediaType === MediaType.VIDEO ? optimizeCloudinaryVideoUrl(rawSecureUrl) : rawSecureUrl;
+
+    let finalUrl = rawUrl;
+    let finalSecureUrl = rawSecureUrl;
+
+    if (mediaType === MediaType.VIDEO) {
+      const duration = uploadResult.duration || 0;
+      const sizeBytes = uploadResult.bytes || size;
+      const skipCheck = evaluateSmartSkipping({ duration, sizeBytes });
+      finalUrl = optimizeCloudinaryVideoUrl(rawUrl, {
+        skipCompression: skipCheck.shouldSkip,
+        duration,
+        sizeBytes,
+      });
+      finalSecureUrl = optimizeCloudinaryVideoUrl(rawSecureUrl, {
+        skipCompression: skipCheck.shouldSkip,
+        duration,
+        sizeBytes,
+      });
+    } else if (mediaType === MediaType.IMAGE) {
+      finalUrl = optimizeCloudinaryImageUrl(rawUrl, 2560);
+      finalSecureUrl = optimizeCloudinaryImageUrl(rawSecureUrl, 2560);
+    }
 
     const media = await createMediaAttachment({
       entityId,
@@ -111,7 +146,7 @@ export async function POST(req: NextRequest) {
       provider: StorageProvider.CLOUDINARY,
       filename: file.name,
       mimeType: normalizedMime,
-      sizeBytes: size,
+      sizeBytes: uploadResult.bytes || size,
       width: uploadResult.width || undefined,
       height: uploadResult.height || undefined,
       purpose,

@@ -113,6 +113,9 @@ function NavBar({
   const startPosRef = useRef<{ x: number; y: number; moved: boolean }>({ x: 0, y: 0, moved: false });
   const activeIdxRef = useRef(activeIdx);
   activeIdxRef.current = activeIdx;
+  const rectLeftRef = useRef<number>(0);
+  const rafIdRef = useRef<number | null>(null);
+  const latestXRef = useRef<number>(0);
 
   useEffect(() => {
     const idx = navItems.findIndex(
@@ -122,6 +125,15 @@ function NavBar({
     );
     if (idx !== -1) setActiveIdx(idx);
   }, [pathname, navItems]);
+
+  // Clean up animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
 
   // Prefetch tabs for instant navigation upon release
   useEffect(() => {
@@ -185,14 +197,12 @@ function NavBar({
 
   const getRelativeX = useCallback(
     (clientX: number) => {
-      if (!containerRef.current) return restingActiveX;
-      const rect = containerRef.current.getBoundingClientRect();
-      const rawX = clientX - rect.left;
       const minX = tabWidth * 0.5;
       const maxX = barWidth - tabWidth * 0.5;
+      const rawX = clientX - rectLeftRef.current;
       return Math.max(minX, Math.min(maxX, rawX));
     },
-    [barWidth, tabWidth, restingActiveX]
+    [barWidth, tabWidth]
   );
 
   const getTabIndexFromX = useCallback(
@@ -218,6 +228,15 @@ function NavBar({
   // Pointer event handlers for hold-and-slide
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return; // Left click or touch only
+
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    rectLeftRef.current = rect ? rect.left : 0;
+
     const relX = getRelativeX(e.clientX);
     const targetIdx = getTabIndexFromX(relX);
 
@@ -226,9 +245,10 @@ function NavBar({
     setDragX(relX);
 
     if (targetIdx !== activeIdxRef.current) {
+      activeIdxRef.current = targetIdx;
       setActiveIdx(targetIdx);
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(8);
+        try { navigator.vibrate(8); } catch {}
       }
     }
 
@@ -248,20 +268,35 @@ function NavBar({
       startPosRef.current.moved = true;
     }
 
-    const relX = getRelativeX(e.clientX);
-    setDragX(relX);
+    latestXRef.current = e.clientX;
 
-    const targetIdx = getTabIndexFromX(relX);
-    if (targetIdx !== activeIdxRef.current) {
-      setActiveIdx(targetIdx);
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(6);
-      }
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        if (!containerRef.current) return;
+
+        const relX = getRelativeX(latestXRef.current);
+        setDragX(relX);
+
+        const targetIdx = getTabIndexFromX(relX);
+        if (targetIdx !== activeIdxRef.current) {
+          activeIdxRef.current = targetIdx;
+          setActiveIdx(targetIdx);
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try { navigator.vibrate(6); } catch {}
+          }
+        }
+      });
     }
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
+
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
 
     try {
       if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) {
@@ -279,12 +314,18 @@ function NavBar({
     navigateToTab(finalIdx);
 
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(10);
+      try { navigator.vibrate(10); } catch {}
     }
   };
 
   const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
+
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
     try {
       if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) {
         (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
@@ -311,6 +352,7 @@ function NavBar({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        style={{ touchAction: 'none' }}
         className="relative w-full h-[64px] pointer-events-auto touch-none select-none cursor-grab active:cursor-grabbing"
       >
         {/* SVG Container with Mask for Notch Curve */}
@@ -318,7 +360,9 @@ function NavBar({
           width={barWidth}
           height={64}
           viewBox={`0 0 ${barWidth} 64`}
+          shapeRendering="geometricPrecision"
           className="absolute inset-0 overflow-visible drop-shadow-[0_-4px_16px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_-6px_20px_rgba(0,0,0,0.45)]"
+          style={{ transform: 'translateZ(0)', willChange: 'transform' }}
         >
           <defs>
             <mask id={maskId}>
@@ -327,10 +371,11 @@ function NavBar({
               {/* Sliding Notch Cutout */}
               <g
                 style={{
-                  transform: `translateX(${currentX}px)`,
+                  transform: `translate3d(${currentX}px, 0, 0)`,
                   transition: isDragging
-                    ? 'transform 0.04s linear'
-                    : 'transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1)',
+                    ? 'none'
+                    : 'transform 0.42s cubic-bezier(0.22, 1.25, 0.36, 1)',
+                  willChange: 'transform',
                 }}
               >
                 {/* Organic smooth scoop: bar top is at y=14, dips to y=39 with gentle shoulders */}
@@ -355,7 +400,7 @@ function NavBar({
 
         {/* Floating Active Button (elevated, sliding with activeX) */}
         <div
-          className="absolute top-0 left-0 flex items-center justify-center pointer-events-none z-10"
+          className="absolute top-0 left-0 flex items-center justify-center pointer-events-none z-10 will-change-transform"
           style={{
             width: '42px',
             height: '42px',
@@ -364,10 +409,10 @@ function NavBar({
             boxShadow: isDragging
               ? `0 14px 28px -2px ${activeTheme.shadow}`
               : `0 8px 20px -2px ${activeTheme.shadow}`,
-            transform: `translateX(${currentX - 21}px) translateY(${isDragging ? '0px' : '3px'}) scale(${isDragging ? 1.08 : 1})`,
+            transform: `translate3d(${currentX - 21}px, ${isDragging ? 0 : 3}px, 0) scale(${isDragging ? 1.08 : 1})`,
             transition: isDragging
-              ? 'transform 0.04s linear, background 0.25s ease, box-shadow 0.25s ease'
-              : 'transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease',
+              ? 'none'
+              : 'transform 0.42s cubic-bezier(0.22, 1.25, 0.36, 1), background 0.3s ease, box-shadow 0.3s ease',
           }}
         >
           {ActiveIcon && (
@@ -395,9 +440,12 @@ function NavBar({
                 onDragStart={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.preventDefault();
-                  navigateToTab(idx);
+                  if (!startPosRef.current.moved) {
+                    navigateToTab(idx);
+                  }
                 }}
                 className="flex-1 flex flex-col items-center justify-center h-full active:scale-90 transition-transform duration-150 outline-none select-none"
+                style={{ touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
                 aria-label={item.label}
               >
                 <Icon

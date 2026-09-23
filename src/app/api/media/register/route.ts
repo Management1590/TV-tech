@@ -4,6 +4,7 @@ import { createMediaAttachment } from '@/features/media/services/media.service';
 import { MediaType, StorageProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { optimizeCloudinaryVideoUrl, optimizeCloudinaryImageUrl } from '@/lib/video-compressor';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,8 @@ export async function POST(req: NextRequest) {
       sizeBytes,
       width,
       height,
+      duration,
+      skipCompression,
       purpose = 'GALLERY',
     } = body;
 
@@ -47,13 +50,24 @@ export async function POST(req: NextRequest) {
       ? MediaType.AUDIO
       : MediaType.IMAGE;
 
+    const rawTargetUrl = secureUrl || url;
+    const finalUrl = resolvedMediaType === MediaType.VIDEO
+      ? optimizeCloudinaryVideoUrl(rawTargetUrl, {
+          duration,
+          sizeBytes,
+          skipCompression,
+        })
+      : resolvedMediaType === MediaType.IMAGE
+      ? optimizeCloudinaryImageUrl(rawTargetUrl, 2560)
+      : rawTargetUrl;
+
     const media = await createMediaAttachment({
       entityId,
       mediaType: resolvedMediaType,
       provider: StorageProvider.CLOUDINARY,
       publicId,
-      url,
-      secureUrl: secureUrl || url,
+      url: finalUrl,
+      secureUrl: finalUrl,
       filename: filename || 'media_upload',
       mimeType: mimeType || (resolvedMediaType === MediaType.VIDEO ? 'video/mp4' : 'image/jpeg'),
       sizeBytes: sizeBytes || undefined,
