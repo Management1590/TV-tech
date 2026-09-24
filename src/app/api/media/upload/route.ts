@@ -10,6 +10,7 @@ import {
   optimizeCloudinaryVideoUrl,
   optimizeCloudinaryImageUrl,
   evaluateSmartSkipping,
+  calculateTargetResolution,
 } from '@/lib/video-compressor';
 
 export const dynamic = 'force-dynamic';
@@ -118,6 +119,9 @@ export async function POST(req: NextRequest) {
     let finalUrl = rawUrl;
     let finalSecureUrl = rawSecureUrl;
 
+    let finalWidth = uploadResult.width;
+    let finalHeight = uploadResult.height;
+
     if (mediaType === MediaType.VIDEO) {
       const duration = uploadResult.duration || 0;
       const sizeBytes = uploadResult.bytes || size;
@@ -132,6 +136,12 @@ export async function POST(req: NextRequest) {
         duration,
         sizeBytes,
       });
+
+      if (!skipCheck.shouldSkip && finalWidth && finalHeight) {
+        const targetRes = calculateTargetResolution(finalWidth, finalHeight);
+        finalWidth = targetRes.targetW;
+        finalHeight = targetRes.targetH;
+      }
     } else if (mediaType === MediaType.IMAGE) {
       finalUrl = optimizeCloudinaryImageUrl(rawUrl, 2560);
       finalSecureUrl = optimizeCloudinaryImageUrl(rawSecureUrl, 2560);
@@ -147,8 +157,8 @@ export async function POST(req: NextRequest) {
       filename: file.name,
       mimeType: normalizedMime,
       sizeBytes: uploadResult.bytes || size,
-      width: uploadResult.width || undefined,
-      height: uploadResult.height || undefined,
+      width: finalWidth || undefined,
+      height: finalHeight || undefined,
       purpose,
       uploadedById: user.id,
     });

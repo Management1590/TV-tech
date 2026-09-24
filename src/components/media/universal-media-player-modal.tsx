@@ -19,6 +19,10 @@ import {
   Film,
   Image as ImageIcon,
 } from 'lucide-react';
+import {
+  optimizeCloudinaryVideoUrl,
+  getRawCloudinaryVideoUrl,
+} from '@/lib/video-compressor';
 
 export interface UniversalMediaItem {
   id: string;
@@ -52,6 +56,7 @@ export function UniversalMediaPlayerModal({
   isAdmin = false,
 }: UniversalMediaPlayerModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const currentItem = items[currentIndex];
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -93,6 +98,12 @@ export function UniversalMediaPlayerModal({
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [videoRotation, setVideoRotation] = useState(0);
+  const [videoProcessing, setVideoProcessing] = useState(false);
+  const [videoFallbackMap, setVideoFallbackMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setVideoProcessing(false);
+  }, [currentIndex]);
 
   // Map storing playback progress timestamp (in seconds) for each video
   const videoPlaybackPositionsRef = useRef<Record<string, number>>({});
@@ -573,8 +584,6 @@ export function UniversalMediaPlayerModal({
       }
     }
   }, [isOpen, currentIndex, items, stopAllVideos]);
-
-  const currentItem = items[currentIndex];
 
   // Handle direct index switching from filmstrip
   const handleIndexChange = useCallback(
@@ -1442,7 +1451,13 @@ export function UniversalMediaPlayerModal({
           {items.map((item, idx) => {
             const isCurrent = idx === currentIndex;
             const isItemVideo = item.mediaType === 'VIDEO';
-            const mediaUrl = item.secureUrl || item.url;
+            const rawUrl = item.secureUrl || item.url;
+            const useFallback = videoFallbackMap[item.id];
+            const mediaUrl = isItemVideo
+              ? useFallback
+                ? getRawCloudinaryVideoUrl(rawUrl)
+                : optimizeCloudinaryVideoUrl(rawUrl)
+              : rawUrl;
             const offsetIndex = idx - currentIndex;
 
             // Render current, previous (-1), and next (+1) items
@@ -1479,7 +1494,38 @@ export function UniversalMediaPlayerModal({
                         playsInline
                         autoPlay
                         preload="auto"
+                        onError={async () => {
+                          if (!currentItem || currentItem.mediaType !== 'VIDEO') return;
+                          const raw = currentItem.secureUrl || currentItem.url;
+                          const optimized = optimizeCloudinaryVideoUrl(raw);
+                          const rawFallback = getRawCloudinaryVideoUrl(raw);
+
+                          // Check if Cloudinary is processing in background (HTTP 423)
+                          try {
+                            const res = await fetch(optimized, { method: 'HEAD' });
+                            if (res.status === 423) {
+                              setVideoProcessing(true);
+                              setTimeout(() => {
+                                if (videoRef.current) {
+                                  videoRef.current.load();
+                                }
+                              }, 3000);
+                              return;
+                            }
+                          } catch {}
+
+                          // If transcode failed or timed out, fall back to pristine raw source
+                          if (rawFallback && rawFallback !== optimized && !videoFallbackMap[currentItem.id]) {
+                            console.warn('[UniversalMediaPlayerModal] Video stream fallback to raw source:', rawFallback);
+                            setVideoFallbackMap((prev) => ({ ...prev, [currentItem.id]: true }));
+                            setVideoProcessing(false);
+                            return;
+                          }
+
+                          setVideoProcessing(false);
+                        }}
                         onLoadedMetadata={() => {
+                          setVideoProcessing(false);
                           if (!videoRef.current || !currentItem) return;
                           const dur = videoRef.current.duration || 1;
                           setDuration(dur);
@@ -1514,6 +1560,32 @@ export function UniversalMediaPlayerModal({
                         }}
                         className="z-10 select-none m-auto"
                       />
+
+                      {videoProcessing && (
+                        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-xs select-none p-4">
+                          <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-slate-900/90 border border-slate-700/80 shadow-2xl text-white">
+                            <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs font-medium tracking-wide">
+                              Optimizing video stream (720p HD)...
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-2 text-center max-w-xs">
+                            High-efficiency cloud transcoding is in progress. Playback will begin automatically in a few seconds.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (currentItem) {
+                                setVideoFallbackMap((prev) => ({ ...prev, [currentItem.id]: true }));
+                                setVideoProcessing(false);
+                              }
+                            }}
+                            className="mt-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-slate-200 transition-colors cursor-pointer"
+                          >
+                            Play original video immediately
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <img

@@ -53,7 +53,7 @@ const compressedUrl = optimizeCloudinaryVideoUrl(sampleVideoUrl, {
   duration: 60,
   sizeBytes: 45 * 1024 * 1024,
 });
-console.assert(compressedUrl.includes('/video/upload/f_auto,q_auto:good,w_1920,c_limit,vc_h264,br_2000k,ac_aac,ab_96k/'), 'Must apply optimal Cloudinary transformations when compressed');
+console.assert(compressedUrl.includes('/video/upload/f_auto,q_auto:good,w_1280,h_1280,c_limit,vc_h264,br_1500k,ac_aac/'), 'Must apply optimal Cloudinary transformations when compressed');
 console.log('  ✓ Video needing compression transformed URL:', compressedUrl);
 
 // Video skipping compression (MP4)

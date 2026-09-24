@@ -2,8 +2,8 @@
  * In-Browser Video Compression Utility
  * Intelligently compresses videos using WhatsApp HD quality standards:
  * - Phase 1: Smart-Skipping Analytics (4:1 duration-to-size satisfaction & bitrate check)
- * - Phase 2: High-Efficiency Compression Engine (H.264/AVC 1080p max ceiling, VBR ~2.0 Mbps, AAC-LC 96 kbps)
- * - Phase 3: Feeds into resilient upload pipeline with double-retry policy & Cloudinary WhatsApp HD transcoding
+ * - Phase 2: High-Efficiency Compression Engine (H.264/AVC 720p max ceiling, VBR ~1.5 Mbps, AAC-LC 96 kbps)
+ * - Phase 3: Feeds into resilient upload pipeline with double-retry policy & Cloudinary 720p transcoding
  *
  * CRITICAL RELIABILITY DIRECTIVE:
  * - In browser JavaScript, canvas.captureStream() + MediaRecorder is fundamentally flawed for video files
@@ -11,7 +11,7 @@
  *   crushes 10-bit HDR colors into 8-bit sRGB, and produces corrupt, unseekable containers (duration: Infinity).
  * - To guarantee ZERO corruption, 100% audio synchronization, proper HDR-to-SDR tone mapping, and valid moov atoms,
  *   uncompressed/high-bitrate videos are preserved in their pristine container and transformed via hardware-accelerated
- *   WhatsApp HD cloud transcoding (1080p ceiling, 2.0 Mbps bitrate, H.264 MP4 container, AAC audio).
+ *   720p cloud transcoding (720p ceiling, 1.5 Mbps bitrate, H.264 MP4 container, AAC audio).
  */
 
 export interface VideoMetadata {
@@ -136,9 +136,9 @@ export function evaluateSmartSkipping(metadata: {
 }
 
 /**
- * Calculates target resolution respecting WhatsApp HD 1080p ceiling:
- * - Max ceiling: 1080p (1920x1080 landscape, 1080x1920 portrait).
- * - If original video is lower than 1080p, preserve original dimensions.
+ * Calculates target resolution respecting 720p ceiling:
+ * - Max ceiling: 720p (1280x720 landscape, 720x1280 portrait).
+ * - If original video is lower than 720p, preserve original dimensions.
  * - Always ensures even pixel dimensions for H.264 macroblock compatibility.
  */
 export function calculateTargetResolution(
@@ -146,17 +146,17 @@ export function calculateTargetResolution(
   originalH: number
 ): { targetW: number; targetH: number } {
   if (originalW <= 0 || originalH <= 0) {
-    return { targetW: 1920, targetH: 1080 };
+    return { targetW: 1280, targetH: 720 };
   }
 
   const isLandscape = originalW >= originalH;
-  const MAX_W = isLandscape ? 1920 : 1080;
-  const MAX_H = isLandscape ? 1080 : 1920;
+  const MAX_W = isLandscape ? 1280 : 720;
+  const MAX_H = isLandscape ? 720 : 1280;
 
   let targetW = originalW;
   let targetH = originalH;
 
-  // Scale down only if original exceeds 1080p ceiling
+  // Scale down only if original exceeds 720p ceiling
   if (originalW > MAX_W || originalH > MAX_H) {
     const scale = Math.min(MAX_W / originalW, MAX_H / originalH);
     targetW = Math.round(originalW * scale);
@@ -174,23 +174,19 @@ export function calculateTargetResolution(
 }
 
 /**
- * Calculates Dynamic Variable Bitrate (VBR) target for WhatsApp HD (targeting ~2.0 Mbps, strictly clamped).
+ * Calculates Dynamic Variable Bitrate (VBR) target for 720p (targeting ~1.5 Mbps, strictly clamped).
  */
 export function calculateDynamicVbrBitrate(targetW: number, targetH: number): number {
   const totalPixels = targetW * targetH;
 
   let targetBitrate: number;
-  // 1080p Full HD (~2,073,600 pixels): 2.1 Mbps (matches 4:1 WhatsApp HD standard)
-  if (totalPixels >= 1920 * 1080 * 0.75) {
-    targetBitrate = 2_100_000;
-  }
-  // 720p HD (~921,600 pixels): 1.8 Mbps
-  else if (totalPixels >= 1280 * 720 * 0.75) {
-    targetBitrate = 1_800_000;
-  }
-  // Lower resolutions: 1.5 Mbps baseline cap
-  else {
+  // 720p HD (~921,600 pixels): 1.5 Mbps
+  if (totalPixels >= 1280 * 720 * 0.75) {
     targetBitrate = 1_500_000;
+  }
+  // Sub-720p (e.g. 480p ~409,920 pixels): 1.0 Mbps baseline cap
+  else {
+    targetBitrate = 1_000_000;
   }
 
   return targetBitrate;
@@ -241,8 +237,8 @@ export async function extractVideoMetadata(file: File): Promise<VideoMetadata> {
     // Graceful fallback for iPhone .MOV / QuickTime files where browser video element cannot decode locally
     return {
       duration: 0,
-      width: 1920,
-      height: 1080,
+      width: 1280,
+      height: 720,
       sizeBytes: file.size,
       averageBitrateBps: 0,
     };
@@ -255,7 +251,60 @@ export interface CloudinaryVideoOptimizeOptions {
   duration?: number;
   sizeBytes?: number;
   skipCompression?: boolean;
-  maxWidth?: number; // default 1920
+  maxWidth?: number; // default 1280
+}
+
+/**
+ * Extracts Cloudinary video URL prefix and public path, stripping any existing transformations.
+ * Guarantees zero duplicate transformation chaining.
+ */
+export function extractCloudinaryVideoParts(
+  url: string | null | undefined
+): { prefix: string; publicPath: string } | null {
+  if (!url || typeof url !== 'string' || !url.includes('res.cloudinary.com') || !url.includes('/video/upload/')) {
+    return null;
+  }
+  // If version is present (/v\d+/...)
+  const versionMatch = url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/video\/upload\/).*?(v\d+\/.*)$/);
+  if (versionMatch) {
+    return { prefix: versionMatch[1], publicPath: versionMatch[2] };
+  }
+  // If no version is present, strip any transformation segment(s)
+  const transMatch = url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/video\/upload\/)(?:(?:[a-z]{1,4}_[^/]+,?)+\/)*(.*)$/);
+  if (transMatch) {
+    return { prefix: transMatch[1], publicPath: transMatch[2] };
+  }
+  return null;
+}
+
+/**
+ * Returns raw uncompressed Cloudinary video URL (without any transformations) as fallback.
+ */
+export function getRawCloudinaryVideoUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== 'string') return '';
+  const parts = extractCloudinaryVideoParts(url);
+  if (!parts) return url;
+  return `${parts.prefix}${parts.publicPath}`;
+}
+
+/**
+ * Extracts Cloudinary image URL prefix and public path, stripping any existing transformations.
+ */
+export function extractCloudinaryImageParts(
+  url: string | null | undefined
+): { prefix: string; publicPath: string } | null {
+  if (!url || typeof url !== 'string' || !url.includes('res.cloudinary.com') || !url.includes('/image/upload/')) {
+    return null;
+  }
+  const versionMatch = url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/).*?(v\d+\/.*)$/);
+  if (versionMatch) {
+    return { prefix: versionMatch[1], publicPath: versionMatch[2] };
+  }
+  const transMatch = url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(?:(?:[a-z]{1,4}_[^/]+,?)+\/)*(.*)$/);
+  if (transMatch) {
+    return { prefix: transMatch[1], publicPath: transMatch[2] };
+  }
+  return null;
 }
 
 /**
@@ -264,23 +313,21 @@ export interface CloudinaryVideoOptimizeOptions {
  *   ratio or tighter, compression is automatically SKIPPED to preserve pristine quality.
  *   Non-standard formats (.mov, etc.) are delivered cleanly with f_auto without lossy recompression.
  * - When compressed: Applies optimal Cloudinary transformations:
- *   - Auto-quality: q_auto:good (high visual retention preset)
- *   - Auto-format: f_auto (delivers optimal container for iOS/Android/Desktop)
- *   - Responsive resizing: w_1920,c_limit (1080p ceiling, preserves aspect ratio, no upscaling)
- *   - Universal codec & bitrate: vc_h264,br_2000k (smooth 60fps cross-platform playback)
- *   - High-fidelity audio: ac_aac,ab_96k (96 kbps AAC)
+ *   - Dynamic format container: f_auto (delivers optimal MP4/WebM based on client device)
+ *   - Auto-quality: q_auto:good (high visual retention preset, crisp details, small file footprint)
+ *   - Responsive resizing: w_1280,h_1280,c_limit (720p ceiling: 1280x720 landscape, 720x1280 portrait, preserves aspect ratio, no upscaling)
+ *   - Universal codec & bitrate: vc_h264,br_1500k (~1.5 Mbps bitrate for smooth 720p streaming)
+ *   - Universal audio codec: ac_aac (AAC audio track for 100% device compatibility)
+ *   - CRITICAL FIX: NEVER include 'ab_96k' as Cloudinary rejects 'ab' with HTTP 400 Bad Request.
+ *   - Idempotent: Strips any pre-existing transformation blocks to prevent duplicate '/f_auto,.../' stacking.
  */
 export function optimizeCloudinaryVideoUrl(
   url: string | null | undefined,
   options?: CloudinaryVideoOptimizeOptions
 ): string {
   if (!url || typeof url !== 'string') return '';
-  if (!url.includes('res.cloudinary.com') || !url.includes('/video/upload/')) {
-    return url;
-  }
-  if (url.includes('/q_auto') || url.includes('/vc_') || url.includes('/br_')) {
-    return url;
-  }
+  const parts = extractCloudinaryVideoParts(url);
+  if (!parts) return url;
 
   // Evaluate condition-based skipping
   let shouldSkip = false;
@@ -298,23 +345,17 @@ export function optimizeCloudinaryVideoUrl(
   if (shouldSkip) {
     // If container is an iPhone .mov or other non-standard container that won't stream on Android,
     // normalize format with f_auto without downscaling or bitrate crushing
-    if (/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i.test(url)) {
-      return url.replace('/video/upload/', '/video/upload/f_auto/').replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i, '.mp4');
+    if (/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i.test(parts.publicPath)) {
+      const cleanPath = parts.publicPath.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i, '.mp4');
+      return `${parts.prefix}f_auto/${cleanPath}`;
     }
-    return url;
+    return `${parts.prefix}${parts.publicPath}`;
   }
 
   // 2. Transformation Settings (When compressed):
-  const maxWidth = options?.maxWidth || 1920;
-  let transformed = url.replace(
-    '/video/upload/',
-    `/video/upload/f_auto,q_auto:good,w_${maxWidth},c_limit,vc_h264,br_2000k,ac_aac,ab_96k/`
-  );
-
-  // For non-standard video formats (.mov, .mkv, .avi, etc.), ensure delivery as .mp4
-  transformed = transformed.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i, '.mp4');
-
-  return transformed;
+  const maxWidth = options?.maxWidth || 1280;
+  const cleanPath = parts.publicPath.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i, '.mp4');
+  return `${parts.prefix}f_auto,q_auto:good,w_${maxWidth},h_${maxWidth},c_limit,vc_h264,br_1500k,ac_aac/${cleanPath}`;
 }
 
 /**
@@ -322,23 +363,17 @@ export function optimizeCloudinaryVideoUrl(
  * - Dynamic format selection: f_auto (delivers WebP for Android/Chrome, AVIF/WebP, JPEG/PNG where needed)
  * - Smart compression: q_auto:good (high-retention preset, crisp details, low physical file footprint)
  * - Reasonable maximum dimension cap: max width/height of 2560 pixels with c_limit (never upscales)
+ * - Idempotent: Strips any pre-existing transformation blocks to prevent duplicate stacking.
  */
 export function optimizeCloudinaryImageUrl(
   url: string | null | undefined,
   maxDimension: number = 2560
 ): string {
   if (!url || typeof url !== 'string') return '';
-  if (!url.includes('res.cloudinary.com') || !url.includes('/image/upload/')) {
-    return url;
-  }
-  if (url.includes('/q_auto') || url.includes('/w_2560') || url.includes('/w_1920')) {
-    return url;
-  }
+  const parts = extractCloudinaryImageParts(url);
+  if (!parts) return url;
 
-  return url.replace(
-    '/image/upload/',
-    `/image/upload/f_auto,q_auto:good,w_${maxDimension},h_${maxDimension},c_limit/`
-  );
+  return `${parts.prefix}f_auto,q_auto:good,w_${maxDimension},h_${maxDimension},c_limit/${parts.publicPath}`;
 }
 
 /**

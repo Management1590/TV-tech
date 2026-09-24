@@ -89,7 +89,7 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
         });
 
         assert.strictEqual(res.shouldSkip, false);
-        assert.strictEqual(logs.length, 0); // No skip message logged
+        assert.strictEqual(logs.some((msg) => msg.includes('Video already optimized')), false);
       } finally {
         console.log = originalLog;
       }
@@ -135,7 +135,7 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
         });
 
         assert.strictEqual(res.shouldSkip, false);
-        assert.strictEqual(logs.length, 0); // No skip message logged
+        assert.strictEqual(logs.some((msg) => msg.includes('Video already optimized')), false);
       } finally {
         console.log = originalLog;
       }
@@ -145,24 +145,24 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
   // ===========================================================================
   // PHASE 2: HIGH-EFFICIENCY COMPRESSION ENGINE (WHATSAPP HD STANDARDS)
   // ===========================================================================
-  describe('Phase 2: WhatsApp HD Quality Clone Specifications', () => {
-    it('scales down 4K (3840x2160) to 1080p (1920x1080) ceiling maintaining 16:9 ratio', () => {
+  describe('Phase 2: WhatsApp Quality Clone Specifications (720p HD Standard)', () => {
+    it('scales down 4K (3840x2160) to 720p (1280x720) ceiling maintaining 16:9 ratio', () => {
       const { targetW, targetH } = calculateTargetResolution(3840, 2160);
-      assert.strictEqual(targetW, 1920);
-      assert.strictEqual(targetH, 1080);
+      assert.strictEqual(targetW, 1280);
+      assert.strictEqual(targetH, 720);
       assert.strictEqual(targetW % 2, 0);
       assert.strictEqual(targetH % 2, 0);
     });
 
-    it('scales down vertical 4K (2160x3840) to vertical 1080p (1080x1920)', () => {
+    it('scales down vertical 4K (2160x3840) to vertical 720p (720x1280)', () => {
       const { targetW, targetH } = calculateTargetResolution(2160, 3840);
-      assert.strictEqual(targetW, 1080);
-      assert.strictEqual(targetH, 1920);
+      assert.strictEqual(targetW, 720);
+      assert.strictEqual(targetH, 1280);
       assert.strictEqual(targetW % 2, 0);
       assert.strictEqual(targetH % 2, 0);
     });
 
-    it('preserves dimensions for videos already below 1080p ceiling (e.g. 720p or 480p)', () => {
+    it('preserves dimensions for videos already below 720p ceiling (e.g. 480p)', () => {
       // 720p (1280x720)
       const res720 = calculateTargetResolution(1280, 720);
       assert.strictEqual(res720.targetW, 1280);
@@ -175,23 +175,19 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
     });
 
     it('ensures odd dimensions are scaled to even integers for video encoding', () => {
-      const res = calculateTargetResolution(1919, 1079);
+      const res = calculateTargetResolution(1279, 719);
       assert.strictEqual(res.targetW % 2, 0);
       assert.strictEqual(res.targetH % 2, 0);
     });
 
-    it('calculates Dynamic VBR bitrate targeting ~2.0 Mbps (matching WhatsApp HD 4:1 ratio)', () => {
-      // 1080p
-      const bitrate1080 = calculateDynamicVbrBitrate(1920, 1080);
-      assert.strictEqual(bitrate1080, 2_100_000);
-
+    it('calculates Dynamic VBR bitrate targeting ~1.5 Mbps for 720p', () => {
       // 720p
       const bitrate720 = calculateDynamicVbrBitrate(1280, 720);
-      assert.strictEqual(bitrate720, 1_800_000);
+      assert.strictEqual(bitrate720, 1_500_000);
 
       // Sub-720p
       const bitrate480 = calculateDynamicVbrBitrate(854, 480);
-      assert.strictEqual(bitrate480, 1_500_000);
+      assert.strictEqual(bitrate480, 1_000_000);
     });
 
     it('enforces AAC-LC audio bitrate target of 96 kbps', () => {
@@ -332,11 +328,11 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
   // CLOUDINARY WHATSAPP HD CLOUD TRANSFORMATION & 100MB LIMIT TESTS
   // ===========================================================================
   describe('Cloudinary WhatsApp HD Cloud Transformation & 100MB Limit', () => {
-    it('transforms raw Cloudinary video URL to WhatsApp HD standard (1080p, 2Mbps, H.264 MP4, AAC 96k)', () => {
+    it('transforms raw Cloudinary video URL to 720p standard (720p, 1.5Mbps, H.264 MP4, AAC 96k)', () => {
       const rawUrl = 'https://res.cloudinary.com/test-cloud/video/upload/v1234567890/tv-tech-os/videos/sample.mov';
       const transformed = optimizeCloudinaryVideoUrl(rawUrl);
 
-      assert.ok(transformed.includes('/video/upload/f_mp4,vc_h264,w_1920,c_limit,br_2000k,ac_aac,ab_96k,q_auto:good/'));
+      assert.ok(transformed.includes('/video/upload/f_auto,q_auto:good,w_1280,h_1280,c_limit,vc_h264,br_1500k,ac_aac/'));
       assert.ok(transformed.endsWith('.mp4'));
       assert.ok(!transformed.endsWith('.mov'));
     });
@@ -346,7 +342,7 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
       const transformed = optimizeCloudinaryVideoUrl(iphoneMov);
 
       assert.ok(transformed.endsWith('.mp4'));
-      assert.ok(transformed.includes('br_2000k'));
+      assert.ok(transformed.includes('br_1500k'));
     });
 
     it('preserves non-cloudinary URLs without unwanted modifications', () => {
@@ -356,7 +352,7 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
 
     it('transforms Cloudinary image URLs to WhatsApp HD (3840px 4K ceiling, q_auto:good, f_auto)', () => {
       const rawImageUrl = 'https://res.cloudinary.com/test-cloud/image/upload/v12345/tv-tech-os/images/photo.png';
-      const transformed = optimizeCloudinaryImageUrl(rawImageUrl);
+      const transformed = optimizeCloudinaryImageUrl(rawImageUrl, 3840);
 
       assert.ok(transformed.includes('/image/upload/f_auto,q_auto:good,w_3840,h_3840,c_limit/'));
     });
@@ -382,8 +378,7 @@ describe('Video Compression & Resilient Upload Pipeline Test Suite', () => {
 
       const result = await compressVideoIfNeeded(mockValidFile);
       assert.strictEqual(result.error, undefined);
-      assert.strictEqual(result.skipped, true);
-      assert.ok(result.skipReason?.includes('Cloudinary WhatsApp HD'));
+      assert.strictEqual(result.needsServerTranscode, true);
     });
   });
 });

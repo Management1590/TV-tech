@@ -4,7 +4,7 @@ import { createMediaAttachment } from '@/features/media/services/media.service';
 import { MediaType, StorageProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { optimizeCloudinaryVideoUrl, optimizeCloudinaryImageUrl } from '@/lib/video-compressor';
+import { optimizeCloudinaryVideoUrl, optimizeCloudinaryImageUrl, calculateTargetResolution } from '@/lib/video-compressor';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +61,14 @@ export async function POST(req: NextRequest) {
       ? optimizeCloudinaryImageUrl(rawTargetUrl, 2560)
       : rawTargetUrl;
 
+    let finalWidth = width;
+    let finalHeight = height;
+    if (resolvedMediaType === MediaType.VIDEO && !skipCompression && finalWidth && finalHeight) {
+      const targetRes = calculateTargetResolution(finalWidth, finalHeight);
+      finalWidth = targetRes.targetW;
+      finalHeight = targetRes.targetH;
+    }
+
     const media = await createMediaAttachment({
       entityId,
       mediaType: resolvedMediaType,
@@ -71,8 +79,8 @@ export async function POST(req: NextRequest) {
       filename: filename || 'media_upload',
       mimeType: mimeType || (resolvedMediaType === MediaType.VIDEO ? 'video/mp4' : 'image/jpeg'),
       sizeBytes: sizeBytes || undefined,
-      width: width || undefined,
-      height: height || undefined,
+      width: finalWidth || undefined,
+      height: finalHeight || undefined,
       purpose,
       uploadedById: user.id,
     });

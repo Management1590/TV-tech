@@ -257,7 +257,7 @@ export function UploadKbMediaDialog({
                   subtitle =
                     details?.statusText ||
                     (f.isVideo
-                      ? 'Compressing video (WhatsApp HD)...'
+                      ? 'Compressing video (720p HD)...'
                       : 'Compressing photo (WhatsApp HD)...');
                 } else if (stage === 'registering') {
                   subtitle = 'Saving to database...';
@@ -514,7 +514,7 @@ export function UploadKbMediaDialog({
                     {/* Quality Assurance Tag */}
                     <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 dark:text-violet-400 pt-0.5">
                       <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-                      <span>WhatsApp HD Quality • Auto-Optimized</span>
+                      <span>720p HD Video & Photo • Auto-Optimized</span>
                     </div>
                   </div>
                 )}
@@ -642,7 +642,7 @@ export function UploadKbMediaDialog({
                                   <span className="text-violet-600 dark:text-violet-400 font-medium flex items-center gap-1 truncate">
                                     <Sparkles className="w-3 h-3 text-violet-500 animate-pulse shrink-0" />
                                     <span className="truncate">
-                                      {item.subtitle || 'Compressing (WhatsApp HD)...'}
+                                      {item.subtitle || (item.isVideo ? 'Compressing (720p HD)...' : 'Compressing (WhatsApp HD)...')}
                                     </span>
                                   </span>
                                 ) : item.status === 'preparing' ? (
@@ -667,7 +667,7 @@ export function UploadKbMediaDialog({
                                     </span>
                                     <span className="text-slate-300 dark:text-slate-600">•</span>
                                     <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 font-semibold">
-                                      {item.isVideo ? 'WhatsApp HD Video' : 'WhatsApp HD Photo'}
+                                      {item.isVideo ? '720p HD Video' : 'WhatsApp HD Photo'}
                                     </span>
                                   </>
                                 )}

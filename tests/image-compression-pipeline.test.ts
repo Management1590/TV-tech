@@ -22,12 +22,12 @@ describe('High-Speed Image Processing & Resilient Upload Pipeline Test Suite', (
       console.log = (...args: any[]) => logs.push(args.join(' '));
 
       try {
-        // 1.2 MB file, 3000x2000 dimensions (<= 3840px ceiling)
+        // 1.2 MB file, 2400x1600 dimensions (<= 2560px ceiling)
         const sizeBytes = Math.round(1.2 * 1024 * 1024);
         const res = evaluateImageSmartSkipping({
           sizeBytes,
-          width: 3000,
-          height: 2000,
+          width: 2400,
+          height: 1600,
           format: 'image/jpeg',
         });
 

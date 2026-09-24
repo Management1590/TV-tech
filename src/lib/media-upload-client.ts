@@ -17,6 +17,7 @@ import {
   optimizeCloudinaryImageUrl,
   evaluateSmartSkipping,
   extractVideoMetadata,
+  calculateTargetResolution,
   MAX_VIDEO_SIZE_BYTES,
   MAX_PHOTO_SIZE_BYTES,
 } from './video-compressor';
@@ -496,10 +497,12 @@ export async function uploadMediaWithProgress(
             });
           }
 
-          // Apply WhatsApp HD & Smart Skipping transformations
+          // Apply 720p HD & Smart Skipping transformations
           let finalUrl = cloudResult.secure_url || cloudResult.url;
           let skipCompression = false;
           let duration = 0;
+          let finalWidth = cloudResult.width;
+          let finalHeight = cloudResult.height;
 
           if (mediaType === 'VIDEO') {
             duration = cloudResult.duration || localVideoMeta?.duration || 0;
@@ -511,6 +514,19 @@ export async function uploadMediaWithProgress(
               duration,
               sizeBytes,
             });
+
+            if (!skipCompression && finalWidth && finalHeight) {
+              const targetRes = calculateTargetResolution(finalWidth, finalHeight);
+              finalWidth = targetRes.targetW;
+              finalHeight = targetRes.targetH;
+            }
+
+            // Immediately trigger Cloudinary video transcoding in background
+            if (!skipCompression) {
+              try {
+                fetch(finalUrl, { method: 'HEAD' }).catch(() => {});
+              } catch {}
+            }
           } else if (mediaType === 'IMAGE') {
             finalUrl = optimizeCloudinaryImageUrl(cloudResult.secure_url || cloudResult.url, 2560);
           }
@@ -524,8 +540,8 @@ export async function uploadMediaWithProgress(
             filename: activeFile.name,
             mimeType: normalizedMime,
             sizeBytes: cloudResult.bytes || activeFile.size,
-            width: cloudResult.width || undefined,
-            height: cloudResult.height || undefined,
+            width: finalWidth || undefined,
+            height: finalHeight || undefined,
             duration: duration || undefined,
             skipCompression,
             purpose,
