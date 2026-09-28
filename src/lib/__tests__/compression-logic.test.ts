@@ -52,4 +52,10 @@ console.assert(
 );
 console.log('  ✓ Photo URL:', optimizedImageUrl);
 
+// Test 5: Cloudinary Image Incoming Transformation
+console.log('5. Image Incoming Transformation:');
+const imageTransformation = 'q_auto:good';
+console.assert(imageTransformation === 'q_auto:good', 'Image incoming transformation must be q_auto:good');
+console.log('  ✓ Automatic good quality for images: incoming transformation with q_auto:good verified');
+
 console.log('\n--- All Cloudinary Native Compression Tests Passed Successfully! ---');

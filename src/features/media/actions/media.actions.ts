@@ -28,7 +28,7 @@ import {
   optimizeCloudinaryVideoUrl,
   optimizeCloudinaryImageUrl,
 } from '@/lib/video-compressor';
-import { promoteEagerWebmToMaster } from '@/lib/cloudinary-optimize-master';
+import { awaitAndPromoteMaster } from '@/lib/cloudinary-optimize-master';
 
 export async function uploadMediaAction(formData: FormData): Promise<UploadMediaResult> {
   const user = await getCurrentUser();
@@ -85,6 +85,9 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
             uploadOptions.format = 'webm';
             uploadOptions.transformation = [{ quality: 'auto:eco' }];
           }
+        } else if (mediaType === MediaType.IMAGE) {
+          // Automatic good quality for images: incoming transformation with q_auto:good
+          uploadOptions.transformation = [{ quality: 'auto:good' }];
         }
 
         const uploadHandler = mediaType === MediaType.VIDEO
@@ -183,7 +186,11 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
     });
 
     if (mediaType === MediaType.VIDEO && size > 40 * 1024 * 1024) {
-      promoteEagerWebmToMaster(uploadResult.public_id, media.id);
+      const eagerWebmUrl = uploadResult.eager?.[0]?.secure_url || uploadResult.eager?.[0]?.url;
+      const promotion = await awaitAndPromoteMaster(uploadResult.public_id, eagerWebmUrl, 50000, 2500, media.id);
+      if (promotion.success && promotion.bytes) {
+        media.sizeBytes = promotion.bytes;
+      }
     }
 
     // Revalidate paths

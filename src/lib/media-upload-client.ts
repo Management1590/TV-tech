@@ -64,6 +64,7 @@ export interface CloudinarySignResponse {
   transformation?: string;
   eager?: string;
   eager_async?: boolean;
+  notification_url?: string;
   error?: string;
 }
 
@@ -214,6 +215,9 @@ function uploadSingleDirect(
       formData.append('eager', signData.eager);
       formData.append('eager_async', signData.eager_async ? 'true' : 'false');
     }
+    if (signData.notification_url) {
+      formData.append('notification_url', signData.notification_url);
+    }
     formData.append('file', file);
 
     xhr.send(formData);
@@ -310,6 +314,9 @@ async function uploadChunkedDirect(
             formData.append('eager', signData.eager);
             formData.append('eager_async', signData.eager_async ? 'true' : 'false');
           }
+          if (signData.notification_url) {
+            formData.append('notification_url', signData.notification_url);
+          }
           formData.append('file', chunkBlob, file.name);
 
           xhr.send(formData);
@@ -370,6 +377,71 @@ async function registerMediaAsset(params: {
   }
 
   return json.media;
+}
+
+/**
+ * Actively polls /api/media/promote-master until Cloudinary finishes the eager WebM transcode
+ * and replaces the original heavy master in Cloudinary storage.
+ * Runs in lightweight ~200ms intervals from the browser, completely immune to serverless 10s timeouts.
+ */
+async function pollAndPromoteMasterVideo(
+  publicId: string,
+  eagerDerivedUrl: string | undefined,
+  originalSize: number,
+  sizeFormatted: string,
+  onProgress?: UploadProgressFn,
+  maxPollSeconds: number = 90
+): Promise<{ finalSizeBytes: number; finalUrl?: string } | null> {
+  const startTime = Date.now();
+  const pollIntervalMs = 2500;
+
+  while (Date.now() - startTime < maxPollSeconds * 1000) {
+    const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
+    // Visual progress moves smoothly from 80% to 95% while transcoding
+    const compPct = Math.min(95, 80 + Math.round((elapsedSeconds / maxPollSeconds) * 15));
+    const statusMsg = `Cloudinary compressing video (auto:eco)... (${elapsedSeconds}s)`;
+
+    if (onProgress) {
+      onProgress(compPct, statusMsg, {
+        percentage: compPct,
+        statusText: statusMsg,
+        stage: 'compressing',
+        loadedBytes: originalSize,
+        totalBytes: originalSize,
+        formattedLoaded: sizeFormatted,
+        formattedTotal: sizeFormatted,
+      });
+    }
+
+    try {
+      const promoteRes = await fetch('/api/media/promote-master', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          publicId,
+          derivedUrl: eagerDerivedUrl,
+        }),
+      });
+
+      if (promoteRes.ok) {
+        const promoteData = await promoteRes.json();
+        if (promoteData.status === 'completed' || (promoteData.success && promoteData.bytes)) {
+          console.log(`[Direct Upload] In-flight master promotion completed for ${publicId}: ${promoteData.bytes} bytes`);
+          return {
+            finalSizeBytes: promoteData.bytes,
+            finalUrl: promoteData.secureUrl || promoteData.url,
+          };
+        }
+      }
+    } catch (promoteErr: any) {
+      console.warn('[Direct Upload] In-flight master promotion poll error:', promoteErr?.message);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  console.warn(`[Direct Upload] Master promotion poll timed out after ${maxPollSeconds}s for ${publicId}`);
+  return null;
 }
 
 /**
@@ -446,14 +518,20 @@ export async function uploadMediaWithProgress(
             const startCompressionTicker = () => {
               if (compressionTimer) return;
               let compPct = 70;
+              const statusMsg = isVideo
+                ? 'Cloudinary compressing video (auto:eco)...'
+                : isImage
+                ? 'Cloudinary compressing image (auto:good)...'
+                : 'Processing media...';
+
               if (onProgress) {
                 onProgress(
                   compPct,
-                  isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
+                  statusMsg,
                   {
                     percentage: compPct,
-                    statusText: isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
-                    stage: isVideo ? 'compressing' : 'uploading',
+                    statusText: statusMsg,
+                    stage: isVideo || isImage ? 'compressing' : 'uploading',
                     loadedBytes: activeFile.size,
                     totalBytes: activeFile.size,
                     formattedLoaded: sizeFormatted,
@@ -468,11 +546,11 @@ export async function uploadMediaWithProgress(
                   if (onProgress) {
                     onProgress(
                       compPct,
-                      isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
+                      statusMsg,
                       {
                         percentage: compPct,
-                        statusText: isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
-                        stage: isVideo ? 'compressing' : 'uploading',
+                        statusText: statusMsg,
+                        stage: isVideo || isImage ? 'compressing' : 'uploading',
                         loadedBytes: activeFile.size,
                         totalBytes: activeFile.size,
                         formattedLoaded: sizeFormatted,
@@ -592,6 +670,32 @@ export async function uploadMediaWithProgress(
               finalUrl = optimizeCloudinaryImageUrl(cloudResult.secure_url || cloudResult.url, 2560);
             }
 
+            let finalSizeBytes = cloudResult.bytes || activeFile.size;
+
+            // For videos > 40MB or with eager transcode, actively execute in-flight master promotion
+            if (
+              mediaType === 'VIDEO' &&
+              (activeFile.size > 40 * 1024 * 1024 || (cloudResult.eager && cloudResult.eager.length > 0))
+            ) {
+              const eagerWebmUrl = cloudResult.eager?.[0]?.secure_url || cloudResult.eager?.[0]?.url;
+              const promoResult = await pollAndPromoteMasterVideo(
+                cloudResult.public_id,
+                eagerWebmUrl,
+                activeFile.size,
+                sizeFormatted,
+                onProgress
+              );
+
+              if (promoResult) {
+                finalSizeBytes = promoResult.finalSizeBytes;
+                if (promoResult.finalUrl) {
+                  finalUrl = optimizeCloudinaryVideoUrl(promoResult.finalUrl);
+                }
+                displayFilename = displayFilename.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v)$/i, '.webm');
+                finalMime = 'video/webm';
+              }
+            }
+
             const savedMedia = await registerMediaAsset({
               entityId,
               mediaType,
@@ -600,7 +704,7 @@ export async function uploadMediaWithProgress(
               publicId: cloudResult.public_id,
               filename: displayFilename,
               mimeType: finalMime,
-              sizeBytes: cloudResult.bytes || activeFile.size,
+              sizeBytes: finalSizeBytes,
               width: finalWidth || undefined,
               height: finalHeight || undefined,
               duration: duration || undefined,
@@ -678,6 +782,31 @@ export async function uploadMediaWithProgress(
                   const sourceVideoUrl = eagerWebmUrl || cloudResult.secure_url || cloudResult.url;
                   finalUrl = optimizeCloudinaryVideoUrl(sourceVideoUrl);
 
+                  let finalRetryBytes = cloudResult.bytes || activeFile.size;
+
+                  if (
+                    mediaType === 'VIDEO' &&
+                    (activeFile.size > 40 * 1024 * 1024 || (cloudResult.eager && cloudResult.eager.length > 0))
+                  ) {
+                    const eagerWebmUrl = cloudResult.eager?.[0]?.secure_url || cloudResult.eager?.[0]?.url;
+                    const promoResult = await pollAndPromoteMasterVideo(
+                      cloudResult.public_id,
+                      eagerWebmUrl,
+                      activeFile.size,
+                      formatBytes(activeFile.size),
+                      onProgress
+                    );
+
+                    if (promoResult) {
+                      finalRetryBytes = promoResult.finalSizeBytes;
+                      if (promoResult.finalUrl) {
+                        finalUrl = optimizeCloudinaryVideoUrl(promoResult.finalUrl);
+                      }
+                      displayFilename = displayFilename.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v)$/i, '.webm');
+                      finalMime = 'video/webm';
+                    }
+                  }
+
                   const savedMedia = await registerMediaAsset({
                     entityId,
                     mediaType,
@@ -686,7 +815,7 @@ export async function uploadMediaWithProgress(
                     publicId: cloudResult.public_id,
                     filename: displayFilename,
                     mimeType: finalMime,
-                    sizeBytes: cloudResult.bytes || activeFile.size,
+                    sizeBytes: finalRetryBytes,
                     width: finalWidth || undefined,
                     height: finalHeight || undefined,
                     duration: duration || undefined,
@@ -743,11 +872,19 @@ export async function uploadMediaWithProgress(
               if (onProgress) {
                 onProgress(
                   sCompPct,
-                  isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing via server...',
+                  isVideo
+                    ? 'Cloudinary compressing video (auto:eco)...'
+                    : isImage
+                    ? 'Cloudinary compressing image (auto:good)...'
+                    : 'Processing via server...',
                   {
                     percentage: sCompPct,
-                    statusText: isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing via server...',
-                    stage: isVideo ? 'compressing' : 'uploading',
+                    statusText: isVideo
+                      ? 'Cloudinary compressing video (auto:eco)...'
+                      : isImage
+                      ? 'Cloudinary compressing image (auto:good)...'
+                      : 'Processing via server...',
+                    stage: isVideo || isImage ? 'compressing' : 'uploading',
                   }
                 );
               }

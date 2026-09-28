@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
 
     const fileSize = Number(body.fileSize) || 0;
     const isLargeForSync = fileSize > 40 * 1024 * 1024 || Boolean(body.useEagerAsync);
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim();
+    const hasPublicUrl = appUrl.startsWith('https://');
 
     // Video optimization strategy:
     // 1. Files <= 40MB use Incoming Transformation with `format: 'webm'` and `q_auto:eco`.
@@ -34,10 +36,17 @@ export async function POST(req: NextRequest) {
       if (isLargeForSync) {
         paramsToSign.eager = 'f_webm,q_auto:eco';
         paramsToSign.eager_async = true;
+        if (hasPublicUrl) {
+          paramsToSign.notification_url = `${appUrl}/api/media/cloudinary-webhook`;
+        }
       } else {
         paramsToSign.format = 'webm';
         paramsToSign.transformation = 'q_auto:eco';
       }
+    } else if (resourceType === 'image') {
+      // Automatic good quality for images: incoming transformation with q_auto:good.
+      // This automatically compresses the image before storing it, discarding the heavy master at rest.
+      paramsToSign.transformation = 'q_auto:good';
     }
 
     const signature = cloudinary.utils.api_sign_request(
@@ -56,6 +65,7 @@ export async function POST(req: NextRequest) {
       transformation: paramsToSign.transformation,
       eager: paramsToSign.eager,
       eager_async: paramsToSign.eager_async,
+      notification_url: paramsToSign.notification_url,
     });
   } catch (error: any) {
     console.error('Cloudinary sign error:', error);

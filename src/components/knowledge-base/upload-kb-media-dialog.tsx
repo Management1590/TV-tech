@@ -248,7 +248,7 @@ export function UploadKbMediaDialog({
                 if (stage === 'completed' || filePct >= 100) {
                   subtitle = `${f.sizeFormatted} - Done`;
                 } else if (stage === 'compressing') {
-                  subtitle = details?.statusText || 'Cloudinary compressing (auto:eco)...';
+                  subtitle = details?.statusText || (f.file.type.startsWith('video/') ? 'Cloudinary compressing video (auto:eco)...' : 'Cloudinary compressing image (auto:good)...');
                 } else if (stage === 'uploading') {
                   if (details?.formattedLoaded && details?.formattedTotal) {
                     subtitle = `${details.formattedLoaded} / ${details.formattedTotal}`;
@@ -280,8 +280,10 @@ export function UploadKbMediaDialog({
           const finalSizeBytes = uploadResult.media.sizeBytes || item.file.size;
           const finalFormatted = formatFileSize(finalSizeBytes);
           const wasCompressed = uploadResult.media.sizeBytes && uploadResult.media.sizeBytes < item.file.size;
+          const isVideo = item.file.type.startsWith('video/');
+          const compressionLabel = isVideo ? 'auto:eco' : 'auto:good';
           const doneSubtitle = wasCompressed
-            ? `${finalFormatted} (auto:eco) - Done`
+            ? `${finalFormatted} (${compressionLabel}) - Done`
             : `${finalFormatted} - Done`;
 
           setSelectedFiles((prev) =>
