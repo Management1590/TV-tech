@@ -284,7 +284,8 @@ export function getRawCloudinaryVideoUrl(url: string | null | undefined): string
   if (!url || typeof url !== 'string') return '';
   const parts = extractCloudinaryVideoParts(url);
   if (!parts) return url;
-  return `${parts.prefix}${parts.publicPath}`;
+  const cleanPath = parts.publicPath.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v)$/i, '.webm');
+  return `${parts.prefix}${cleanPath}`;
 }
 
 /**
@@ -308,54 +309,24 @@ export function extractCloudinaryImageParts(
 }
 
 /**
- * Optimizes Cloudinary video delivery URLs with WhatsApp HD standards:
- * - Condition-based Skipping: If the video already meets the 1 MB for every 4 seconds (1:4)
- *   ratio or tighter, compression is automatically SKIPPED to preserve pristine quality.
- *   Non-standard formats (.mov, etc.) are delivered cleanly with f_auto without lossy recompression.
- * - When compressed: Applies optimal Cloudinary transformations:
- *   - Dynamic format container: f_auto (delivers optimal MP4/WebM based on client device)
- *   - Auto-quality: q_auto:good (high visual retention preset, crisp details, small file footprint)
- *   - Responsive resizing: w_1280,h_1280,c_limit (720p ceiling: 1280x720 landscape, 720x1280 portrait, preserves aspect ratio, no upscaling)
- *   - Universal codec & bitrate: vc_h264,br_1500k (~1.5 Mbps bitrate for smooth 720p streaming)
- *   - Universal audio codec: ac_aac (AAC audio track for 100% device compatibility)
- *   - CRITICAL FIX: NEVER include 'ab_96k' as Cloudinary rejects 'ab' with HTTP 400 Bad Request.
- *   - Idempotent: Strips any pre-existing transformation blocks to prevent duplicate '/f_auto,.../' stacking.
+ * Optimizes Cloudinary video delivery URLs with Cloudinary's native q_auto:eco compression:
+ * - q_auto:eco: A more aggressive compression level. It results in much smaller files with a minor
+ *   trade-off in visual quality, perfect for high-traffic or social media applications.
+ * - Dynamic format container: f_auto (delivers optimal WebM/MP4 based on client device)
+ * - Container normalization: Normalizes heavy/uncompressed containers (.mov, .mkv, .avi, etc.) to .webm
+ *   so that files do not stick to heavy MOV containers and achieve maximum storage & bandwidth savings.
+ * - Idempotent: Strips any pre-existing transformation blocks to prevent duplicate stacking.
  */
 export function optimizeCloudinaryVideoUrl(
   url: string | null | undefined,
-  options?: CloudinaryVideoOptimizeOptions
+  _options?: CloudinaryVideoOptimizeOptions
 ): string {
   if (!url || typeof url !== 'string') return '';
   const parts = extractCloudinaryVideoParts(url);
   if (!parts) return url;
 
-  // Evaluate condition-based skipping
-  let shouldSkip = false;
-  if (typeof options?.skipCompression === 'boolean') {
-    shouldSkip = options.skipCompression;
-  } else if (options?.duration && options?.sizeBytes) {
-    const evaluation = evaluateSmartSkipping({
-      duration: options.duration,
-      sizeBytes: options.sizeBytes,
-    });
-    shouldSkip = evaluation.shouldSkip;
-  }
-
-  // 1. Condition-based Skipping: Video already meets 1:4 ratio (or explicitly skipped)
-  if (shouldSkip) {
-    // If container is an iPhone .mov or other non-standard container that won't stream on Android,
-    // normalize format with f_auto without downscaling or bitrate crushing
-    if (/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i.test(parts.publicPath)) {
-      const cleanPath = parts.publicPath.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i, '.mp4');
-      return `${parts.prefix}f_auto/${cleanPath}`;
-    }
-    return `${parts.prefix}${parts.publicPath}`;
-  }
-
-  // 2. Transformation Settings (When compressed):
-  const maxWidth = options?.maxWidth || 1280;
-  const cleanPath = parts.publicPath.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v|webm)$/i, '.mp4');
-  return `${parts.prefix}f_auto,q_auto:good,w_${maxWidth},h_${maxWidth},c_limit,vc_h264,br_1500k,ac_aac/${cleanPath}`;
+  const cleanPath = parts.publicPath.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v)$/i, '.webm');
+  return `${parts.prefix}f_auto,q_auto:eco/${cleanPath}`;
 }
 
 /**
@@ -377,13 +348,11 @@ export function optimizeCloudinaryImageUrl(
 }
 
 /**
- * Processes video for Cloudinary WhatsApp HD pipeline:
- * - Rejects videos exceeding Cloudinary's 100MB limit.
- * - Evaluates 1:4 duration-to-size ratio and determines if cloud compression is needed.
+ * Validates video file size against Cloudinary's 100MB limit without client-side compression delay.
  */
 export async function compressVideoIfNeeded(
   file: File,
-  onProgress?: VideoCompressProgressFn
+  _onProgress?: VideoCompressProgressFn
 ): Promise<CompressionResult> {
   const originalSize = file.size;
 
@@ -398,45 +367,12 @@ export async function compressVideoIfNeeded(
     };
   }
 
-  onProgress?.(20, 'Analyzing video duration & bitrate...');
-
-  try {
-    const metadata = await extractVideoMetadata(file);
-    const skipEvaluation = evaluateSmartSkipping({
-      duration: metadata.duration,
-      sizeBytes: originalSize,
-    });
-
-    if (skipEvaluation.shouldSkip) {
-      onProgress?.(100, 'Video meets 1:4 ratio. Skipping compression.');
-      return {
-        file,
-        wasCompressed: false,
-        originalSize,
-        compressedSize: originalSize,
-        skipped: true,
-        skipReason: skipEvaluation.reason,
-        needsServerTranscode: false,
-      };
-    }
-
-    onProgress?.(100, 'Cloudinary WhatsApp HD transformation configured');
-    return {
-      file,
-      wasCompressed: false,
-      originalSize,
-      compressedSize: originalSize,
-      skipped: false,
-      needsServerTranscode: true,
-    };
-  } catch (err: any) {
-    return {
-      file,
-      wasCompressed: false,
-      originalSize,
-      compressedSize: originalSize,
-      skipped: false,
-      needsServerTranscode: true,
-    };
-  }
+  return {
+    file,
+    wasCompressed: false,
+    originalSize,
+    compressedSize: originalSize,
+    skipped: false,
+    needsServerTranscode: true,
+  };
 }

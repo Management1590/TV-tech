@@ -27,7 +27,7 @@ export interface SelectedFileItem {
   previewUrl: string | null;
   isVideo: boolean;
   sizeFormatted: string;
-  status: 'idle' | 'preparing' | 'compressing' | 'uploading' | 'registering' | 'completed' | 'error';
+  status: 'idle' | 'preparing' | 'uploading' | 'compressing' | 'registering' | 'completed' | 'error';
   progress: number;
   subtitle: string;
   loadedFormatted?: string;
@@ -222,9 +222,9 @@ export function UploadKbMediaDialog({
             idx === i
               ? {
                   ...f,
-                  status: 'compressing',
+                  status: 'uploading',
                   progress: 5,
-                  subtitle: f.isVideo ? 'Analyzing video & bitrate...' : 'Analyzing photo...',
+                  subtitle: 'Uploading...',
                 }
               : f
           )
@@ -247,18 +247,14 @@ export function UploadKbMediaDialog({
 
                 if (stage === 'completed' || filePct >= 100) {
                   subtitle = `${f.sizeFormatted} - Done`;
+                } else if (stage === 'compressing') {
+                  subtitle = details?.statusText || 'Cloudinary compressing (auto:eco)...';
                 } else if (stage === 'uploading') {
                   if (details?.formattedLoaded && details?.formattedTotal) {
                     subtitle = `${details.formattedLoaded} / ${details.formattedTotal}`;
                   } else {
                     subtitle = `${formatFileSize((f.file.size * filePct) / 100)} / ${f.sizeFormatted}`;
                   }
-                } else if (stage === 'compressing') {
-                  subtitle =
-                    details?.statusText ||
-                    (f.isVideo
-                      ? 'Compressing video (720p HD)...'
-                      : 'Compressing photo (WhatsApp HD)...');
                 } else if (stage === 'registering') {
                   subtitle = 'Saving to database...';
                 } else if (details?.statusText) {
@@ -281,6 +277,13 @@ export function UploadKbMediaDialog({
         if (uploadResult.success && uploadResult.media) {
           onMediaUploaded(uploadResult.media);
           successCount++;
+          const finalSizeBytes = uploadResult.media.sizeBytes || item.file.size;
+          const finalFormatted = formatFileSize(finalSizeBytes);
+          const wasCompressed = uploadResult.media.sizeBytes && uploadResult.media.sizeBytes < item.file.size;
+          const doneSubtitle = wasCompressed
+            ? `${finalFormatted} (auto:eco) - Done`
+            : `${finalFormatted} - Done`;
+
           setSelectedFiles((prev) =>
             prev.map((f, idx) =>
               idx === i
@@ -288,7 +291,7 @@ export function UploadKbMediaDialog({
                     ...f,
                     status: 'completed',
                     progress: 100,
-                    subtitle: `${f.sizeFormatted} - Done`,
+                    subtitle: doneSubtitle,
                   }
                 : f
             )
@@ -514,7 +517,7 @@ export function UploadKbMediaDialog({
                     {/* Quality Assurance Tag */}
                     <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 dark:text-violet-400 pt-0.5">
                       <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-                      <span>720p HD Video & Photo • Auto-Optimized</span>
+                      <span>Cloudinary Auto-Compressed Video (q_auto:eco) & Photo</span>
                     </div>
                   </div>
                 )}
@@ -573,6 +576,7 @@ export function UploadKbMediaDialog({
                       {selectedFiles.map((item) => {
                         const isDone = item.status === 'completed';
                         const isError = item.status === 'error';
+                        const isCompressing = item.status === 'compressing';
                         const isInProgress =
                           item.status === 'uploading' ||
                           item.status === 'compressing' ||
@@ -587,6 +591,8 @@ export function UploadKbMediaDialog({
                                 ? 'bg-white dark:bg-slate-900 border-emerald-500/30 dark:border-emerald-500/25 shadow-xs'
                                 : isError
                                 ? 'bg-red-500/[0.03] dark:bg-red-950/20 border-red-500/30'
+                                : isCompressing
+                                ? 'bg-violet-500/[0.04] dark:bg-violet-950/20 border-violet-500/40 dark:border-violet-500/40 shadow-sm ring-1 ring-violet-500/20'
                                 : isInProgress
                                 ? 'bg-white dark:bg-slate-900 border-blue-500/30 dark:border-blue-500/30 shadow-sm ring-1 ring-blue-500/15'
                                 : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
@@ -633,20 +639,18 @@ export function UploadKbMediaDialog({
                                       Done
                                     </span>
                                   </>
+                                ) : isCompressing ? (
+                                  <div className="flex items-center gap-1.5 text-violet-600 dark:text-violet-400 font-medium">
+                                    <Sparkles className="w-3.5 h-3.5 animate-spin shrink-0 text-violet-500" />
+                                    <span className="truncate">{item.subtitle || 'Cloudinary compressing (auto:eco)...'}</span>
+                                  </div>
                                 ) : item.status === 'uploading' ? (
                                   <span className="text-slate-500 dark:text-slate-400 font-mono font-medium">
                                     {item.loadedFormatted || '0 B'} /{' '}
                                     {item.totalFormatted || item.sizeFormatted}
                                   </span>
-                                ) : item.status === 'compressing' ? (
-                                  <span className="text-violet-600 dark:text-violet-400 font-medium flex items-center gap-1 truncate">
-                                    <Sparkles className="w-3 h-3 text-violet-500 animate-pulse shrink-0" />
-                                    <span className="truncate">
-                                      {item.subtitle || (item.isVideo ? 'Compressing (720p HD)...' : 'Compressing (WhatsApp HD)...')}
-                                    </span>
-                                  </span>
                                 ) : item.status === 'preparing' ? (
-                                  <span className="text-violet-600 dark:text-violet-400 font-medium truncate">
+                                  <span className="text-blue-600 dark:text-blue-400 font-medium truncate">
                                     {item.subtitle || 'Preparing file...'}
                                   </span>
                                 ) : item.status === 'registering' ? (
@@ -666,8 +670,8 @@ export function UploadKbMediaDialog({
                                       {item.sizeFormatted}
                                     </span>
                                     <span className="text-slate-300 dark:text-slate-600">•</span>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 font-semibold">
-                                      {item.isVideo ? '720p HD Video' : 'WhatsApp HD Photo'}
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold">
+                                      {item.isVideo ? 'Video' : 'Photo'}
                                     </span>
                                   </>
                                 )}
@@ -679,10 +683,10 @@ export function UploadKbMediaDialog({
                                   className={`h-full rounded-full transition-all duration-300 ease-out ${
                                     isDone
                                       ? 'bg-emerald-500'
-                                      : item.status === 'uploading'
+                                      : isCompressing
+                                      ? 'bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-600 animate-pulse shadow-sm shadow-violet-500/20'
+                                      : item.status === 'uploading' || item.status === 'preparing'
                                       ? 'bg-blue-600 dark:bg-blue-500'
-                                      : item.status === 'compressing' || item.status === 'preparing'
-                                      ? 'bg-gradient-to-r from-violet-500 to-indigo-600'
                                       : item.status === 'registering'
                                       ? 'bg-indigo-600'
                                       : isError
@@ -710,6 +714,8 @@ export function UploadKbMediaDialog({
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : isError
                                     ? 'text-rose-600'
+                                    : isCompressing
+                                    ? 'text-violet-600 dark:text-violet-400 font-bold'
                                     : 'text-slate-600 dark:text-slate-300'
                                 }`}
                               >
@@ -727,14 +733,31 @@ export function UploadKbMediaDialog({
                                 <div className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0">
                                   <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
                                 </div>
+                              ) : isCompressing ? (
+                                /* Violet Spinning Ring for active compression */
+                                <svg
+                                  className="w-5 h-5 animate-spin shrink-0 text-violet-600 dark:text-violet-400"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="9.5"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                  />
+                                  <path
+                                    className="opacity-90"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  />
+                                </svg>
                               ) : isInProgress ? (
                                 /* Circular Spinner Ring with Open Arc (matches rows 2 & 3 in screenshot) */
                                 <svg
-                                  className={`w-5 h-5 animate-spin shrink-0 ${
-                                    item.status === 'compressing'
-                                      ? 'text-violet-600 dark:text-violet-400'
-                                      : 'text-blue-600 dark:text-blue-400'
-                                  }`}
+                                  className="w-5 h-5 animate-spin shrink-0 text-blue-600 dark:text-blue-400"
                                   viewBox="0 0 24 24"
                                   fill="none"
                                 >

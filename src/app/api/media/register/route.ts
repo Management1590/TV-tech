@@ -4,7 +4,8 @@ import { createMediaAttachment } from '@/features/media/services/media.service';
 import { MediaType, StorageProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { optimizeCloudinaryVideoUrl, optimizeCloudinaryImageUrl, calculateTargetResolution } from '@/lib/video-compressor';
+import { optimizeCloudinaryVideoUrl, optimizeCloudinaryImageUrl } from '@/lib/video-compressor';
+import { promoteEagerWebmToMaster } from '@/lib/cloudinary-optimize-master';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,21 +53,29 @@ export async function POST(req: NextRequest) {
 
     const rawTargetUrl = secureUrl || url;
     const finalUrl = resolvedMediaType === MediaType.VIDEO
-      ? optimizeCloudinaryVideoUrl(rawTargetUrl, {
-          duration,
-          sizeBytes,
-          skipCompression,
-        })
+      ? optimizeCloudinaryVideoUrl(rawTargetUrl)
       : resolvedMediaType === MediaType.IMAGE
       ? optimizeCloudinaryImageUrl(rawTargetUrl, 2560)
       : rawTargetUrl;
 
-    let finalWidth = width;
-    let finalHeight = height;
-    if (resolvedMediaType === MediaType.VIDEO && !skipCompression && finalWidth && finalHeight) {
-      const targetRes = calculateTargetResolution(finalWidth, finalHeight);
-      finalWidth = targetRes.targetW;
-      finalHeight = targetRes.targetH;
+    let resolvedFilename = filename || 'media_upload';
+    let resolvedMimeType = mimeType;
+
+    if (resolvedMediaType === MediaType.VIDEO) {
+      const isWebm =
+        finalUrl.includes('.webm') ||
+        publicId.endsWith('.webm') ||
+        mimeType === 'video/webm' ||
+        (filename && filename.toLowerCase().endsWith('.mov'));
+
+      if (isWebm) {
+        resolvedMimeType = 'video/webm';
+        if (resolvedFilename.toLowerCase().endsWith('.mov')) {
+          resolvedFilename = resolvedFilename.replace(/\.mov$/i, '.webm');
+        }
+      } else if (!resolvedMimeType) {
+        resolvedMimeType = 'video/webm';
+      }
     }
 
     const media = await createMediaAttachment({
@@ -76,14 +85,18 @@ export async function POST(req: NextRequest) {
       publicId,
       url: finalUrl,
       secureUrl: finalUrl,
-      filename: filename || 'media_upload',
-      mimeType: mimeType || (resolvedMediaType === MediaType.VIDEO ? 'video/mp4' : 'image/jpeg'),
+      filename: resolvedFilename,
+      mimeType: resolvedMimeType || (resolvedMediaType === MediaType.VIDEO ? 'video/webm' : 'image/jpeg'),
       sizeBytes: sizeBytes || undefined,
-      width: finalWidth || undefined,
-      height: finalHeight || undefined,
+      width: width || undefined,
+      height: height || undefined,
       purpose,
       uploadedById: user.id,
     });
+
+    if (resolvedMediaType === MediaType.VIDEO && Number(sizeBytes) > 40 * 1024 * 1024) {
+      promoteEagerWebmToMaster(publicId, media.id);
+    }
 
     revalidatePath('/knowledge-base');
     revalidatePath('/inventory');

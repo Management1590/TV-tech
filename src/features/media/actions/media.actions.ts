@@ -27,9 +27,8 @@ import { detectMediaKind } from '@/lib/media-detect';
 import {
   optimizeCloudinaryVideoUrl,
   optimizeCloudinaryImageUrl,
-  evaluateSmartSkipping,
-  calculateTargetResolution,
 } from '@/lib/video-compressor';
+import { promoteEagerWebmToMaster } from '@/lib/cloudinary-optimize-master';
 
 export async function uploadMediaAction(formData: FormData): Promise<UploadMediaResult> {
   const user = await getCurrentUser();
@@ -66,39 +65,64 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
     const buffer = Buffer.from(arrayBuffer);
 
     // Stream directly to Cloudinary
-    const uploadResult: any = await new Promise((resolve, reject) => {
-      const uploadOptions: any = {
-        folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
-        resource_type: resourceType,
-        timeout: 300000, // 5 minutes timeout for large video files
-      };
+    const performUpload = async (useAsyncEager = false): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        const uploadOptions: any = {
+          folder: `tv-tech-os/${mediaType.toLowerCase()}s`,
+          resource_type: resourceType,
+          timeout: 300000, // 5 minutes timeout for large video files
+        };
 
-      if (mediaType === MediaType.AUDIO) {
-        uploadOptions.format = 'mp3';
-      } else if (mediaType === MediaType.VIDEO) {
-        uploadOptions.chunk_size = 6 * 1024 * 1024;
+        if (mediaType === MediaType.AUDIO) {
+          uploadOptions.format = 'mp3';
+        } else if (mediaType === MediaType.VIDEO) {
+          uploadOptions.chunk_size = 6 * 1024 * 1024;
+          // Cloudinary synchronous video limit is 40MB. For larger videos, eager_async is required.
+          if (useAsyncEager || size > 40 * 1024 * 1024) {
+            uploadOptions.eager = [{ quality: 'auto:eco', format: 'webm' }];
+            uploadOptions.eager_async = true;
+          } else {
+            uploadOptions.format = 'webm';
+            uploadOptions.transformation = [{ quality: 'auto:eco' }];
+          }
+        }
+
+        const uploadHandler = mediaType === MediaType.VIDEO
+          ? cloudinary.uploader.upload_chunked_stream(uploadOptions, (error, result) => {
+              if (error) {
+                console.error('[CLOUDINARY_ACTION_CHUNKED_ERROR]', error);
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            })
+          : cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+              if (error) {
+                console.error('[CLOUDINARY_ACTION_UPLOAD_ERROR]', error);
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            });
+
+        uploadHandler.end(buffer);
+      });
+    };
+
+    let uploadResult: any = null;
+    try {
+      uploadResult = await performUpload(false);
+    } catch (err: any) {
+      if (
+        mediaType === MediaType.VIDEO &&
+        (err?.message?.includes('too large to process synchronously') || err?.message?.includes('eager_async'))
+      ) {
+        console.warn('[Server Action Retry] Video exceeded synchronous limit, retrying with eager_async=true...');
+        uploadResult = await performUpload(true);
+      } else {
+        throw err;
       }
-
-      const uploadHandler = mediaType === MediaType.VIDEO
-        ? cloudinary.uploader.upload_chunked_stream(uploadOptions, (error, result) => {
-            if (error) {
-              console.error('[CLOUDINARY_ACTION_CHUNKED_ERROR]', error);
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          })
-        : cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-            if (error) {
-              console.error('[CLOUDINARY_ACTION_UPLOAD_ERROR]', error);
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          });
-
-      uploadHandler.end(buffer);
-    });
+    }
 
     // If purpose is PRIMARY, demote previous PRIMARY for this entity
     if (purpose === 'PRIMARY') {
@@ -117,26 +141,25 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
     let finalWidth = uploadResult.width;
     let finalHeight = uploadResult.height;
 
-    if (mediaType === MediaType.VIDEO) {
-      const duration = uploadResult.duration || 0;
-      const sizeBytes = uploadResult.bytes || size;
-      const skipCheck = evaluateSmartSkipping({ duration, sizeBytes });
-      finalUrl = optimizeCloudinaryVideoUrl(rawUrl, {
-        skipCompression: skipCheck.shouldSkip,
-        duration,
-        sizeBytes,
-      });
-      finalSecureUrl = optimizeCloudinaryVideoUrl(rawSecureUrl, {
-        skipCompression: skipCheck.shouldSkip,
-        duration,
-        sizeBytes,
-      });
+    let finalMime = normalizedMime;
+    let finalFilename = file.name;
 
-      if (!skipCheck.shouldSkip && finalWidth && finalHeight) {
-        const targetRes = calculateTargetResolution(finalWidth, finalHeight);
-        finalWidth = targetRes.targetW;
-        finalHeight = targetRes.targetH;
+    if (mediaType === MediaType.VIDEO) {
+      const isWebm =
+        uploadResult.format === 'webm' ||
+        file.name.toLowerCase().endsWith('.mov') ||
+        rawUrl?.includes('.webm') ||
+        (uploadResult.eager && uploadResult.eager[0]?.secure_url?.includes('.webm'));
+
+      if (isWebm) {
+        finalMime = 'video/webm';
+        finalFilename = finalFilename.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v)$/i, '.webm');
       }
+
+      const eagerWebmUrl = uploadResult.eager?.[0]?.secure_url;
+      const sourceVideoUrl = eagerWebmUrl || rawUrl;
+      finalUrl = optimizeCloudinaryVideoUrl(sourceVideoUrl);
+      finalSecureUrl = optimizeCloudinaryVideoUrl(eagerWebmUrl || rawSecureUrl);
     } else if (mediaType === MediaType.IMAGE) {
       finalUrl = optimizeCloudinaryImageUrl(rawUrl, 2560);
       finalSecureUrl = optimizeCloudinaryImageUrl(rawSecureUrl, 2560);
@@ -150,14 +173,18 @@ export async function uploadMediaAction(formData: FormData): Promise<UploadMedia
       publicId: uploadResult.public_id || `upload_${Date.now()}`,
       url: finalUrl,
       secureUrl: finalSecureUrl,
-      filename: file.name,
-      mimeType: normalizedMime,
-      sizeBytes: size,
+      filename: finalFilename,
+      mimeType: finalMime,
+      sizeBytes: uploadResult.bytes || size,
       width: finalWidth || undefined,
       height: finalHeight || undefined,
       purpose,
       uploadedById: user.id,
     });
+
+    if (mediaType === MediaType.VIDEO && size > 40 * 1024 * 1024) {
+      promoteEagerWebmToMaster(uploadResult.public_id, media.id);
+    }
 
     // Revalidate paths
     revalidatePath('/inventory');

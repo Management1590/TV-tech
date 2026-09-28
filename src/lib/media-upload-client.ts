@@ -15,9 +15,6 @@ import { uploadMediaAction } from '@/features/media/actions/media.actions';
 import {
   optimizeCloudinaryVideoUrl,
   optimizeCloudinaryImageUrl,
-  evaluateSmartSkipping,
-  extractVideoMetadata,
-  calculateTargetResolution,
   MAX_VIDEO_SIZE_BYTES,
   MAX_PHOTO_SIZE_BYTES,
 } from './video-compressor';
@@ -25,7 +22,7 @@ import {
 export interface UploadProgressDetails {
   percentage: number;
   statusText: string;
-  stage: 'preparing' | 'compressing' | 'uploading' | 'registering' | 'completed' | 'error';
+  stage: 'preparing' | 'uploading' | 'compressing' | 'registering' | 'completed' | 'error';
   loadedBytes?: number;
   totalBytes?: number;
   formattedLoaded?: string;
@@ -48,7 +45,7 @@ export const USER_FACING_UPLOAD_ERROR = 'Upload failed due to connection issues.
 export const USER_FACING_IMAGE_UPLOAD_ERROR = 'Unable to send image. Please check your connection.';
 
 const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunk size (Cloudinary requires chunks > 5MB)
-const CHUNK_THRESHOLD = 20 * 1024 * 1024; // 20MB threshold for chunking
+const CHUNK_THRESHOLD = 95 * 1024 * 1024; // 95MB threshold for chunking (Cloudinary supports single direct uploads up to 100MB)
 
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -63,6 +60,10 @@ export interface CloudinarySignResponse {
   apiKey: string;
   cloudName: string;
   folder: string;
+  format?: string;
+  transformation?: string;
+  eager?: string;
+  eager_async?: boolean;
   error?: string;
 }
 
@@ -129,11 +130,15 @@ export async function executeWithDoubleRetry<T>(
 /**
  * Requests a signed upload token from the server.
  */
-async function getCloudinarySignature(resourceType: CloudinaryResourceType): Promise<CloudinarySignResponse> {
+async function getCloudinarySignature(
+  resourceType: CloudinaryResourceType,
+  fileSize: number = 0,
+  useEagerAsync: boolean = false
+): Promise<CloudinarySignResponse> {
   const res = await fetch('/api/media/cloudinary-sign', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ resourceType }),
+    body: JSON.stringify({ resourceType, fileSize, useEagerAsync }),
   });
 
   if (!res.ok) {
@@ -145,7 +150,7 @@ async function getCloudinarySignature(resourceType: CloudinaryResourceType): Pro
 }
 
 /**
- * Uploads a single file (<= 20MB) directly to Cloudinary with real-time XHR progress.
+ * Uploads a single file (<= 95MB) directly to Cloudinary with real-time XHR progress.
  */
 function uploadSingleDirect(
   file: File | Blob,
@@ -172,7 +177,11 @@ function uploadSingleDirect(
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
-          resolve(data);
+          if (data.error) {
+            reject(new Error(data.error.message || `Cloudinary upload error ${xhr.status}`));
+          } else {
+            resolve(data);
+          }
         } catch {
           reject(new Error('Invalid response from media cloud server'));
         }
@@ -191,18 +200,28 @@ function uploadSingleDirect(
     xhr.timeout = 300000; // 5 minutes
 
     const formData = new FormData();
-    formData.append('file', file);
     formData.append('api_key', signData.apiKey);
     formData.append('timestamp', signData.timestamp.toString());
     formData.append('signature', signData.signature);
     formData.append('folder', signData.folder);
+    if (signData.format) {
+      formData.append('format', signData.format);
+    }
+    if (signData.transformation) {
+      formData.append('transformation', signData.transformation);
+    }
+    if (signData.eager) {
+      formData.append('eager', signData.eager);
+      formData.append('eager_async', signData.eager_async ? 'true' : 'false');
+    }
+    formData.append('file', file);
 
     xhr.send(formData);
   });
 }
 
 /**
- * Uploads large files (> 20MB) in 6MB slices with auto-retry per chunk directly to Cloudinary CDN.
+ * Uploads large files in 6MB slices with auto-retry per chunk directly to Cloudinary CDN.
  */
 async function uploadChunkedDirect(
   file: File,
@@ -249,7 +268,11 @@ async function uploadChunkedDirect(
             if (xhr.status >= 200 && xhr.status < 300) {
               try {
                 const data = JSON.parse(xhr.responseText);
-                resolve(data);
+                if (data.error) {
+                  reject(new Error(data.error.message || `Cloudinary chunk error ${xhr.status}`));
+                } else {
+                  resolve(data);
+                }
               } catch {
                 resolve({});
               }
@@ -273,11 +296,21 @@ async function uploadChunkedDirect(
           xhr.timeout = 180000; // 3 minutes per chunk
 
           const formData = new FormData();
-          formData.append('file', chunkBlob, file.name);
           formData.append('api_key', signData.apiKey);
           formData.append('timestamp', signData.timestamp.toString());
           formData.append('signature', signData.signature);
           formData.append('folder', signData.folder);
+          if (signData.format) {
+            formData.append('format', signData.format);
+          }
+          if (signData.transformation) {
+            formData.append('transformation', signData.transformation);
+          }
+          if (signData.eager) {
+            formData.append('eager', signData.eager);
+            formData.append('eager_async', signData.eager_async ? 'true' : 'false');
+          }
+          formData.append('file', chunkBlob, file.name);
 
           xhr.send(formData);
         });
@@ -298,8 +331,10 @@ async function uploadChunkedDirect(
     }
   }
 
-  if (!finalResponse || (!finalResponse.public_id && !finalResponse.secure_url && !finalResponse.url)) {
-    throw new Error('Cloudinary did not return asset metadata upon completion');
+  const assetPublicId = finalResponse?.public_id;
+  const assetUrl = finalResponse?.secure_url || finalResponse?.url;
+  if (!finalResponse || (!assetPublicId && !assetUrl && !finalResponse?.asset_id)) {
+    throw new Error(finalResponse?.error?.message || 'Cloudinary did not return asset metadata upon completion');
   }
 
   return finalResponse;
@@ -370,16 +405,6 @@ export async function uploadMediaWithProgress(
 
   const activeFile: File = file;
 
-  // Extract metadata locally for videos to evaluate 1:4 duration-to-size ratio
-  let localVideoMeta: { duration: number; sizeBytes: number } | null = null;
-  if (isVideo) {
-    try {
-      localVideoMeta = await extractVideoMetadata(activeFile);
-    } catch {
-      // Graceful fallback if client-side metadata extraction times out or is unsupported
-    }
-  }
-
   try {
     const result = await executeWithDoubleRetry(
       async (currentRetry: number) => {
@@ -401,7 +426,7 @@ export async function uploadMediaWithProgress(
         // =====================================================================
         let signData: CloudinarySignResponse | null = null;
         try {
-          signData = await getCloudinarySignature(resourceType);
+          signData = await getCloudinarySignature(resourceType, activeFile.size);
         } catch (signErr: any) {
           console.warn('Direct upload signing failed, attempting fallback:', signErr?.message);
         }
@@ -413,153 +438,283 @@ export async function uploadMediaWithProgress(
         );
 
         if (canUseDirectUpload && signData) {
-          let cloudResult: any = null;
+          try {
+            let cloudResult: any = null;
+            let compressionTimer: any = null;
 
-          if (isLargeVideo && activeFile.size > CHUNK_THRESHOLD) {
+            // Start compression ticker as soon as byte upload finishes
+            const startCompressionTicker = () => {
+              if (compressionTimer) return;
+              let compPct = 70;
+              if (onProgress) {
+                onProgress(
+                  compPct,
+                  isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
+                  {
+                    percentage: compPct,
+                    statusText: isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
+                    stage: isVideo ? 'compressing' : 'uploading',
+                    loadedBytes: activeFile.size,
+                    totalBytes: activeFile.size,
+                    formattedLoaded: sizeFormatted,
+                    formattedTotal: sizeFormatted,
+                  }
+                );
+              }
+
+              compressionTimer = setInterval(() => {
+                if (compPct < 94) {
+                  compPct = Math.min(94, compPct + Math.floor(Math.random() * 3 + 2));
+                  if (onProgress) {
+                    onProgress(
+                      compPct,
+                      isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
+                      {
+                        percentage: compPct,
+                        statusText: isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing image...',
+                        stage: isVideo ? 'compressing' : 'uploading',
+                        loadedBytes: activeFile.size,
+                        totalBytes: activeFile.size,
+                        formattedLoaded: sizeFormatted,
+                        formattedTotal: sizeFormatted,
+                      }
+                    );
+                  }
+                }
+              }, 450);
+            };
+
+            const progressHandler = (pct: number, loaded: number, total: number) => {
+              if (pct >= 100 || loaded >= total) {
+                startCompressionTicker();
+              } else if (onProgress) {
+                const displayPct = Math.min(68, Math.max(10, Math.round(10 + (loaded / total) * 58)));
+                const formattedLoaded = formatBytes(loaded);
+                const formattedTotal = formatBytes(total);
+                onProgress(
+                  displayPct,
+                  `Uploading: ${displayPct}% (${formattedLoaded} / ${formattedTotal})`,
+                  {
+                    percentage: displayPct,
+                    statusText: `${formattedLoaded} / ${formattedTotal}`,
+                    stage: 'uploading',
+                    loadedBytes: loaded,
+                    totalBytes: total,
+                    formattedLoaded,
+                    formattedTotal,
+                  }
+                );
+              }
+            };
+
+            try {
+              if (isLargeVideo && activeFile.size > CHUNK_THRESHOLD) {
+                if (onProgress) {
+                  onProgress(10, `Streaming ${sizeFormatted} video in reliable chunks...`, {
+                    percentage: 10,
+                    statusText: `Streaming ${sizeFormatted}...`,
+                    stage: 'uploading',
+                    totalBytes: activeFile.size,
+                    formattedTotal: sizeFormatted,
+                  });
+                }
+
+                cloudResult = await uploadChunkedDirect(
+                  activeFile,
+                  signData,
+                  resourceType,
+                  progressHandler
+                );
+              } else {
+                if (onProgress) {
+                  onProgress(10, `Uploading ${sizeFormatted} directly to cloud...`, {
+                    percentage: 10,
+                    statusText: `Uploading ${sizeFormatted}...`,
+                    stage: 'uploading',
+                    totalBytes: activeFile.size,
+                    formattedTotal: sizeFormatted,
+                  });
+                }
+
+                cloudResult = await uploadSingleDirect(
+                  activeFile,
+                  signData,
+                  resourceType,
+                  progressHandler
+                );
+              }
+            } finally {
+              if (compressionTimer) {
+                clearInterval(compressionTimer);
+                compressionTimer = null;
+              }
+            }
+
             if (onProgress) {
-              onProgress(40, `Streaming ${sizeFormatted} video in reliable chunks...`, {
-                percentage: 40,
-                statusText: `Streaming ${sizeFormatted}...`,
-                stage: 'uploading',
-                totalBytes: activeFile.size,
-                formattedTotal: sizeFormatted,
+              onProgress(96, 'Optimizing media & registering in database...', {
+                percentage: 96,
+                statusText: 'Saving in database...',
+                stage: 'registering',
               });
             }
 
-            cloudResult = await uploadChunkedDirect(
-              activeFile,
-              signData,
-              resourceType,
-              (pct, loaded, total) => {
-                if (onProgress) {
-                  const displayPct = Math.min(94, Math.max(40, Math.round(40 + pct * 0.55)));
-                  const formattedLoaded = formatBytes(loaded);
-                  const formattedTotal = formatBytes(total);
-                  onProgress(
-                    displayPct,
-                    `Uploading: ${displayPct}% (${formattedLoaded} / ${formattedTotal})`,
-                    {
-                      percentage: displayPct,
-                      statusText: `${formattedLoaded} / ${formattedTotal}`,
-                      stage: 'uploading',
-                      loadedBytes: loaded,
-                      totalBytes: total,
-                      formattedLoaded,
-                      formattedTotal,
-                    }
-                  );
-                }
+            // Apply Cloudinary q_auto:eco native compression
+            let finalUrl = cloudResult.secure_url || cloudResult.url;
+            const duration = cloudResult.duration || 0;
+            const finalWidth = cloudResult.width;
+            const finalHeight = cloudResult.height;
+
+            let finalMime = normalizedMime;
+            let displayFilename = activeFile.name;
+
+            if (mediaType === 'VIDEO') {
+              const isWebm =
+                cloudResult.format === 'webm' ||
+                finalUrl?.includes('.webm') ||
+                signData?.format === 'webm' ||
+                (cloudResult.eager && cloudResult.eager[0]?.secure_url?.includes('.webm'));
+
+              if (isWebm) {
+                finalMime = 'video/webm';
+                displayFilename = displayFilename.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v)$/i, '.webm');
               }
-            );
-          } else {
-            if (onProgress) {
-              onProgress(40, `Uploading ${sizeFormatted} directly to cloud...`, {
-                percentage: 40,
-                statusText: `Uploading ${sizeFormatted}...`,
-                stage: 'uploading',
-                totalBytes: activeFile.size,
-                formattedTotal: sizeFormatted,
-              });
-            }
 
-            cloudResult = await uploadSingleDirect(
-              activeFile,
-              signData,
-              resourceType,
-              (pct, loaded, total) => {
-                if (onProgress) {
-                  const displayPct = Math.min(94, Math.max(40, Math.round(40 + pct * 0.55)));
-                  const formattedLoaded = formatBytes(loaded);
-                  const formattedTotal = formatBytes(total);
-                  onProgress(
-                    displayPct,
-                    `Uploading: ${displayPct}% (${formattedLoaded} / ${formattedTotal})`,
-                    {
-                      percentage: displayPct,
-                      statusText: `${formattedLoaded} / ${formattedTotal}`,
-                      stage: 'uploading',
-                      loadedBytes: loaded,
-                      totalBytes: total,
-                      formattedLoaded,
-                      formattedTotal,
-                    }
-                  );
-                }
-              }
-            );
-          }
+              // If eager async WebM URL is already provided by Cloudinary
+              const eagerWebmUrl = cloudResult.eager?.[0]?.secure_url;
+              const sourceVideoUrl = eagerWebmUrl || cloudResult.secure_url || cloudResult.url;
+              finalUrl = optimizeCloudinaryVideoUrl(sourceVideoUrl);
 
-          if (onProgress) {
-            onProgress(96, 'Optimizing media & registering in database...', {
-              percentage: 96,
-              statusText: 'Saving in database...',
-              stage: 'registering',
-            });
-          }
-
-          // Apply 720p HD & Smart Skipping transformations
-          let finalUrl = cloudResult.secure_url || cloudResult.url;
-          let skipCompression = false;
-          let duration = 0;
-          let finalWidth = cloudResult.width;
-          let finalHeight = cloudResult.height;
-
-          if (mediaType === 'VIDEO') {
-            duration = cloudResult.duration || localVideoMeta?.duration || 0;
-            const sizeBytes = cloudResult.bytes || activeFile.size;
-            const skipResult = evaluateSmartSkipping({ duration, sizeBytes });
-            skipCompression = skipResult.shouldSkip;
-            finalUrl = optimizeCloudinaryVideoUrl(cloudResult.secure_url || cloudResult.url, {
-              skipCompression,
-              duration,
-              sizeBytes,
-            });
-
-            if (!skipCompression && finalWidth && finalHeight) {
-              const targetRes = calculateTargetResolution(finalWidth, finalHeight);
-              finalWidth = targetRes.targetW;
-              finalHeight = targetRes.targetH;
-            }
-
-            // Immediately trigger Cloudinary video transcoding in background
-            if (!skipCompression) {
+              // Warm Cloudinary video transcoding cache in background
               try {
                 fetch(finalUrl, { method: 'HEAD' }).catch(() => {});
               } catch {}
+            } else if (mediaType === 'IMAGE') {
+              finalUrl = optimizeCloudinaryImageUrl(cloudResult.secure_url || cloudResult.url, 2560);
             }
-          } else if (mediaType === 'IMAGE') {
-            finalUrl = optimizeCloudinaryImageUrl(cloudResult.secure_url || cloudResult.url, 2560);
-          }
 
-          const savedMedia = await registerMediaAsset({
-            entityId,
-            mediaType,
-            url: finalUrl,
-            secureUrl: finalUrl,
-            publicId: cloudResult.public_id,
-            filename: activeFile.name,
-            mimeType: normalizedMime,
-            sizeBytes: cloudResult.bytes || activeFile.size,
-            width: finalWidth || undefined,
-            height: finalHeight || undefined,
-            duration: duration || undefined,
-            skipCompression,
-            purpose,
-          });
-
-          if (onProgress) {
-            onProgress(100, 'Upload finished successfully!', {
-              percentage: 100,
-              statusText: 'Done',
-              stage: 'completed',
-              loadedBytes: activeFile.size,
-              totalBytes: activeFile.size,
-              formattedLoaded: formatBytes(activeFile.size),
-              formattedTotal: formatBytes(activeFile.size),
+            const savedMedia = await registerMediaAsset({
+              entityId,
+              mediaType,
+              url: finalUrl,
+              secureUrl: finalUrl,
+              publicId: cloudResult.public_id,
+              filename: displayFilename,
+              mimeType: finalMime,
+              sizeBytes: cloudResult.bytes || activeFile.size,
+              width: finalWidth || undefined,
+              height: finalHeight || undefined,
+              duration: duration || undefined,
+              purpose,
             });
-          }
 
-          return { success: true, media: savedMedia };
+            if (onProgress) {
+              onProgress(100, 'Upload finished successfully!', {
+                percentage: 100,
+                statusText: 'Done',
+                stage: 'completed',
+                loadedBytes: activeFile.size,
+                totalBytes: activeFile.size,
+                formattedLoaded: formatBytes(activeFile.size),
+                formattedTotal: formatBytes(activeFile.size),
+              });
+            }
+
+            return { success: true, media: savedMedia };
+          } catch (directErr: any) {
+            const isSyncError =
+              directErr?.message?.includes('too large to process synchronously') ||
+              directErr?.message?.includes('eager_async');
+
+            if (isSyncError && isVideo) {
+              console.warn('[Direct Upload Retry] Video exceeded synchronous limit, re-signing with eager_async=true...');
+              try {
+                const asyncSignData = await getCloudinarySignature(resourceType, activeFile.size, true);
+                if (asyncSignData && asyncSignData.success) {
+                  const cloudResult = await uploadSingleDirect(
+                    activeFile,
+                    asyncSignData,
+                    resourceType,
+                    (pct, loaded, total) => {
+                      if (onProgress) {
+                        const displayPct = Math.min(94, Math.max(10, Math.round(10 + (loaded / total) * 84)));
+                        const formattedLoaded = formatBytes(loaded);
+                        const formattedTotal = formatBytes(total);
+                        onProgress(
+                          displayPct,
+                          `Uploading: ${displayPct}% (${formattedLoaded} / ${formattedTotal})`,
+                          {
+                            percentage: displayPct,
+                            statusText: `${formattedLoaded} / ${formattedTotal}`,
+                            stage: 'uploading',
+                            loadedBytes: loaded,
+                            totalBytes: total,
+                            formattedLoaded,
+                            formattedTotal,
+                          }
+                        );
+                      }
+                    }
+                  );
+
+                  let finalUrl = cloudResult.secure_url || cloudResult.url;
+                  const duration = cloudResult.duration || 0;
+                  const finalWidth = cloudResult.width;
+                  const finalHeight = cloudResult.height;
+
+                  let finalMime = normalizedMime;
+                  let displayFilename = activeFile.name;
+
+                  const isWebm =
+                    cloudResult.format === 'webm' ||
+                    finalUrl?.includes('.webm') ||
+                    (cloudResult.eager && cloudResult.eager[0]?.secure_url?.includes('.webm'));
+
+                  if (isWebm) {
+                    finalMime = 'video/webm';
+                    displayFilename = displayFilename.replace(/\.(mov|mkv|avi|wmv|flv|3gp|m4v)$/i, '.webm');
+                  }
+
+                  const eagerWebmUrl = cloudResult.eager?.[0]?.secure_url;
+                  const sourceVideoUrl = eagerWebmUrl || cloudResult.secure_url || cloudResult.url;
+                  finalUrl = optimizeCloudinaryVideoUrl(sourceVideoUrl);
+
+                  const savedMedia = await registerMediaAsset({
+                    entityId,
+                    mediaType,
+                    url: finalUrl,
+                    secureUrl: finalUrl,
+                    publicId: cloudResult.public_id,
+                    filename: displayFilename,
+                    mimeType: finalMime,
+                    sizeBytes: cloudResult.bytes || activeFile.size,
+                    width: finalWidth || undefined,
+                    height: finalHeight || undefined,
+                    duration: duration || undefined,
+                    purpose,
+                  });
+
+                  if (onProgress) {
+                    onProgress(100, 'Upload finished successfully!', {
+                      percentage: 100,
+                      statusText: 'Done',
+                      stage: 'completed',
+                      loadedBytes: activeFile.size,
+                      totalBytes: activeFile.size,
+                      formattedLoaded: formatBytes(activeFile.size),
+                      formattedTotal: formatBytes(activeFile.size),
+                    });
+                  }
+
+                  return { success: true, media: savedMedia };
+                }
+              } catch (asyncErr: any) {
+                console.warn('[Direct Upload Async Retry Failed] Proceeding to server route fallback:', asyncErr?.message);
+              }
+            }
+
+            console.warn('[Direct Upload Fallback] Cloudinary direct upload failed, seamlessly falling back to server route:', directErr?.message);
+            // Proceed to the server upload fallback below
+          }
         }
 
         // =====================================================================
@@ -570,52 +725,78 @@ export async function uploadMediaWithProgress(
         formData.append('entityId', entityId);
         formData.append('purpose', purpose);
 
-        if (onProgress) {
-          const statusMsg = `Processing ${activeFile.name} via server fallback...`;
-          onProgress(50, statusMsg, {
-            percentage: 50,
-            statusText: statusMsg,
-            stage: 'uploading',
-          });
-        }
-
-        let result: any = null;
+        let serverCompTimer: any = null;
         try {
-          const response = await fetch('/api/media/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData?.error || `Server upload returned HTTP ${response.status}`);
-          }
-          result = await response.json();
-          if (!result.success) {
-            throw new Error(result.error || 'Server upload failed');
-          }
-        } catch (serverErr: any) {
-          if (serverErr?.message && !serverErr.message.includes('Server upload returned HTTP')) {
-            throw serverErr;
-          }
-          result = await uploadMediaAction(formData);
-        }
-
-        if (result && result.success && result.media) {
           if (onProgress) {
-            onProgress(100, 'Upload finished successfully!', {
-              percentage: 100,
-              statusText: 'Done',
-              stage: 'completed',
-              loadedBytes: activeFile.size,
-              totalBytes: activeFile.size,
-              formattedLoaded: formatBytes(activeFile.size),
-              formattedTotal: formatBytes(activeFile.size),
+            const statusMsg = `Processing ${activeFile.name} via server fallback...`;
+            onProgress(45, statusMsg, {
+              percentage: 45,
+              statusText: statusMsg,
+              stage: 'uploading',
             });
           }
-          return { success: true, media: result.media };
-        }
 
-        throw new Error(result?.error || 'Failed to upload media file via server route.');
+          let sCompPct = 65;
+          serverCompTimer = setInterval(() => {
+            if (sCompPct < 94) {
+              sCompPct = Math.min(94, sCompPct + Math.floor(Math.random() * 3 + 2));
+              if (onProgress) {
+                onProgress(
+                  sCompPct,
+                  isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing via server...',
+                  {
+                    percentage: sCompPct,
+                    statusText: isVideo ? 'Cloudinary compressing video (auto:eco)...' : 'Processing via server...',
+                    stage: isVideo ? 'compressing' : 'uploading',
+                  }
+                );
+              }
+            }
+          }, 450);
+
+          let result: any = null;
+          try {
+            const response = await fetch('/api/media/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            if (!response.ok) {
+              const errData = await response.json().catch(() => ({}));
+              throw new Error(errData?.error || `Server upload returned HTTP ${response.status}`);
+            }
+            result = await response.json();
+            if (!result.success) {
+              throw new Error(result.error || 'Server upload failed');
+            }
+          } catch (serverErr: any) {
+            if (serverErr?.message && !serverErr.message.includes('Server upload returned HTTP')) {
+              throw serverErr;
+            }
+            result = await uploadMediaAction(formData);
+          }
+
+          if (result && result.success && result.media) {
+            if (onProgress) {
+              onProgress(100, 'Upload finished successfully!', {
+                percentage: 100,
+                statusText: 'Done',
+                stage: 'completed',
+                loadedBytes: activeFile.size,
+                totalBytes: activeFile.size,
+                formattedLoaded: formatBytes(activeFile.size),
+                formattedTotal: formatBytes(activeFile.size),
+              });
+            }
+            return { success: true, media: result.media };
+          }
+
+          throw new Error(result?.error || 'Failed to upload media file via server route.');
+        } finally {
+          if (serverCompTimer) {
+            clearInterval(serverCompTimer);
+            serverCompTimer = null;
+          }
+        }
       },
       {
         maxRetries: 2,

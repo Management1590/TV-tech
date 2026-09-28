@@ -21,6 +21,25 @@ export async function POST(req: NextRequest) {
       timestamp,
     };
 
+    const fileSize = Number(body.fileSize) || 0;
+    const isLargeForSync = fileSize > 40 * 1024 * 1024 || Boolean(body.useEagerAsync);
+
+    // Video optimization strategy:
+    // 1. Files <= 40MB use Incoming Transformation with `format: 'webm'` and `q_auto:eco`.
+    //    This automatically converts MOV/MP4 to WebM and aggressively compresses it,
+    //    preventing files from sticking to heavy .mov containers and discarding master files at rest.
+    // 2. Files > 40MB exceed Cloudinary's synchronous processing threshold (which throws "Video is too large
+    //    to process synchronously"), so they are signed with `eager: 'f_webm,q_auto:eco'` and `eager_async: true`.
+    if (resourceType === 'video') {
+      if (isLargeForSync) {
+        paramsToSign.eager = 'f_webm,q_auto:eco';
+        paramsToSign.eager_async = true;
+      } else {
+        paramsToSign.format = 'webm';
+        paramsToSign.transformation = 'q_auto:eco';
+      }
+    }
+
     const signature = cloudinary.utils.api_sign_request(
       paramsToSign,
       process.env.CLOUDINARY_API_SECRET || 'm1wDvL1NC5LNvGNeg6eFyOyanMI'
@@ -33,6 +52,10 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.CLOUDINARY_API_KEY || '918732292732855',
       cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'zcquougv',
       folder,
+      format: paramsToSign.format,
+      transformation: paramsToSign.transformation,
+      eager: paramsToSign.eager,
+      eager_async: paramsToSign.eager_async,
     });
   } catch (error: any) {
     console.error('Cloudinary sign error:', error);
