@@ -53,7 +53,7 @@ export default async function TvModelDetailPage({
 
   const linkedBacklightCount = model.entity?.targetRelationships?.length ?? 0;
   const hasLinkedBacklights = linkedBacklightCount > 0;
-  const isAdmin = !!user;
+  const isAdmin = user?.role === 'ADMIN';
   const effectiveFolderCount =
     !isAdmin && !hasLinkedBacklights
       ? Math.max(1, model.knowledgeFolders.length - 1)

@@ -1645,14 +1645,12 @@ export function KbFolderContentViewer({
                     {/* Clean Hover Tint */}
                     <div className="absolute inset-0 bg-black/15 group-hover:bg-black/30 transition-colors duration-300 pointer-events-none" />
 
-                    {/* Centered Glowing Play Button */}
-                    {!isManageMode && !activeDrag?.isFloating && !isSelectionMode && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/95 dark:bg-white/90 text-slate-900 shadow-2xl flex items-center justify-center group-hover:scale-115 group-active:scale-95 transition-all duration-300 ring-4 ring-white/30 backdrop-blur-md">
-                          <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-slate-900 ml-1 text-slate-900" />
-                        </div>
+                    {/* Centered Glowing Play Button (Always shown on video thumbnails) */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/95 dark:bg-white/90 text-slate-900 shadow-2xl flex items-center justify-center group-hover:scale-115 group-active:scale-95 transition-all duration-300 ring-4 ring-white/30 backdrop-blur-md">
+                        <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-slate-900 ml-1 text-slate-900" />
                       </div>
-                    )}
+                    </div>
 
                     {/* Google Photos Selection Tick & Empty Circle Badge */}
                     {isSelectionMode && (
@@ -2191,20 +2189,20 @@ export function KbFolderContentViewer({
               className="mx-auto w-full max-w-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 rounded-full p-1.5 sm:p-2 flex items-center justify-between shadow-[0_10px_35px_-5px_rgba(0,0,0,0.07),0_0_1px_1px_rgba(0,0,0,0.03)] dark:shadow-[0_12px_40px_-5px_rgba(0,0,0,0.5),0_0_1px_1px_rgba(255,255,255,0.05)] transition-all select-none"
             >
               {/* Left Action Group: Note & Media */}
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
                 {/* 1. Add Note Button */}
                 <button
                   type="button"
                   onClick={handleOpenCreateDoc}
                   title="Add Technical Note"
                   aria-label="Add Technical Note"
-                  className="group flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-4 rounded-full bg-emerald-500/10 hover:bg-emerald-500/15 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 dark:border-emerald-500/30 font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer select-none active:scale-[0.97] shrink-0 whitespace-nowrap shadow-2xs hover:shadow-xs"
+                  className="group flex items-center justify-center gap-1.5 sm:gap-2 h-10.5 sm:h-11 px-3 sm:px-4.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/15 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 dark:border-emerald-500/30 font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer select-none active:scale-[0.97] shrink-0 whitespace-nowrap shadow-2xs hover:shadow-xs"
                 >
-                  <div className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <FileText className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   </div>
-                  <span className="hidden sm:inline">Add Note</span>
-                  <span className="sm:hidden text-xs">Note</span>
+                  <span className="hidden sm:inline font-bold text-sm">Add Note</span>
+                  <span className="sm:hidden font-bold text-xs">Note</span>
                 </button>
 
                 {/* 2. Media Upload Button */}
@@ -2214,19 +2212,19 @@ export function KbFolderContentViewer({
                   onClick={() => setIsUploadDialogOpen(true)}
                   title="Upload Photos & Videos"
                   aria-label="Upload Photos & Videos"
-                  className="group flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-4 rounded-full bg-blue-500/10 hover:bg-blue-500/15 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-blue-500/20 dark:border-blue-500/30 font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer select-none active:scale-[0.97] shrink-0 whitespace-nowrap shadow-2xs hover:shadow-xs"
+                  className="group flex items-center justify-center gap-1.5 sm:gap-2 h-10.5 sm:h-11 px-3 sm:px-4.5 rounded-full bg-blue-500/10 hover:bg-blue-500/15 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-blue-500/20 dark:border-blue-500/30 font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer select-none active:scale-[0.97] shrink-0 whitespace-nowrap shadow-2xs hover:shadow-xs"
                 >
-                  <div className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full bg-blue-500/15 dark:bg-blue-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <UploadCloud className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full bg-blue-500/15 dark:bg-blue-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 shrink-0" />
                   </div>
-                  <span className="hidden sm:inline">Upload Media</span>
-                  <span className="sm:hidden text-xs">Media</span>
+                  <span className="hidden sm:inline font-bold text-sm">Upload Media</span>
+                  <span className="sm:hidden font-bold text-xs">Media</span>
                 </button>
               </div>
 
               {/* Right Action Group: Mic Button with docking divider */}
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <div className="w-px h-5 sm:h-6 bg-slate-200/80 dark:bg-slate-700/80 shrink-0" />
+              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                <div className="w-px h-6 sm:h-7 bg-slate-200/80 dark:bg-slate-700/80 shrink-0" />
                 <VoiceRecorderWidget
                   entityId={entityId}
                   onRecordingComplete={handleMediaUploaded}

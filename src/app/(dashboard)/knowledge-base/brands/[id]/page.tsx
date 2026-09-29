@@ -44,7 +44,7 @@ export default async function TvBrandDetailPage({
     notFound();
   }
 
-  const isAdmin = !!user;
+  const isAdmin = user?.role === 'ADMIN';
   const cleanBrandName = brand.name.replace(/_\d{10,}$/, '');
 
   const formattedModels = brand.models.map((m) => {

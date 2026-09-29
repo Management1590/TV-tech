@@ -1220,7 +1220,7 @@ export function VoiceRecorderWidget({
             } as React.CSSProperties
           }
           className={`voice-record-btn ${
-            compact ? 'w-9 h-9 sm:w-10 sm:h-10' : 'w-11 h-11'
+            compact ? 'w-10.5 h-10.5 sm:w-11 sm:h-11' : 'w-11 h-11'
           } rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 transition-colors duration-150 ${
             status === 'uploading'
               ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 ring-2 ring-violet-400/50 shadow-lg shadow-violet-500/40 border-white/40 cursor-wait'
@@ -1256,24 +1256,24 @@ export function VoiceRecorderWidget({
           }
         >
           {status === 'uploading' ? (
-            <Loader2 className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white animate-spin pointer-events-none select-none`} />
+            <Loader2 className={`${compact ? 'w-5 h-5' : 'w-5 h-5'} text-white animate-spin pointer-events-none select-none`} />
           ) : isLocked ? (
-            <Send className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white fill-white ml-0.5 transition-transform scale-105 pointer-events-none select-none`} />
+            <Send className={`${compact ? 'w-4.5 h-4.5 sm:w-5 sm:h-5' : 'w-5 h-5'} text-white fill-white ml-0.5 transition-transform scale-105 pointer-events-none select-none`} />
           ) : isDeleteMorph ? (
             <Trash2
-              className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white transition-all duration-150 pointer-events-none select-none ${
+              className={`${compact ? 'w-5 h-5' : 'w-5 h-5'} text-white transition-all duration-150 pointer-events-none select-none ${
                 isDeleteZone ? 'scale-115' : 'scale-100 opacity-90'
               }`}
             />
           ) : isLockMorph ? (
             <Lock
-              className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white transition-all duration-150 pointer-events-none select-none ${
+              className={`${compact ? 'w-5 h-5' : 'w-5 h-5'} text-white transition-all duration-150 pointer-events-none select-none ${
                 isLockZone ? 'scale-115' : 'scale-100 opacity-90'
               }`}
             />
           ) : (
             <Mic
-              className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white transition-transform pointer-events-none select-none ${
+              className={`${compact ? 'w-5 h-5 sm:w-5.5 sm:h-5.5' : 'w-5.5 h-5.5'} text-white transition-transform pointer-events-none select-none ${
                 isRecordingState ? 'animate-pulse scale-110' : ''
               }`}
             />
