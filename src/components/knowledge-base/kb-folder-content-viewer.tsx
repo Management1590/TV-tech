@@ -441,6 +441,28 @@ export function KbFolderContentViewer({
     timer: NodeJS.Timeout | null;
   } | null>(null);
 
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const dragPointerPosRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const dragStartScrollRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const startFloating = useCallback((srcIdx: number, pId: number, sX: number, sY: number) => {
+    dragStartScrollRef.current = {
+      x: window.scrollX,
+      y: window.scrollY,
+    };
+    dragPointerPosRef.current = { clientX: sX, clientY: sY };
+    setActiveDrag({
+      sourceIdx: srcIdx,
+      targetIdx: srcIdx,
+      deltaX: 0,
+      deltaY: 0,
+      isFloating: true,
+    });
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate?.(40);
+    }
+  }, []);
+
   const onPointerDownUnified = (index: number, e: React.PointerEvent) => {
     if (!isAdmin || !isGlobalEditMode || !isManageMode) return;
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
@@ -448,47 +470,34 @@ export function KbFolderContentViewer({
     const pointerId = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
-    const isTouch = e.pointerType === 'touch';
 
     if (pointerRef.current?.timer) {
       clearTimeout(pointerRef.current.timer);
     }
 
-    const startFloating = () => {
-      setActiveDrag({
-        sourceIdx: index,
-        targetIdx: index,
-        deltaX: 0,
-        deltaY: 0,
-        isFloating: true,
-      });
-      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate?.(35);
-      }
-    };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(pointerId);
+    } catch {}
 
-    if (isTouch) {
-      const timer = setTimeout(startFloating, 220);
-      pointerRef.current = { pointerId, startX, startY, sourceIdx: index, timer };
-    } else {
-      pointerRef.current = { pointerId, startX, startY, sourceIdx: index, timer: null };
-      startFloating();
-    }
+    // Immediate floating drag activation: zero delay, instantaneous mobile touch response
+    pointerRef.current = { pointerId, startX, startY, sourceIdx: index, timer: null };
+    startFloating(index, pointerId, startX, startY);
   };
 
   useEffect(() => {
     const onPointerMove = (e: PointerEvent) => {
       if (!pointerRef.current) return;
-      const { startX, startY, sourceIdx, timer } = pointerRef.current;
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
+      const { startX, startY, sourceIdx } = pointerRef.current;
 
-      if (timer && Math.hypot(deltaX, deltaY) > 8) {
-        clearTimeout(timer);
-        pointerRef.current.timer = null;
-      }
+      // Keep pointer coordinates fresh for the auto-scroll animation loop
+      dragPointerPosRef.current = { clientX: e.clientX, clientY: e.clientY };
 
       if (!activeDrag?.isFloating) return;
+
+      const currentScrollX = window.scrollX;
+      const currentScrollY = window.scrollY;
+      const deltaX = (e.clientX - startX) + (currentScrollX - dragStartScrollRef.current.x);
+      const deltaY = (e.clientY - startY) + (currentScrollY - dragStartScrollRef.current.y);
 
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const card = el?.closest('[data-unified-index]');
@@ -497,6 +506,12 @@ export function KbFolderContentViewer({
       if (card) {
         const parsed = Number(card.getAttribute('data-unified-index'));
         if (!isNaN(parsed) && parsed >= 0 && parsed < unifiedItems.length) {
+          if (parsed !== targetIdx) {
+            // Subtle haptic tick when hovering over new reorder slot
+            if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+              navigator.vibrate?.(15);
+            }
+          }
           targetIdx = parsed;
         }
       }
@@ -511,6 +526,12 @@ export function KbFolderContentViewer({
     };
 
     const onPointerUp = () => {
+      if (autoScrollFrameRef.current) {
+        cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
+      }
+      dragPointerPosRef.current = null;
+
       if (pointerRef.current?.timer) {
         clearTimeout(pointerRef.current.timer);
       }
@@ -520,6 +541,9 @@ export function KbFolderContentViewer({
         setActiveDrag(null);
         pointerRef.current = null;
         if (sourceIdx !== targetIdx) {
+          if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate?.([20, 35]);
+          }
           handleReorderUnified(sourceIdx, targetIdx);
         }
       } else {
@@ -537,18 +561,119 @@ export function KbFolderContentViewer({
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [activeDrag, unifiedItems.length]);
+  }, [activeDrag, unifiedItems.length, startFloating, handleReorderUnified]);
 
-  // Freeze viewport scrolling during drag
+  // Screen lock & Corner/Edge Auto-Scroll Engine during drag
   useEffect(() => {
-    if (activeDrag?.isFloating) {
-      const origOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = origOverflow;
-      };
-    }
-  }, [activeDrag?.isFloating]);
+    if (!activeDrag?.isFloating) return;
+
+    // 1. Lock screen completely: prevent native browser page panning/scrolling
+    // Using touchmove preventDefault cancels native touch panning/swiping immediately,
+    // while keeping the root container scrollable programmatically via window.scrollBy.
+    const origBodyTouchAction = document.body.style.touchAction;
+    const origHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+    const origBodyUserSelect = document.body.style.userSelect;
+
+    document.body.style.touchAction = 'none';
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.body.style.userSelect = 'none';
+
+    // Intercept touchmove with passive: false to guarantee 100% fixed viewport on mobile
+    const preventNativeTouchMove = (e: TouchEvent) => {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('touchmove', preventNativeTouchMove, { passive: false });
+
+    // 2. Corner & Edge Auto-Scroll Loop (Top & Bottom edge detection)
+    const vh = window.innerHeight;
+    const EDGE_ZONE = Math.max(90, Math.min(150, Math.round(vh * 0.16))); // 16% of screen height
+    const MAX_SPEED = 18; // smooth & responsive max speed in px/frame
+
+    const autoScrollLoop = () => {
+      if (!dragPointerPosRef.current) {
+        autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
+        return;
+      }
+
+      const { clientX, clientY } = dragPointerPosRef.current;
+      const currentVh = window.innerHeight;
+      let vy = 0;
+
+      // Approaching top corner/edge: scroll UP
+      if (clientY < EDGE_ZONE) {
+        if (window.scrollY > 0) {
+          const intensity = Math.max(0, Math.min(1, (EDGE_ZONE - clientY) / EDGE_ZONE));
+          vy = -Math.max(2, Math.round(Math.pow(intensity, 1.3) * MAX_SPEED));
+        }
+      }
+      // Approaching bottom corner/edge: scroll DOWN
+      else if (clientY > currentVh - EDGE_ZONE) {
+        const maxScroll = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - currentVh;
+        if (window.scrollY < maxScroll - 2) {
+          const intensity = Math.max(0, Math.min(1, (clientY - (currentVh - EDGE_ZONE)) / EDGE_ZONE));
+          vy = Math.max(2, Math.round(Math.pow(intensity, 1.3) * MAX_SPEED));
+        }
+      }
+
+      if (vy !== 0) {
+        window.scrollBy({ top: vy, behavior: 'instant' });
+
+        // Update target index based on card newly visible under pointer
+        const el = document.elementFromPoint(clientX, clientY);
+        const card = el?.closest('[data-unified-index]');
+        let newTargetIdx: number | null = null;
+        if (card) {
+          const parsed = Number(card.getAttribute('data-unified-index'));
+          if (!isNaN(parsed) && parsed >= 0 && parsed < unifiedItems.length) {
+            newTargetIdx = parsed;
+          }
+        }
+
+        if (pointerRef.current) {
+          const { startX, startY, sourceIdx } = pointerRef.current;
+          const currentScrollX = window.scrollX;
+          const currentScrollY = window.scrollY;
+          const deltaX = (clientX - startX) + (currentScrollX - dragStartScrollRef.current.x);
+          const deltaY = (clientY - startY) + (currentScrollY - dragStartScrollRef.current.y);
+
+          setActiveDrag((prev) => {
+            if (!prev?.isFloating) return prev;
+            const updatedTarget = newTargetIdx !== null ? newTargetIdx : prev.targetIdx;
+            if (updatedTarget !== prev.targetIdx) {
+              if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                navigator.vibrate?.(15);
+              }
+            }
+            return {
+              sourceIdx,
+              targetIdx: updatedTarget,
+              deltaX,
+              deltaY,
+              isFloating: true,
+            };
+          });
+        }
+      }
+
+      autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
+    };
+
+    autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
+
+    return () => {
+      document.body.style.touchAction = origBodyTouchAction;
+      document.documentElement.style.overscrollBehavior = origHtmlOverscroll;
+      document.body.style.userSelect = origBodyUserSelect;
+      window.removeEventListener('touchmove', preventNativeTouchMove);
+
+      if (autoScrollFrameRef.current) {
+        cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
+      }
+    };
+  }, [activeDrag?.isFloating, unifiedItems.length]);
 
   // Stop audio on modal open
   useEffect(() => {
@@ -672,7 +797,8 @@ export function KbFolderContentViewer({
       return;
     }
 
-    // Normal action
+    // Normal action (suppressed during organize mode)
+    if (isManageMode) return;
     normalAction?.();
   };
 
@@ -957,48 +1083,48 @@ export function KbFolderContentViewer({
       {/* ========================================================================= */}
       {/* 1. MASTER FOLDER HEADER & MODE CONTROLLER                                 */}
       {/* ========================================================================= */}
-      <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-border/80 rounded-2xl sm:rounded-3xl shadow-sm transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Left: Folder Info (Vibrant, coloured, and interactive) */}
+      <div className="p-4 sm:p-6 bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl sm:rounded-3xl shadow-2xs transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Left: Folder Info (Color-muted, calm & focus-friendly) */}
         <div
           onClick={scrollToContainer}
-          className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1 opacity-100 grayscale-0 cursor-pointer select-none transition-all duration-300 group"
+          className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1 cursor-pointer select-none transition-all duration-300 group"
           title="Click to scroll to folder content"
         >
-          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-600/5 border border-amber-300/80 dark:border-amber-700/80 text-amber-600 dark:text-amber-400 group-hover:scale-105 group-hover:shadow-md transition-all">
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200/70 dark:group-hover:bg-slate-700/70 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:scale-105 transition-all">
             {isGlobalEditMode ? (
-              <SlidersHorizontal className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400" />
+              <SlidersHorizontal className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors" />
             ) : (
-              <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400" />
+              <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors" />
             )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-foreground truncate group-hover:text-foreground/80 transition-colors">
                 {folderName}
               </h1>
               <Badge
                 variant="secondary"
-                className="bg-amber-100/90 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 text-[10px] sm:text-xs font-bold py-0.5 px-2 shadow-2xs"
+                className="bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300/70 dark:border-slate-700 text-[10px] sm:text-xs font-semibold py-0.5 px-2 shadow-2xs"
               >
                 Unified Knowledge Base
               </Badge>
               <Badge
                 variant="outline"
-                className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700/80 text-[10px] sm:text-xs font-semibold px-2 py-0.5 shadow-2xs"
+                className="bg-slate-100/80 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/60 text-[10px] sm:text-xs font-medium px-2 py-0.5 shadow-2xs"
               >
                 {unifiedItems.length} Total {unifiedItems.length === 1 ? 'Item' : 'Items'}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
+            <p className="text-xs text-muted-foreground mt-0.5 truncate font-normal">
               {modelName} • Single partition feed for photos, videos, audio & notes
             </p>
           </div>
         </div>
 
-        {/* View / Edit Mode Segmented Switch */}
+        {/* View / Edit Mode Segmented Switch (Unmuted, crisp & prominent) */}
         {isAdmin && (
           <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0 justify-end opacity-100 grayscale-0">
-            <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl sm:rounded-full shadow-inner gap-1 w-full sm:w-auto">
+            <div className="inline-flex items-center p-1 bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl sm:rounded-full shadow-xs gap-1 w-full sm:w-auto">
               {/* View Mode */}
               <button
                 type="button"
@@ -1011,11 +1137,11 @@ export function KbFolderContentViewer({
                 }}
                 className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
                   !isGlobalEditMode
-                    ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm ring-1 ring-black/5'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-zinc-800/50'
+                    ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/10 dark:ring-white/10'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-zinc-800/80'
                 }`}
               >
-                <Eye className={`w-3.5 h-3.5 ${!isGlobalEditMode ? 'text-primary scale-110' : 'text-muted-foreground'}`} />
+                <Eye className={`w-3.5 h-3.5 ${!isGlobalEditMode ? 'text-blue-600 dark:text-blue-400 scale-110 stroke-[2.5]' : 'text-slate-500 dark:text-slate-400'}`} />
                 <span>View Mode</span>
               </button>
 
@@ -1032,10 +1158,10 @@ export function KbFolderContentViewer({
                 className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
                   isGlobalEditMode
                     ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/40'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-zinc-800/50'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-zinc-800/80'
                 }`}
               >
-                <Edit3 className={`w-3.5 h-3.5 ${isGlobalEditMode ? 'text-white scale-110' : 'text-muted-foreground'}`} />
+                <Edit3 className={`w-3.5 h-3.5 ${isGlobalEditMode ? 'text-white scale-110 stroke-[2.5]' : 'text-slate-500 dark:text-slate-400'}`} />
                 <span>Edit Mode</span>
                 {isGlobalEditMode && (
                   <span className="flex h-1.5 w-1.5 relative ml-0.5">
@@ -1575,11 +1701,13 @@ export function KbFolderContentViewer({
                     }}
                     className={`relative rounded-3xl transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
-                        ? 'shadow-2xl ring-4 ring-violet-500 opacity-95'
+                        ? 'shadow-2xl ring-4 ring-violet-500 opacity-95 pointer-events-none'
                         : isSource && activeDrag?.isFloating
                         ? 'opacity-25 border-dashed border-2 border-violet-500 scale-98'
                         : isTarget && activeDrag?.isFloating
                         ? 'ring-4 ring-violet-500/40 bg-violet-50/40 dark:bg-violet-950/40 scale-[1.01]'
+                        : isGlobalEditMode && isManageMode
+                        ? 'border-violet-400 ring-2 ring-violet-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
                         : isSelected
                         ? 'scale-[0.94] sm:scale-[0.96] ring-4 ring-blue-500 ring-offset-2 ring-offset-background shadow-2xl shadow-blue-500/25 z-10 cursor-pointer'
                         : isSelectionMode

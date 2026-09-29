@@ -68,6 +68,12 @@ function AudioVisualizer({
   );
 }
 
+// Gesture thresholds
+const DELETE_THRESHOLD = 80;
+const DELETE_MORPH_THRESHOLD = 28;
+const LOCK_THRESHOLD = 30;
+const LOCK_MORPH_THRESHOLD = 15;
+
 // ============================================================
 // VOICE RECORDER WIDGET PROPS
 // ============================================================
@@ -128,6 +134,10 @@ export function VoiceRecorderWidget({
   const cleanupListenersRef = useRef<(() => void) | null>(null);
   const onMoveRef = useRef<((currX: number, currY: number) => void) | null>(null);
   const onEndRef = useRef<((endX: number, endY: number) => void) | null>(null);
+
+  // Haptic trigger debouncing refs
+  const hasTriggeredDeleteHapticRef = useRef<boolean>(false);
+  const hasTriggeredLockHapticRef = useRef<boolean>(false);
 
   // Synchronize ref with state
   useEffect(() => {
@@ -639,6 +649,8 @@ export function VoiceRecorderWidget({
     setDragOffset({ x: 0, y: 0 });
     dragOffsetRef.current = { x: 0, y: 0 };
     axisRef.current = 'none';
+    hasTriggeredDeleteHapticRef.current = false;
+    hasTriggeredLockHapticRef.current = false;
 
     if (recordButtonRef.current) {
       const initTransform = 'translate3d(0, 0, 0) scale(1.26)';
@@ -687,6 +699,25 @@ export function VoiceRecorderWidget({
       dragOffsetRef.current = { x: dx, y: dy };
       setDragOffset({ x: dx, y: dy });
 
+      // Haptic tick feedback when crossing into delete or lock thresholds
+      if (dx >= DELETE_THRESHOLD) {
+        if (!hasTriggeredDeleteHapticRef.current) {
+          triggerHaptic([25, 20]);
+          hasTriggeredDeleteHapticRef.current = true;
+        }
+      } else {
+        hasTriggeredDeleteHapticRef.current = false;
+      }
+
+      if (dy >= LOCK_THRESHOLD) {
+        if (!hasTriggeredLockHapticRef.current) {
+          triggerHaptic(25);
+          hasTriggeredLockHapticRef.current = true;
+        }
+      } else {
+        hasTriggeredLockHapticRef.current = false;
+      }
+
       // Direct DOM update with CSS variable & WebKit transform for instant 60/120fps hardware acceleration
       if (recordButtonRef.current) {
         const trans = `translate3d(-${dx}px, -${dy}px, 0) scale(1.26)`;
@@ -729,13 +760,13 @@ export function VoiceRecorderWidget({
       }
 
       // 1. User slid sideways to the bin icon and released -> DISCARD!
-      if (currentAxis === 'horizontal' && currentOffset.x >= 100) {
+      if (currentAxis === 'horizontal' && currentOffset.x >= DELETE_THRESHOLD) {
         cancelRecording();
         return;
       }
 
       // 2. User slid upward to the lock badge and released -> LOCK HANDS-FREE!
-      if (currentAxis === 'vertical' && currentOffset.y >= 30) {
+      if (currentAxis === 'vertical' && currentOffset.y >= LOCK_THRESHOLD) {
         lockToHandsFree();
         return;
       }
@@ -927,32 +958,34 @@ export function VoiceRecorderWidget({
 
   const isRecordingState = status === 'recording' || status === 'starting';
 
+  // Dynamic morph calculations for holding gestures
+  const isDeleteZone = isHolding && dragOffset.x >= DELETE_THRESHOLD;
+  const isDeleteMorph = isHolding && dragOffset.x >= DELETE_MORPH_THRESHOLD;
+  const isLockZone = isHolding && dragOffset.y >= LOCK_THRESHOLD;
+  const isLockMorph = isHolding && dragOffset.y >= LOCK_MORPH_THRESHOLD;
+
   // ============================================================
   // RENDER: EMBEDDED INLINE WIDGET
   // ============================================================
   return (
     <div className="relative flex items-center justify-end select-none touch-none">
       {/* ------------------------------------------------------------ */}
-      {/* 1. SLIDE-UP LOCK TARGET: Directly above mic button            */}
-      {/* As the user slides UP, the mic button moves towards this badge*/}
+      {/* 1. SLIDE-UP LOCK GUIDE: Directly above mic button            */}
+      {/* Smoothly fades out as mic button moves up & inherits lock    */}
       {/* ------------------------------------------------------------ */}
       {isRecordingState && !isLocked && (
         <div
           onClick={lockToHandsFree}
           style={{
-            transform: `translate3d(0, -${Math.min(dragOffset.y * 0.45, 16)}px, 0)`,
-            WebkitTransform: `translate3d(0, -${Math.min(dragOffset.y * 0.45, 16)}px, 0)`,
+            opacity: Math.max(0, 1 - dragOffset.y / 24),
+            transform: `translate3d(0, -${Math.min(dragOffset.y * 0.3, 10)}px, 0)`,
+            WebkitTransform: `translate3d(0, -${Math.min(dragOffset.y * 0.3, 10)}px, 0)`,
+            pointerEvents: dragOffset.y > 10 ? 'none' : 'auto',
           }}
-          className="absolute right-1 -top-14 z-20 flex flex-col items-center select-none cursor-pointer transition-transform touch-none"
+          className="absolute right-1.5 -top-14 z-10 flex flex-col items-center select-none cursor-pointer transition-opacity duration-150 touch-none"
           title="Slide up or click to lock hands-free"
         >
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-lg transition-all active:scale-95 ${
-              dragOffset.y >= 30
-                ? 'bg-violet-600 text-white scale-125 ring-4 ring-violet-400/50 border-violet-300 shadow-violet-500/50'
-                : 'bg-slate-950/90 text-slate-200 border-violet-500/30 hover:bg-slate-900'
-            }`}
-          >
+          <div className="w-8 h-8 rounded-full flex items-center justify-center border border-violet-400/40 bg-slate-950/90 text-violet-300 shadow-md">
             <Lock className="w-3.5 h-3.5" />
           </div>
           <ChevronUp
@@ -971,26 +1004,40 @@ export function VoiceRecorderWidget({
       {/* ------------------------------------------------------------ */}
       {isRecordingState && (
         <div
-          className="absolute right-0 flex items-center h-11 sm:h-12 bg-slate-950/98 dark:bg-black/98 text-white border border-violet-500/40 rounded-full shadow-2xl shadow-violet-950/30 backdrop-blur-xl px-2.5 sm:px-3 gap-2 sm:gap-2.5 origin-right animate-in fade-in zoom-in-95 duration-200 z-20 ring-1 ring-violet-400/20"
+          className={`absolute right-0 flex items-center h-11 sm:h-12 bg-slate-950/98 dark:bg-black/98 text-white border rounded-full shadow-2xl backdrop-blur-xl px-2.5 sm:px-3 gap-2 sm:gap-2.5 origin-right animate-in fade-in zoom-in-95 duration-200 z-20 ring-1 transition-colors duration-200 ${
+            isDeleteZone
+              ? 'border-red-500/60 shadow-red-950/40 ring-red-500/30'
+              : 'border-violet-500/40 shadow-violet-950/30 ring-violet-400/20'
+          }`}
           style={{
             maxWidth: 'min(calc(100vw - 3.5rem), 360px)',
             width: isLocked ? 'auto' : 'max-content',
           }}
         >
-          {/* SEPARATE DISCARD BUTTON (Always available in both Case 1 and Case 2) */}
-          <button
-            type="button"
-            onClick={cancelRecording}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-90 ${
-              dragOffset.x >= 100
-                ? 'bg-red-600 text-white scale-125 shadow-xl shadow-red-600/60 ring-4 ring-red-400/60 animate-pulse'
-                : 'bg-white/10 hover:bg-red-600 text-white/80 hover:text-white'
-            }`}
-            title="Discard recording"
-            aria-label="Discard recording"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {/* DISCARD BUTTON / TARGET */}
+          {isLocked ? (
+            /* Hands-Free Mode: Clickable Discard Button */
+            <button
+              type="button"
+              onClick={cancelRecording}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-red-600 text-white/80 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-90"
+              title="Discard recording"
+              aria-label="Discard recording"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            /* Holding & Sliding Mode: Subtle Ghost Target that fades out as the sliding button approaches */
+            <div
+              style={{
+                opacity: Math.max(0, 1 - dragOffset.x / 50),
+              }}
+              className="w-8 h-8 rounded-full border border-dashed border-white/20 flex items-center justify-center shrink-0 transition-opacity duration-150 pointer-events-none select-none"
+              title="Slide here to cancel"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-white/30" />
+            </div>
+          )}
 
           {/* Red pulsing live recording indicator + timer */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pointer-events-none select-none">
@@ -1018,7 +1065,7 @@ export function VoiceRecorderWidget({
           {!isLocked ? (
             <div
               style={{
-                opacity: Math.max(0.15, 1 - dragOffset.x / 130),
+                opacity: Math.max(0, 1 - dragOffset.x / 75),
               }}
               className="flex items-center gap-1.5 text-slate-300 text-[10px] sm:text-[11px] font-semibold select-none transition-opacity pointer-events-none pr-8 sm:pr-10 shrink-0"
             >
@@ -1050,12 +1097,12 @@ export function VoiceRecorderWidget({
               </div>
               <span
                 className={`transition-colors duration-150 whitespace-nowrap ${
-                  dragOffset.x >= 100
+                  isDeleteZone
                     ? 'text-red-400 font-bold animate-pulse'
                     : 'text-slate-300 font-medium'
                 }`}
               >
-                {dragOffset.x >= 100 ? 'Release to cancel' : 'Slide to cancel'}
+                {isDeleteZone ? 'Release to cancel' : 'Slide to cancel'}
               </span>
             </div>
           ) : (
@@ -1080,22 +1127,22 @@ export function VoiceRecorderWidget({
       )}
 
       {/* ------------------------------------------------------------ */}
-      {/* 3. UPLOADING STATE (EMBEDDED)                                 */}
+      {/* 3. UPLOADING FLOATING MICRO-PILL                             */}
+      {/* Centered directly above mic button — never overlays other icons */}
       {/* ------------------------------------------------------------ */}
       {status === 'uploading' && (
-        <div className="absolute right-0 flex items-center h-11 sm:h-12 px-4 rounded-full bg-violet-950/98 text-white border border-violet-400/50 shadow-2xl gap-2 backdrop-blur-xl z-20 animate-in fade-in zoom-in-95 duration-200 ring-2 ring-violet-500/40">
-          <Loader2 className="w-4 h-4 animate-spin text-violet-300 shrink-0" />
-          <span className="text-xs font-bold tracking-tight text-violet-100 whitespace-nowrap">
-            Uploading note...
-          </span>
+        <div className="absolute -top-9 right-1/2 translate-x-1/2 px-2.5 py-1 rounded-full bg-slate-900/95 text-white text-[11px] font-bold shadow-xl border border-violet-500/40 whitespace-nowrap animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 pointer-events-none z-30 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
+          <span>Saving...</span>
         </div>
       )}
 
       {/* ------------------------------------------------------------ */}
-      {/* 4. THE RECORDER / SEND BUTTON                                 */}
-      {/* - Holding: BECOMES BIGGER (scale-126) and SLIDES along axis!   */}
-      {/* - Tapping: CHANGES TO SEND BUTTON (Paper Airplane)            */}
-      {/* - SAME EXACT COLOR AS RECORDER BUTTON (Violet Gradient)!      */}
+      {/* 4. THE RECORDER / SEND / SPINNER BUTTON                       */}
+      {/* - Holding left: Morphs icon to Trash & turns red at threshold */}
+      {/* - Holding up: Morphs icon to Lock & locks on release          */}
+      {/* - Uploading: Becomes circular spinner in-place (no overflow)  */}
+      {/* - Locked: Changes to Send button                              */}
       {/* ------------------------------------------------------------ */}
       <div className="relative shrink-0 z-30">
         {/* Subtle breathing aura when idle */}
@@ -1132,10 +1179,10 @@ export function VoiceRecorderWidget({
                 : 'translate3d(0, 0, 0) scale(1)',
               transition: isHolding
                 ? 'none'
-                : 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+                : 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background 0.2s ease',
               WebkitTransition: isHolding
                 ? 'none'
-                : '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+                : '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background 0.2s ease',
               touchAction: 'none',
               WebkitTouchCallout: 'none',
               WebkitUserSelect: 'none',
@@ -1144,25 +1191,54 @@ export function VoiceRecorderWidget({
               willChange: 'transform',
             } as React.CSSProperties
           }
-          className={`voice-record-btn w-11 h-11 rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 ${
+          className={`voice-record-btn w-11 h-11 rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 transition-colors duration-150 ${
             status === 'uploading'
-              ? 'bg-violet-950 border-violet-500/50 opacity-0 pointer-events-none'
+              ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 ring-2 ring-violet-400/50 shadow-lg shadow-violet-500/40 border-white/40 cursor-wait'
+              : isDeleteZone
+              ? 'bg-gradient-to-tr from-red-600 via-rose-600 to-red-600 ring-4 ring-red-400/70 shadow-2xl shadow-red-600/70 border-white/60 animate-pulse'
+              : isLockZone
+              ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 ring-4 ring-violet-300 shadow-2xl shadow-violet-500/80 border-white/60'
               : isLocked
-              ? /* CASE 2: SEND BUTTON — SAME VIOLET GRADIENT COLOR AS RECORDER BUTTON! */
-                'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-4 ring-violet-400/50 border-white/40 shadow-xl shadow-violet-500/60 active:scale-90 animate-in zoom-in-95 duration-150'
+              ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-4 ring-violet-400/50 border-white/40 shadow-xl shadow-violet-500/60 active:scale-90 animate-in zoom-in-95 duration-150'
               : isRecordingState
               ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 ring-4 ring-violet-400/60 shadow-2xl shadow-violet-500/70 border-white/50'
               : 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-2 ring-violet-400/30 border-white/30 active:scale-95 shadow-md'
           }`}
           title={
-            isLocked
+            status === 'uploading'
+              ? 'Saving voice note...'
+              : isLocked
               ? 'Click Send button to save recording'
+              : isDeleteZone
+              ? 'Release to cancel'
+              : isLockZone
+              ? 'Release to lock hands-free'
               : 'Hold & slide to cancel/lock • Tap for hands-free Send'
           }
-          aria-label={isLocked ? 'Send and save voice note' : 'Record voice note'}
+          aria-label={
+            status === 'uploading'
+              ? 'Saving voice note'
+              : isLocked
+              ? 'Send and save voice note'
+              : 'Record voice note'
+          }
         >
-          {isLocked ? (
+          {status === 'uploading' ? (
+            <Loader2 className="w-5 h-5 text-white animate-spin pointer-events-none select-none" />
+          ) : isLocked ? (
             <Send className="w-5 h-5 text-white fill-white ml-0.5 transition-transform scale-105 pointer-events-none select-none" />
+          ) : isDeleteMorph ? (
+            <Trash2
+              className={`w-5 h-5 text-white transition-all duration-150 pointer-events-none select-none ${
+                isDeleteZone ? 'scale-115' : 'scale-100 opacity-90'
+              }`}
+            />
+          ) : isLockMorph ? (
+            <Lock
+              className={`w-5 h-5 text-white transition-all duration-150 pointer-events-none select-none ${
+                isLockZone ? 'scale-115' : 'scale-100 opacity-90'
+              }`}
+            />
           ) : (
             <Mic
               className={`w-5 h-5 text-white transition-transform pointer-events-none select-none ${
