@@ -386,7 +386,18 @@ export function KbFolderContentViewer({
   // ============================================================
   // REORDERING ENGINE (1-Click Arrow + Universal Drag & Drop)
   // ============================================================
-  const handleReorderUnified = async (fromIndex: number, toIndex: number) => {
+  // REORDERING & ORGANIZE ENGINE (Local Reorder + Slide-Apart Animations)
+  // ============================================================
+  // Snapshot for canceling organize mode
+  const manageSnapshotRef = useRef<UnifiedItem[] | null>(null);
+  const [hasOrderChanges, setHasOrderChanges] = useState<boolean>(false);
+
+  // Cached slot boundaries to ensure stable targeting without CSS transform distortion
+  const itemSlotRectsRef = useRef<{ index: number; top: number; bottom: number; midY: number; height: number }[]>([]);
+  const draggedItemHeightRef = useRef<number>(200);
+
+  // Reorder locally in UI state (without saving to backend until "Done" is clicked)
+  const handleReorderLocal = useCallback((fromIndex: number, toIndex: number) => {
     if (
       fromIndex === toIndex ||
       fromIndex < 0 ||
@@ -397,31 +408,56 @@ export function KbFolderContentViewer({
       return;
     }
 
-    const updated = [...unifiedItems];
-    const [moved] = updated.splice(fromIndex, 1);
-    updated.splice(toIndex, 0, moved);
+    setUnifiedItems((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return updated;
+    });
+    setHasOrderChanges(true);
+  }, [unifiedItems.length]);
 
-    setUnifiedItems(updated);
+  // Cancel organize mode: revert to initial snapshot
+  const handleCancelOrganize = useCallback(() => {
+    if (manageSnapshotRef.current) {
+      setUnifiedItems(manageSnapshotRef.current);
+    }
+    setHasOrderChanges(false);
+    setIsManageMode(false);
+    setActiveDrag(null);
+    toast.info('Organize cancelled. Sequence restored.');
+  }, []);
+
+  // Done organize mode: persist sequence to server action
+  const handleDoneOrganize = useCallback(async () => {
+    if (!hasOrderChanges) {
+      setIsManageMode(false);
+      return;
+    }
+
     setIsSavingOrder(true);
-
     try {
-      const orderedIds = updated.map((item) => item.id);
+      const orderedIds = unifiedItems.map((item) => item.id);
       const res = await saveFolderUnifiedOrderAction(entityId, orderedIds);
       if (!res.success) {
         toast.error(res.error || 'Failed to persist order');
       } else {
-        toast.success('Sequence updated and saved.');
+        toast.success('Sequence saved successfully!');
+        manageSnapshotRef.current = [...unifiedItems];
+        setHasOrderChanges(false);
+        setIsManageMode(false);
       }
     } catch (err: any) {
       toast.error('Reorder error: ' + err.message);
     } finally {
       setIsSavingOrder(false);
     }
-  };
+  }, [entityId, hasOrderChanges, unifiedItems]);
 
+  // 1-Click Arrow Reorder (local update)
   const handleMoveItem = (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    handleReorderUnified(index, targetIndex);
+    handleReorderLocal(index, targetIndex);
   };
 
   // Drag state for unified list
@@ -451,6 +487,28 @@ export function KbFolderContentViewer({
       y: window.scrollY,
     };
     dragPointerPosRef.current = { clientX: sX, clientY: sY };
+
+    // Capture initial slot coordinates of all items for stable target detection
+    const slots: { index: number; top: number; bottom: number; midY: number; height: number }[] = [];
+    document.querySelectorAll('[data-unified-index]').forEach((el) => {
+      const idx = Number(el.getAttribute('data-unified-index'));
+      if (!isNaN(idx)) {
+        const rect = el.getBoundingClientRect();
+        slots.push({
+          index: idx,
+          top: rect.top + window.scrollY,
+          bottom: rect.bottom + window.scrollY,
+          midY: (rect.top + rect.bottom) / 2 + window.scrollY,
+          height: rect.height,
+        });
+      }
+    });
+    slots.sort((a, b) => a.top - b.top);
+    itemSlotRectsRef.current = slots;
+
+    const draggedSlot = slots.find((s) => s.index === srcIdx);
+    draggedItemHeightRef.current = draggedSlot ? Math.round(draggedSlot.height) : 200;
+
     setActiveDrag({
       sourceIdx: srcIdx,
       targetIdx: srcIdx,
@@ -462,6 +520,59 @@ export function KbFolderContentViewer({
       navigator.vibrate?.(40);
     }
   }, []);
+
+  // Compute drop target index from pointer Y without being affected by shifted element positions
+  const getTargetSlotIndex = useCallback((clientY: number, scrollY: number, fallbackIdx: number): number => {
+    const slots = itemSlotRectsRef.current;
+    if (!slots || slots.length === 0) return fallbackIdx;
+
+    const pointerDocY = clientY + scrollY;
+
+    if (pointerDocY < slots[0].midY) {
+      return slots[0].index;
+    }
+    if (pointerDocY > slots[slots.length - 1].midY) {
+      return slots[slots.length - 1].index;
+    }
+
+    let closestIdx = fallbackIdx;
+    let minDistance = Infinity;
+
+    for (let i = 0; i < slots.length; i++) {
+      const dist = Math.abs(pointerDocY - slots[i].midY);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIdx = slots[i].index;
+      }
+    }
+
+    return closestIdx;
+  }, []);
+
+  // Calculate slide displacement so other items visually slide apart smoothly to open space for the dragged item
+  const getSlideTransform = useCallback((index: number) => {
+    if (!activeDrag?.isFloating) return undefined;
+    const { sourceIdx, targetIdx } = activeDrag;
+    if (sourceIdx === targetIdx || index === sourceIdx) return undefined;
+
+    const gap = 20; // 1.25rem gap matching space-y-5
+    const slideOffset = (draggedItemHeightRef.current || 190) + gap;
+
+    // When dragging downwards: items between sourceIdx + 1 and targetIdx slide UP
+    if (sourceIdx < targetIdx) {
+      if (index > sourceIdx && index <= targetIdx) {
+        return `translate3d(0, -${slideOffset}px, 0)`;
+      }
+    }
+    // When dragging upwards: items between targetIdx and sourceIdx - 1 slide DOWN
+    else if (sourceIdx > targetIdx) {
+      if (index >= targetIdx && index < sourceIdx) {
+        return `translate3d(0, ${slideOffset}px, 0)`;
+      }
+    }
+
+    return undefined;
+  }, [activeDrag]);
 
   const onPointerDownUnified = (index: number, e: React.PointerEvent) => {
     if (!isAdmin || !isGlobalEditMode || !isManageMode) return;
@@ -499,20 +610,10 @@ export function KbFolderContentViewer({
       const deltaX = (e.clientX - startX) + (currentScrollX - dragStartScrollRef.current.x);
       const deltaY = (e.clientY - startY) + (currentScrollY - dragStartScrollRef.current.y);
 
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const card = el?.closest('[data-unified-index]');
-      let targetIdx = activeDrag.targetIdx;
-
-      if (card) {
-        const parsed = Number(card.getAttribute('data-unified-index'));
-        if (!isNaN(parsed) && parsed >= 0 && parsed < unifiedItems.length) {
-          if (parsed !== targetIdx) {
-            // Subtle haptic tick when hovering over new reorder slot
-            if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-              navigator.vibrate?.(15);
-            }
-          }
-          targetIdx = parsed;
+      const targetIdx = getTargetSlotIndex(e.clientY, currentScrollY, activeDrag.targetIdx);
+      if (targetIdx !== activeDrag.targetIdx) {
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate?.(18);
         }
       }
 
@@ -544,7 +645,8 @@ export function KbFolderContentViewer({
           if (typeof window !== 'undefined' && 'vibrate' in navigator) {
             navigator.vibrate?.([20, 35]);
           }
-          handleReorderUnified(sourceIdx, targetIdx);
+          // Update order locally in UI (deferred save until Done button is pressed)
+          handleReorderLocal(sourceIdx, targetIdx);
         }
       } else {
         setActiveDrag(null);
@@ -561,7 +663,7 @@ export function KbFolderContentViewer({
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [activeDrag, unifiedItems.length, startFloating, handleReorderUnified]);
+  }, [activeDrag, unifiedItems.length, startFloating, handleReorderLocal, getTargetSlotIndex]);
 
   // Screen lock & Corner/Edge Auto-Scroll Engine during drag
   useEffect(() => {
@@ -620,17 +722,6 @@ export function KbFolderContentViewer({
       if (vy !== 0) {
         window.scrollBy({ top: vy, behavior: 'instant' });
 
-        // Update target index based on card newly visible under pointer
-        const el = document.elementFromPoint(clientX, clientY);
-        const card = el?.closest('[data-unified-index]');
-        let newTargetIdx: number | null = null;
-        if (card) {
-          const parsed = Number(card.getAttribute('data-unified-index'));
-          if (!isNaN(parsed) && parsed >= 0 && parsed < unifiedItems.length) {
-            newTargetIdx = parsed;
-          }
-        }
-
         if (pointerRef.current) {
           const { startX, startY, sourceIdx } = pointerRef.current;
           const currentScrollX = window.scrollX;
@@ -640,10 +731,10 @@ export function KbFolderContentViewer({
 
           setActiveDrag((prev) => {
             if (!prev?.isFloating) return prev;
-            const updatedTarget = newTargetIdx !== null ? newTargetIdx : prev.targetIdx;
+            const updatedTarget = getTargetSlotIndex(clientY, currentScrollY, prev.targetIdx);
             if (updatedTarget !== prev.targetIdx) {
               if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-                navigator.vibrate?.(15);
+                navigator.vibrate?.(18);
               }
             }
             return {
@@ -673,7 +764,18 @@ export function KbFolderContentViewer({
         autoScrollFrameRef.current = null;
       }
     };
-  }, [activeDrag?.isFloating, unifiedItems.length]);
+  }, [activeDrag?.isFloating, unifiedItems.length, getTargetSlotIndex]);
+
+  // Keyboard shortcut: Escape cancels organize mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isManageMode) {
+        handleCancelOrganize();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isManageMode, handleCancelOrganize]);
 
   // Stop audio on modal open
   useEffect(() => {
@@ -703,12 +805,13 @@ export function KbFolderContentViewer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedItemIds.size]);
 
-  // Suppress scroll-to-top button and other floating FABs while selection mode is active
+  // Suppress scroll-to-top button and other floating FABs while selection mode or organize mode is active
   useEffect(() => {
+    const shouldSuppress = selectedItemIds.size > 0 || isManageMode || isSavingOrder;
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('tv-tech-suppress-floating-fabs', {
-          detail: { suppressed: selectedItemIds.size > 0 },
+          detail: { suppressed: shouldSuppress },
         })
       );
     }
@@ -721,7 +824,7 @@ export function KbFolderContentViewer({
         );
       }
     };
-  }, [selectedItemIds.size]);
+  }, [selectedItemIds.size, isManageMode, isSavingOrder]);
 
   // Press & Hold to enter selection mode (Google Photos style)
   const handleItemPointerDownForSelection = (itemId: string, e: React.PointerEvent) => {
@@ -752,7 +855,6 @@ export function KbFolderContentViewer({
         next.add(itemId);
         return next;
       });
-      toast.info('Item selected. Tap other items to select multiple.', { duration: 2500 });
     }, 400);
   };
 
@@ -1060,11 +1162,13 @@ export function KbFolderContentViewer({
       if (activeFilter === 'AUDIO' && item.kind !== 'AUDIO') return;
       if (activeFilter === 'DOC' && item.kind !== 'DOC') return;
 
-      if (item.kind === 'IMAGE') {
+      if (item.kind === 'IMAGE' && !isManageMode) {
         currentPhotoGroup.push({ item, index });
       } else {
         flushPhotos();
-        if (item.kind === 'VIDEO') {
+        if (item.kind === 'IMAGE') {
+          blocks.push({ type: 'SINGLE_PHOTO', item, index });
+        } else if (item.kind === 'VIDEO') {
           blocks.push({ type: 'VIDEO', item, index });
         } else if (item.kind === 'AUDIO') {
           blocks.push({ type: 'AUDIO', item, index });
@@ -1076,7 +1180,7 @@ export function KbFolderContentViewer({
 
     flushPhotos();
     return blocks;
-  }, [unifiedItems, activeFilter]);
+  }, [unifiedItems, activeFilter, isManageMode]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -1306,17 +1410,35 @@ export function KbFolderContentViewer({
             <div className="flex items-center gap-2.5">
               <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
               <span>
-                <strong>Organize Mode Active:</strong> Drag & drop any item using the <strong>Move button</strong> to reorder. All changes save automatically.
+                <strong>Organize Mode:</strong> Drag items to rearrange. Tap <strong>Done</strong> to save your new sequence or <strong>Cancel</strong> to discard.
               </span>
+              {hasOrderChanges && (
+                <span className="hidden md:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold border border-amber-400/30">
+                  Unsaved changes
+                </span>
+              )}
             </div>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setIsManageMode(false)}
-              className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shrink-0 self-end sm:self-auto shadow-xs active:scale-95 cursor-pointer"
-            >
-              Done Organizing
-            </Button>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelOrganize}
+                disabled={isSavingOrder}
+                className="h-7 px-2.5 text-amber-900 dark:text-amber-200 hover:bg-amber-200/50 dark:hover:bg-amber-900/40 rounded-xl text-xs font-bold active:scale-95 cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleDoneOrganize}
+                disabled={isSavingOrder}
+                className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 cursor-pointer"
+              >
+                {isSavingOrder ? 'Saving...' : 'Done Organizing'}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -1369,11 +1491,11 @@ export function KbFolderContentViewer({
                     style={{
                       transform: isFloating
                         ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.02)`
-                        : undefined,
+                        : getSlideTransform(index),
                       zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
                       transition: isFloating
                         ? 'none'
-                        : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+                        : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease',
                     }}
                     className={`group relative w-full aspect-video sm:aspect-[16/9] rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 border select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
@@ -1486,11 +1608,11 @@ export function KbFolderContentViewer({
                     style={{
                       transform: isFloating
                         ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.02)`
-                        : undefined,
+                        : getSlideTransform(index),
                       zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
                       transition: isFloating
                         ? 'none'
-                        : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+                        : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease',
                     }}
                     className={`group relative w-full aspect-[16/10] sm:aspect-video rounded-2xl sm:rounded-3xl overflow-hidden bg-muted border select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
@@ -1587,11 +1709,11 @@ export function KbFolderContentViewer({
                           style={{
                             transform: isFloating
                               ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.06) rotate(1.5deg)`
-                              : undefined,
+                              : getSlideTransform(index),
                             zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
                             transition: isFloating
                               ? 'none'
-                              : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+                              : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease',
                           }}
                           className={`group relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-muted border select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                             isFloating
@@ -1693,11 +1815,11 @@ export function KbFolderContentViewer({
                     style={{
                       transform: isFloating
                         ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.02)`
-                        : undefined,
+                        : getSlideTransform(index),
                       zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
                       transition: isFloating
                         ? 'none'
-                        : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease',
+                        : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease',
                     }}
                     className={`relative rounded-3xl transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
@@ -1803,11 +1925,11 @@ export function KbFolderContentViewer({
                     style={{
                       transform: isFloating
                         ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.02) rotate(0.5deg)`
-                        : undefined,
+                        : getSlideTransform(index),
                       zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
                       transition: isFloating
                         ? 'none'
-                        : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+                        : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease',
                     }}
                     className={`relative overflow-hidden p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border flex flex-col gap-3 select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
@@ -1934,23 +2056,55 @@ export function KbFolderContentViewer({
                       toast.info('Add more items to rearrange them');
                       return;
                     }
-                    setIsManageMode((prev) => !prev);
-                    setIsGlobalEditMode(true);
+                    if (isManageMode) {
+                      handleDoneOrganize();
+                    } else {
+                      try {
+                        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                          navigator.vibrate([20, 30]);
+                        }
+                      } catch {}
+                      manageSnapshotRef.current = [...unifiedItems];
+                      setHasOrderChanges(false);
+                      setActiveFilter('ALL');
+                      setIsManageMode(true);
+                      setIsGlobalEditMode(true);
+                    }
                   }}
-                  title={isManageMode ? 'Done Organizing' : 'Organize Items'}
-                  aria-label={isManageMode ? 'Done Organizing' : 'Organize Items'}
-                  className={`flex items-center justify-center gap-1.5 h-10 px-2.5 sm:px-3.5 rounded-xl sm:rounded-full font-bold text-xs transition-all duration-200 cursor-pointer select-none active:scale-95 shrink-0 whitespace-nowrap ${
+                  title={isManageMode ? 'Done Organizing' : 'Organize & Rearrange Items'}
+                  aria-label={isManageMode ? 'Done Organizing' : 'Organize & Rearrange Items'}
+                  className={`relative group flex items-center justify-center gap-1.5 h-10 px-2.5 sm:px-3.5 rounded-xl sm:rounded-full font-bold text-xs transition-all duration-300 cursor-pointer select-none active:scale-90 hover:scale-105 shrink-0 whitespace-nowrap ${
                     isManageMode
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30 ring-2 ring-amber-400/40'
-                      : 'bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-750 shadow-2xs hover:scale-105'
+                      ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg shadow-amber-500/35 ring-2 ring-amber-400/50 ring-offset-2 ring-offset-background'
+                      : 'bg-white hover:bg-amber-50/50 dark:bg-slate-900 dark:hover:bg-amber-950/20 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-amber-400/50 hover:shadow-amber-500/10'
                   }`}
                 >
-                  <SlidersHorizontal className={`w-4 h-4 ${isManageMode ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
-                  <span className="hidden sm:inline font-bold">
-                    {isManageMode ? 'Done' : 'Organize'}
+                  {/* Subtle pulsing aura when active */}
+                  {isManageMode && (
+                    <span className="absolute -inset-0.5 rounded-xl sm:rounded-full bg-gradient-to-r from-amber-500 to-orange-500 opacity-40 blur-xs animate-pulse pointer-events-none" />
+                  )}
+
+                  {/* Moveable Icon with dynamic rotation and spring toggle */}
+                  <span className="relative flex items-center justify-center">
+                    {isSavingOrder ? (
+                      <Loader2 className="w-4 h-4 text-white animate-spin shrink-0" />
+                    ) : (
+                      <Move
+                        className={`w-4 h-4 shrink-0 transition-transform duration-300 ease-out ${
+                          isManageMode
+                            ? 'text-white rotate-45 scale-110 drop-shadow-xs'
+                            : 'text-amber-600 dark:text-amber-400 group-hover:rotate-12 group-hover:scale-110'
+                        }`}
+                      />
+                    )}
                   </span>
+
+                  <span className="hidden sm:inline font-bold relative">
+                    {isManageMode ? (isSavingOrder ? 'Saving...' : 'Done') : 'Organize'}
+                  </span>
+
                   {unifiedItems.length > 1 && !isManageMode && (
-                    <span className="hidden md:inline text-[10px] text-muted-foreground font-semibold">
+                    <span className="hidden md:inline text-[10px] text-muted-foreground font-semibold px-1 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-750">
                       ({unifiedItems.length})
                     </span>
                   )}
@@ -2106,6 +2260,69 @@ export function KbFolderContentViewer({
       )}
 
       {/* ========================================================================= */}
+      {/* 8B. FLOATING ORGANIZE ACTION BAR (GOOGLE PHOTOS STYLE DONE & CANCEL)      */}
+      {/* ========================================================================= */}
+      {isManageMode && (
+        <div
+          id="kb-organize-action-bar"
+          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 sm:gap-3 p-1.5 pl-3.5 pr-2 rounded-full bg-slate-950/92 dark:bg-slate-900/95 text-white backdrop-blur-2xl border border-amber-500/40 dark:border-amber-500/50 shadow-[0_20px_50px_rgba(0,0,0,0.55)] ring-1 ring-amber-500/30 animate-in fade-in zoom-in-95 slide-in-from-bottom-5 duration-200 select-none whitespace-nowrap max-w-[calc(100vw-1.5rem)]"
+        >
+          {isSavingOrder ? (
+            /* Unified Premium Saving State: Compact, Centered, No Overlaps! */
+            <div className="flex items-center gap-2.5 px-3 py-1 animate-in fade-in zoom-in-95 duration-200 select-none">
+              <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-white tracking-tight">
+                Saving sequence...
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+            </div>
+          ) : (
+            /* Interactive Organize Controls */
+            <>
+              {/* Status Indicator */}
+              <div className="flex items-center gap-1.5 sm:gap-2 pr-0.5 sm:pr-1 select-none">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                <span className="text-xs sm:text-sm font-black tracking-tight text-white flex items-center gap-1.5">
+                  <Move className="w-3.5 h-3.5 text-amber-400 rotate-45" />
+                  <span>Organize</span>
+                </span>
+                {hasOrderChanges && (
+                  <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                    Modified
+                  </span>
+                )}
+              </div>
+
+              {/* Cancel Button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelOrganize}
+                className="h-8 sm:h-9 px-2.5 sm:px-4 rounded-full hover:bg-white/15 active:bg-white/25 text-slate-200 hover:text-white font-bold text-xs transition-all cursor-pointer shrink-0"
+              >
+                <X className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                <span>Cancel</span>
+              </Button>
+
+              <div className="h-4 w-[1px] bg-white/20 mx-0.5 shrink-0" />
+
+              {/* Done Button */}
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleDoneOrganize}
+                className="h-8 sm:h-9 px-3.5 sm:px-5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ring-2 ring-amber-400/30 shrink-0"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>Done</span>
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* 9. BATCH / MULTI-ITEM DELETION CONFIRMATION DIALOG                        */}
       {/* ========================================================================= */}
       <DeleteWarningDialog
@@ -2133,20 +2350,6 @@ export function KbFolderContentViewer({
         itemType="item"
         isDeleting={isDeletingBatch}
       />
-
-      {/* ========================================================================= */}
-      {/* 10. FLOATING ORDER SAVING & PROCESSING HUD                                */}
-      {/* ========================================================================= */}
-      {isSavingOrder && (
-        <div
-          className={`fixed z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-900/95 text-white backdrop-blur-xl border border-slate-700/80 shadow-2xl animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-none ${
-            selectedItemIds.size > 0 ? 'bottom-20 right-6' : 'bottom-5 right-5'
-          }`}
-        >
-          <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
-          <span className="text-xs font-bold tracking-tight">Saving new sequence...</span>
-        </div>
-      )}
     </div>
   );
 }

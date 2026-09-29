@@ -118,6 +118,7 @@ export function VoiceRecorderWidget({
 
   // DOM Button Ref
   const recordButtonRef = useRef<HTMLButtonElement>(null);
+  const capsuleRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
   const isTouchActiveRef = useRef<boolean>(false);
   const streamIdleTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -687,8 +688,17 @@ export function VoiceRecorderWidget({
 
       if (axisRef.current === 'horizontal') {
         // Sliding sideways: Strictly horizontal! Cannot move upward (dy = 0)
-        // Allows sliding all the way to the bin icon (up to 220px)
-        dx = Math.max(0, Math.min(rawDx, 220));
+        // Dynamically compute max travel so the button glides all the way to the proper left edge of the capsule
+        const capEl = capsuleRef.current;
+        const btnEl = recordButtonRef.current;
+        let maxSlide = 320;
+        if (capEl && btnEl) {
+          const capWidth = capEl.offsetWidth;
+          const btnWidth = btnEl.offsetWidth;
+          // Scaled button (scale 1.26) visual left edge arrives ~4px inside the capsule's curved left end
+          maxSlide = Math.max(140, capWidth - btnWidth - 10);
+        }
+        dx = Math.max(0, Math.min(rawDx, maxSlide));
         dy = 0;
       } else if (axisRef.current === 'vertical') {
         // Sliding upward: Strictly vertical! Cannot move sideways (dx = 0)
@@ -977,10 +987,10 @@ export function VoiceRecorderWidget({
         <div
           onClick={lockToHandsFree}
           style={{
-            opacity: Math.max(0, 1 - dragOffset.y / 24),
+            opacity: Math.max(0, 1 - dragOffset.y / 24 - dragOffset.x / 40),
             transform: `translate3d(0, -${Math.min(dragOffset.y * 0.3, 10)}px, 0)`,
             WebkitTransform: `translate3d(0, -${Math.min(dragOffset.y * 0.3, 10)}px, 0)`,
-            pointerEvents: dragOffset.y > 10 ? 'none' : 'auto',
+            pointerEvents: dragOffset.y > 10 || dragOffset.x > 20 ? 'none' : 'auto',
           }}
           className="absolute right-1.5 -top-14 z-10 flex flex-col items-center select-none cursor-pointer transition-opacity duration-150 touch-none"
           title="Slide up or click to lock hands-free"
@@ -1004,6 +1014,7 @@ export function VoiceRecorderWidget({
       {/* ------------------------------------------------------------ */}
       {isRecordingState && (
         <div
+          ref={capsuleRef}
           className={`absolute right-0 flex items-center h-11 sm:h-12 bg-slate-950/98 dark:bg-black/98 text-white border rounded-full shadow-2xl backdrop-blur-xl px-2.5 sm:px-3 gap-2 sm:gap-2.5 origin-right animate-in fade-in zoom-in-95 duration-200 z-20 ring-1 transition-colors duration-200 ${
             isDeleteZone
               ? 'border-red-500/60 shadow-red-950/40 ring-red-500/30'
@@ -1039,8 +1050,14 @@ export function VoiceRecorderWidget({
             </div>
           )}
 
-          {/* Red pulsing live recording indicator + timer */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pointer-events-none select-none">
+          {/* Red pulsing live recording indicator + timer + soundwave equalizer (fades gracefully when sliding left to eliminate visual clash) */}
+          <div
+            style={{
+              opacity: isLocked ? 1 : Math.max(0, 1 - dragOffset.x / 75),
+              transition: 'opacity 0.15s ease-out',
+            }}
+            className="flex items-center gap-1.5 sm:gap-2 shrink-0 pointer-events-none select-none"
+          >
             <span className="relative flex h-2.5 w-2.5">
               <span
                 className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 ${
@@ -1056,18 +1073,19 @@ export function VoiceRecorderWidget({
             <span className="font-mono text-xs sm:text-sm font-black text-red-100 tracking-wider min-w-[38px]">
               {formatDuration(recordingDuration)}
             </span>
-          </div>
 
-          {/* Real-time soundwave equalizer bars */}
-          <AudioVisualizer analyser={analyserState} isPaused={isPaused} />
+            {/* Real-time soundwave equalizer bars */}
+            <AudioVisualizer analyser={analyserState} isPaused={isPaused} />
+          </div>
 
           {/* WhatsApp-Style Flowing Tri-Chevron Slide Track (Case 1: Holding Mode) */}
           {!isLocked ? (
             <div
               style={{
-                opacity: Math.max(0, 1 - dragOffset.x / 75),
+                opacity: Math.max(0, 1 - dragOffset.x / 60),
+                transition: 'opacity 0.15s ease-out',
               }}
-              className="flex items-center gap-1.5 text-slate-300 text-[10px] sm:text-[11px] font-semibold select-none transition-opacity pointer-events-none pr-8 sm:pr-10 shrink-0"
+              className="flex items-center gap-1.5 text-slate-300 text-[10px] sm:text-[11px] font-semibold select-none pointer-events-none pr-8 sm:pr-10 shrink-0"
             >
               <div className="flex items-center -space-x-2 text-slate-400">
                 <ChevronLeft
@@ -1095,14 +1113,8 @@ export function VoiceRecorderWidget({
                   }}
                 />
               </div>
-              <span
-                className={`transition-colors duration-150 whitespace-nowrap ${
-                  isDeleteZone
-                    ? 'text-red-400 font-bold animate-pulse'
-                    : 'text-slate-300 font-medium'
-                }`}
-              >
-                {isDeleteZone ? 'Release to cancel' : 'Slide to cancel'}
+              <span className="text-slate-300 font-medium whitespace-nowrap">
+                Slide to cancel
               </span>
             </div>
           ) : (
@@ -1121,6 +1133,22 @@ export function VoiceRecorderWidget({
                   <Pause className="w-3.5 h-3.5 fill-white" />
                 )}
               </button>
+            </div>
+          )}
+
+          {/* Delete confirmation banner inside capsule body when in delete zone */}
+          {isDeleteZone && !isLocked && (
+            <div
+              style={{
+                opacity: Math.min(1, (dragOffset.x - 70) / 25),
+                transition: 'opacity 0.15s ease-out',
+              }}
+              className="absolute inset-0 flex items-center justify-center pointer-events-none select-none pl-12 pr-4"
+            >
+              <span className="text-red-400 font-bold text-xs sm:text-[13px] tracking-wide animate-pulse flex items-center gap-1.5 whitespace-nowrap">
+                <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                Release to cancel
+              </span>
             </div>
           )}
         </div>

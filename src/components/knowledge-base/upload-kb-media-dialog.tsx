@@ -63,17 +63,59 @@ export function UploadKbMediaDialog({
     setMounted(true);
   }, []);
 
-  // Lock background scroll when bottom sheet is open
+  // Refs for auto-scrolling active uploading file into view
+  const activeCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Bulletproof mobile & desktop background scroll lock
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!isOpen) return;
+
+    const scrollY = window.scrollY;
+    const origBodyOverflow = document.body.style.overflow;
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    const origBodyPosition = document.body.style.position;
+    const origBodyTop = document.body.style.top;
+    const origBodyWidth = document.body.style.width;
+
+    // Freeze window & background page completely
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    // Suppress background floating FABs
+    window.dispatchEvent(
+      new CustomEvent('tv-tech-suppress-floating-fabs', {
+        detail: { suppressed: true },
+      })
+    );
+
     return () => {
-      document.body.style.overflow = '';
+      document.documentElement.style.overflow = origHtmlOverflow;
+      document.body.style.overflow = origBodyOverflow;
+      document.body.style.position = origBodyPosition;
+      document.body.style.top = origBodyTop;
+      document.body.style.width = origBodyWidth;
+      window.scrollTo(0, scrollY);
+
+      window.dispatchEvent(
+        new CustomEvent('tv-tech-suppress-floating-fabs', {
+          detail: { suppressed: false },
+        })
+      );
     };
   }, [isOpen]);
+
+  // Smoothly auto-scroll active uploading card into view on mobile
+  useEffect(() => {
+    if (isUploading && selectedFiles.length > 0 && activeCardRefs.current[currentFileIndex]) {
+      activeCardRefs.current[currentFileIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [currentFileIndex, isUploading, selectedFiles.length]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -447,8 +489,8 @@ export function UploadKbMediaDialog({
                 </button>
               </div>
 
-              {/* Body Content */}
-              <div className="space-y-4 px-5 sm:px-6 py-4 w-full max-w-full overflow-y-auto no-scrollbar flex-1">
+              {/* Body Content - Single Unified Scroll Container with smooth momentum & overscroll containment */}
+              <div className="space-y-4 px-4 sm:px-6 pt-3 pb-8 w-full max-w-full overflow-y-auto overscroll-contain flex-1 min-h-0">
                 {/* Unified Hidden File Input */}
                 <input
                   ref={fileInputRef}
@@ -581,9 +623,9 @@ export function UploadKbMediaDialog({
                       </div>
                     )}
 
-                    {/* Stacked File Cards List — Premium Two-Tier Layout (Zero Overlapping) */}
-                    <div className="flex flex-col gap-2.5 w-full max-h-[360px] overflow-y-auto pr-1 no-scrollbar">
-                      {selectedFiles.map((item) => {
+                    {/* Stacked File Cards List — Full Height Flow (Smooth Scroll, Zero Cropping) */}
+                    <div className="flex flex-col gap-2.5 w-full">
+                      {selectedFiles.map((item, idx) => {
                         const isDone = item.status === 'completed';
                         const isError = item.status === 'error';
                         const isCompressing = item.status === 'compressing';
@@ -596,7 +638,10 @@ export function UploadKbMediaDialog({
                         return (
                           <div
                             key={item.id}
-                            className={`border rounded-2xl p-3 sm:p-3.5 flex flex-col gap-2.5 transition-all duration-200 group relative w-full overflow-hidden ${
+                            ref={(el) => {
+                              activeCardRefs.current[idx] = el;
+                            }}
+                            className={`border rounded-2xl p-3 sm:p-3.5 flex flex-col gap-2.5 transition-all duration-200 group relative w-full shrink-0 ${
                               isDone
                                 ? 'bg-emerald-500/[0.03] dark:bg-emerald-950/20 border-emerald-500/30 dark:border-emerald-500/25 shadow-2xs'
                                 : isError
@@ -798,14 +843,14 @@ export function UploadKbMediaDialog({
                 )}
               </div>
 
-              {/* Fixed Bottom Footer with Safe Area Insets & dev badge clearance */}
-              <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] pr-16 sm:pr-6 border-t border-border/70 bg-white dark:bg-slate-900 flex flex-row items-center justify-end gap-2.5 w-full shrink-0">
+              {/* Fixed Bottom Footer with Safe Area Insets */}
+              <div className="px-4 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/70 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex flex-row items-center justify-end gap-2.5 w-full shrink-0">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={onClose}
                   disabled={isUploading}
-                  className="rounded-2xl h-10 px-4 text-xs font-bold border-border/80 cursor-pointer"
+                  className="rounded-2xl h-11 px-5 text-xs font-bold border-border/80 cursor-pointer"
                 >
                   Cancel
                 </Button>
@@ -814,7 +859,7 @@ export function UploadKbMediaDialog({
                   type="button"
                   onClick={handleUpload}
                   disabled={isUploading || selectedFiles.length === 0 || hasOversizedMedia}
-                  className="rounded-2xl h-10 px-5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm gap-2 shadow-md shadow-violet-500/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  className="rounded-2xl h-11 px-6 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm gap-2 shadow-md shadow-violet-500/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex-1 sm:flex-initial"
                 >
                   {hasOversizedVideo && hasOversizedPhoto ? (
                     <>
