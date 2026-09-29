@@ -132,16 +132,19 @@ export default async function KbFolderDetailPage({
       style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.25rem)' }}
     >
       {/* Sleek Breadcrumb & Back Navigation */}
-      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none">
+      <nav
+        id="kb-folder-breadcrumbs"
+        className="flex items-center gap-1.5 text-xs text-foreground overflow-x-auto pb-1.5 pt-0.5 no-scrollbar whitespace-nowrap touch-pan-x select-none opacity-100 grayscale-0"
+      >
         <Link
           href={`/knowledge-base/models/${folder.model.id}`}
-          className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-muted-foreground hover:text-foreground transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground transition-all font-semibold shrink-0 min-h-[34px] inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-muted-foreground" />
+          <ArrowLeft className="w-3.5 h-3.5 text-primary shrink-0" />
           <span>{cleanModelNumber}</span>
         </Link>
-        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-        <span className="px-2.5 py-1.5 rounded-xl font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
+        <span className="px-2.5 py-1.5 rounded-xl font-bold shrink-0 min-h-[34px] inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/80 shadow-2xs">
           {folder.name}
         </span>
       </nav>
@@ -187,6 +190,7 @@ export default async function KbFolderDetailPage({
           mediaAttachments={formattedMedia}
           pages={folder.pages}
           userRole={user?.role}
+          initialMetadata={folder.entity.metadata as any}
         />
       )}
     </div>

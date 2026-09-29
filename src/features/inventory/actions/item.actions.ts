@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { matchesOrderedPattern, calculateMatchScore } from '@/features/search/services/search.service';
 import { cloudinary } from '@/lib/cloudinary';
+import { deleteFromCloudinary, deleteEntityMediaAttachmentsFromCloudinary } from '@/lib/cloudinary-delete';
 import { createMediaAttachment } from '@/features/media/services/media.service';
 import { captureDailySnapshot } from '@/features/analytics/services/inventory-analytics.service';
 import { ensureEntityType, getEntityTypeConnectOrCreate } from '@/lib/ensure-entity-types';
@@ -338,6 +339,9 @@ export async function deleteItemAction(itemId: string) {
     });
 
     if (!item) return { success: false, error: 'Item not found.' };
+
+    // Clean up all attached media files from Cloudinary
+    await deleteEntityMediaAttachmentsFromCloudinary(item.entityId);
 
     await prisma.$transaction(async (tx) => {
       // Decrement folder item counts
@@ -1204,11 +1208,23 @@ export async function setItemThumbnailAction(
     }
 
     if (!thumbnailUrl || !thumbnailUrl.trim()) {
-      // Demote / remove existing PRIMARY media
-      await prisma.entityMedia.updateMany({
+      // Find and delete any existing dedicated PRIMARY thumbnail from Cloudinary & DB
+      const existingPrimary = await prisma.entityMedia.findFirst({
         where: { entityId: item.entityId, purpose: 'PRIMARY' },
-        data: { purpose: 'GALLERY' },
+        include: { media: true },
       });
+
+      if (existingPrimary) {
+        if (existingPrimary.media?.filename?.endsWith('_thumb.jpg') && existingPrimary.media?.publicId) {
+          await deleteFromCloudinary(existingPrimary.media.publicId);
+          await prisma.entity.delete({ where: { id: existingPrimary.media.entityId } });
+        } else {
+          await prisma.entityMedia.updateMany({
+            where: { entityId: item.entityId, purpose: 'PRIMARY' },
+            data: { purpose: 'GALLERY' },
+          });
+        }
+      }
 
       revalidatePath('/inventory');
       revalidatePath('/inventory/folders');
@@ -1243,11 +1259,20 @@ export async function setItemThumbnailAction(
       const uploadedUrl = uploadResult.secure_url || uploadResult.url || parsed.url;
       finalSecureUrl = formatThumbnailUrl(uploadedUrl, parsed.x, parsed.y, parsed.scale);
 
-      // Demote existing PRIMARY attachments
-      await prisma.entityMedia.updateMany({
+      // Clean up previous dedicated thumbnail if present
+      const previousPrimary = await prisma.entityMedia.findFirst({
         where: { entityId: item.entityId, purpose: 'PRIMARY' },
-        data: { purpose: 'GALLERY', sortOrder: 1 },
+        include: { media: true },
       });
+      if (previousPrimary?.media?.filename?.endsWith('_thumb.jpg') && previousPrimary.media?.publicId) {
+        await deleteFromCloudinary(previousPrimary.media.publicId);
+        await prisma.entity.delete({ where: { id: previousPrimary.media.entityId } });
+      } else {
+        await prisma.entityMedia.updateMany({
+          where: { entityId: item.entityId, purpose: 'PRIMARY' },
+          data: { purpose: 'GALLERY', sortOrder: 1 },
+        });
+      }
 
       // Create new PRIMARY media attachment
       await createMediaAttachment({

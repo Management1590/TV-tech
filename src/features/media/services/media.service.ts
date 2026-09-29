@@ -104,21 +104,11 @@ export async function getEntityMediaAttachments(entityId: string) {
   }));
 }
 
+import { deleteMediaRecordWithCloudinary } from '@/lib/cloudinary-delete';
+
 /**
- * Removes a media attachment and deletes the underlying record.
+ * Removes a media attachment and deletes the underlying record and Cloudinary asset.
  */
 export async function deleteMediaAttachment(mediaId: string): Promise<void> {
-  const media = await prisma.media.findUnique({
-    where: { id: mediaId },
-    select: { id: true, entityId: true },
-  });
-
-  if (!media) return;
-
-  await prisma.$transaction(async (tx) => {
-    // Delete entity record (cascades to Media & EntityMedia)
-    await tx.entity.delete({
-      where: { id: media.entityId },
-    });
-  });
+  await deleteMediaRecordWithCloudinary(mediaId);
 }

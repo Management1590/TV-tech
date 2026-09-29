@@ -559,21 +559,29 @@ export function UploadKbMediaDialog({
 
                     {/* Optional Macro Progress Bar during multi-file uploads */}
                     {isUploading && selectedFiles.length > 1 && (
-                      <div className="px-3.5 py-2.5 rounded-2xl bg-violet-500/5 dark:bg-violet-950/30 border border-violet-500/20 flex items-center justify-between text-xs animate-in fade-in duration-200">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse shrink-0" />
-                          <span className="font-semibold text-foreground truncate">
-                            Uploading file {Math.min(selectedFiles.length, currentFileIndex + 1)} of{' '}
-                            {selectedFiles.length}...
+                      <div className="p-3.5 rounded-2xl bg-violet-500/[0.06] dark:bg-violet-950/30 border border-violet-500/25 flex flex-col gap-2 text-xs animate-in fade-in duration-200 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-violet-600 dark:bg-violet-400 animate-pulse shrink-0" />
+                            <span className="font-semibold text-foreground truncate">
+                              Uploading file {Math.min(selectedFiles.length, currentFileIndex + 1)} of{' '}
+                              {selectedFiles.length}...
+                            </span>
+                          </div>
+                          <span className="font-mono font-extrabold text-violet-700 dark:text-violet-300 shrink-0">
+                            {overallProgress}% Total
                           </span>
                         </div>
-                        <span className="font-mono font-extrabold text-violet-700 dark:text-violet-300 shrink-0">
-                          {overallProgress}% Total
-                        </span>
+                        <div className="w-full h-1.5 bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 transition-all duration-300 ease-out"
+                            style={{ width: `${Math.max(4, overallProgress)}%` }}
+                          />
+                        </div>
                       </div>
                     )}
 
-                    {/* Stacked File Cards List — Exact match to Reference Screenshot */}
+                    {/* Stacked File Cards List — Premium Two-Tier Layout (Zero Overlapping) */}
                     <div className="flex flex-col gap-2.5 w-full max-h-[360px] overflow-y-auto pr-1 no-scrollbar">
                       {selectedFiles.map((item) => {
                         const isDone = item.status === 'completed';
@@ -588,212 +596,186 @@ export function UploadKbMediaDialog({
                         return (
                           <div
                             key={item.id}
-                            className={`border rounded-2xl p-3 sm:p-3.5 flex items-center gap-3 sm:gap-4 transition-all duration-200 group relative w-full overflow-hidden ${
+                            className={`border rounded-2xl p-3 sm:p-3.5 flex flex-col gap-2.5 transition-all duration-200 group relative w-full overflow-hidden ${
                               isDone
-                                ? 'bg-white dark:bg-slate-900 border-emerald-500/30 dark:border-emerald-500/25 shadow-xs'
+                                ? 'bg-emerald-500/[0.03] dark:bg-emerald-950/20 border-emerald-500/30 dark:border-emerald-500/25 shadow-2xs'
                                 : isError
-                                ? 'bg-red-500/[0.03] dark:bg-red-950/20 border-red-500/30'
+                                ? 'bg-rose-500/[0.03] dark:bg-rose-950/20 border-rose-500/30 dark:border-rose-500/30 shadow-2xs'
                                 : isCompressing
-                                ? 'bg-violet-500/[0.04] dark:bg-violet-950/20 border-violet-500/40 dark:border-violet-500/40 shadow-sm ring-1 ring-violet-500/20'
+                                ? 'bg-violet-500/[0.04] dark:bg-violet-950/25 border-violet-500/40 dark:border-violet-500/40 shadow-xs ring-1 ring-violet-500/20'
                                 : isInProgress
-                                ? 'bg-white dark:bg-slate-900 border-blue-500/30 dark:border-blue-500/30 shadow-sm ring-1 ring-blue-500/15'
-                                : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+                                ? 'bg-blue-500/[0.03] dark:bg-blue-950/20 border-blue-500/30 dark:border-blue-500/30 shadow-xs ring-1 ring-blue-500/15'
+                                : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
                             }`}
                           >
-                            {/* Left: App/Media Squircle Icon or Image Thumbnail */}
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-200/70 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shadow-2xs">
-                              {item.previewUrl ? (
-                                <img
-                                  src={item.previewUrl}
-                                  alt={item.file.name}
-                                  className="w-full h-full object-cover rounded-xl"
-                                />
-                              ) : item.isVideo ? (
-                                <div className="w-full h-full rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center">
-                                  <Film className="w-5 h-5 sm:w-6 sm:h-6" />
-                                </div>
-                              ) : (
-                                <div className="w-full h-full rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                                  <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Center: File Name, Subtitle, and Inline Linear Progress Bar */}
-                            <div className="flex-1 min-w-0 pr-1">
-                              {/* Line 1: File Name */}
-                              <p
-                                className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 truncate select-none leading-tight"
-                                title={item.file.name}
-                              >
-                                {item.file.name}
-                              </p>
-
-                              {/* Line 2: Subtitle */}
-                              <div className="flex items-center gap-1.5 mt-0.5 text-[11px] sm:text-xs">
-                                {isDone ? (
-                                  <>
-                                    <span className="text-slate-500 dark:text-slate-400 font-medium">
-                                      {item.sizeFormatted}
-                                    </span>
-                                    <span className="text-slate-300 dark:text-slate-600">-</span>
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                                      Done
-                                    </span>
-                                  </>
-                                ) : isCompressing ? (
-                                  <div className="flex items-center gap-1.5 text-violet-600 dark:text-violet-400 font-medium">
-                                    <Sparkles className="w-3.5 h-3.5 animate-spin shrink-0 text-violet-500" />
-                                    <span className="truncate">{item.subtitle || 'Cloudinary compressing (auto:eco)...'}</span>
+                            {/* ROW 1: Media Icon/Thumbnail + Title/Metadata + Status Pill / Remove */}
+                            <div className="flex items-center gap-3 sm:gap-3.5 w-full min-w-0">
+                              {/* Left: Thumbnail Squircle */}
+                              <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+                                {item.previewUrl ? (
+                                  <img
+                                    src={item.previewUrl}
+                                    alt={item.file.name}
+                                    className="w-full h-full object-cover rounded-xl"
+                                  />
+                                ) : item.isVideo ? (
+                                  <div className="w-full h-full rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                                    <Film className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
                                   </div>
-                                ) : item.status === 'uploading' ? (
-                                  <span className="text-slate-500 dark:text-slate-400 font-mono font-medium">
-                                    {item.loadedFormatted || '0 B'} /{' '}
-                                    {item.totalFormatted || item.sizeFormatted}
-                                  </span>
-                                ) : item.status === 'preparing' ? (
-                                  <span className="text-blue-600 dark:text-blue-400 font-medium truncate">
-                                    {item.subtitle || 'Preparing file...'}
-                                  </span>
-                                ) : item.status === 'registering' ? (
-                                  <span className="text-indigo-600 dark:text-indigo-400 font-medium">
-                                    Saving to cloud database...
-                                  </span>
-                                ) : isError ? (
-                                  <span
-                                    className="text-rose-600 dark:text-rose-400 font-medium truncate"
-                                    title={item.error || item.subtitle}
-                                  >
-                                    {item.error || item.subtitle || 'Upload failed'}
-                                  </span>
                                 ) : (
-                                  <>
-                                    <span className="text-slate-500 dark:text-slate-400 font-mono">
-                                      {item.sizeFormatted}
-                                    </span>
-                                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold">
-                                      {item.isVideo ? 'Video' : 'Photo'}
-                                    </span>
-                                  </>
+                                  <div className="w-full h-full rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                    <ImageIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
+                                  </div>
+                                )}
+
+                                {/* Small corner completion badge on thumbnail */}
+                                {isDone && (
+                                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-slate-900">
+                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                  </div>
                                 )}
                               </div>
 
-                              {/* Line 3: Linear Progress Bar Directly Below Subtitle */}
-                              <div className="relative w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1.5">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-300 ease-out ${
-                                    isDone
-                                      ? 'bg-emerald-500'
-                                      : isCompressing
-                                      ? 'bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-600 animate-pulse shadow-sm shadow-violet-500/20'
-                                      : item.status === 'uploading' || item.status === 'preparing'
-                                      ? 'bg-blue-600 dark:bg-blue-500'
-                                      : item.status === 'registering'
-                                      ? 'bg-indigo-600'
-                                      : isError
-                                      ? 'bg-rose-500'
-                                      : 'bg-transparent'
-                                  }`}
-                                  style={{
-                                    width:
-                                      isDone || isError
-                                        ? '100%'
-                                        : item.status === 'idle'
-                                        ? '0%'
-                                        : `${Math.max(4, item.progress)}%`,
-                                  }}
-                                />
+                              {/* Center: File Title + Size/Type Badges */}
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className="text-xs sm:text-sm font-bold text-foreground truncate select-none leading-snug tracking-tight"
+                                  title={item.file.name}
+                                >
+                                  {item.file.name}
+                                </p>
+
+                                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground select-none">
+                                  <span className="font-mono font-medium">{item.sizeFormatted}</span>
+                                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-muted text-muted-foreground">
+                                    {item.isVideo ? 'Video' : 'Photo'}
+                                  </span>
+                                  {isCompressing && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                                      {item.isVideo ? 'auto:eco' : 'auto:good'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Right: Status Pill or Remove Action Button */}
+                              <div className="flex items-center gap-2 shrink-0 select-none">
+                                {isDone ? (
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold shadow-2xs">
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                    <span>Ready</span>
+                                  </div>
+                                ) : isError ? (
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold">
+                                    <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                                    <span>Failed</span>
+                                  </div>
+                                ) : isCompressing ? (
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/15 dark:bg-violet-500/25 text-violet-600 dark:text-violet-300 border border-violet-500/30 text-xs font-mono font-bold tracking-tight shadow-xs">
+                                    <Sparkles className="w-3.5 h-3.5 animate-spin text-violet-500 shrink-0" />
+                                    <span>{item.progress}%</span>
+                                  </div>
+                                ) : isInProgress ? (
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/25 text-xs font-mono font-bold tracking-tight">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />
+                                    <span>{item.progress}%</span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveFile(item.id)}
+                                    disabled={isUploading}
+                                    className="w-7 h-7 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                                    title="Remove file"
+                                    aria-label="Remove file"
+                                  >
+                                    <X className="w-4 h-4 stroke-[2]" />
+                                  </button>
+                                )}
                               </div>
                             </div>
 
-                            {/* Right: Percentage, Circular Status Indicator, and Close/Remove '×' Button */}
-                            <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0 select-none">
-                              {/* Percentage Text */}
-                              <span
-                                className={`text-xs sm:text-sm font-semibold font-mono w-10 sm:w-11 text-right tabular-nums ${
-                                  isDone
-                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                    : isError
-                                    ? 'text-rose-600'
-                                    : isCompressing
-                                    ? 'text-violet-600 dark:text-violet-400 font-bold'
-                                    : 'text-slate-600 dark:text-slate-300'
-                                }`}
-                              >
-                                {isDone ? '100%' : item.status === 'idle' ? '0%' : `${item.progress}%`}
-                              </span>
+                            {/* ROW 2: Live Progress & Status (When uploading, compressing, registering, or completed) */}
+                            {(isInProgress || isDone || isError) && (
+                              <div className="flex flex-col gap-1.5 w-full pt-0.5">
+                                {/* Subtitle / Live Phase Status Line */}
+                                <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium w-full min-w-0">
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
+                                    {isCompressing ? (
+                                      <span className="text-violet-600 dark:text-violet-400 font-semibold truncate flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 animate-spin text-violet-500 shrink-0" />
+                                        <span className="truncate">
+                                          {item.subtitle || 'Cloudinary compressing video (auto:eco)...'}
+                                        </span>
+                                      </span>
+                                    ) : item.status === 'uploading' ? (
+                                      <span className="text-blue-600 dark:text-blue-400 font-medium truncate flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                                        <span className="truncate">Streaming media payload to Cloudinary CDN...</span>
+                                      </span>
+                                    ) : item.status === 'registering' ? (
+                                      <span className="text-indigo-600 dark:text-indigo-400 font-medium truncate flex items-center gap-1.5">
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500 shrink-0" />
+                                        <span className="truncate">Saving media records to cloud database...</span>
+                                      </span>
+                                    ) : isDone ? (
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-medium truncate flex items-center gap-1.5">
+                                        <Check className="w-3 h-3 stroke-[3] shrink-0" />
+                                        <span className="truncate">{item.subtitle}</span>
+                                      </span>
+                                    ) : isError ? (
+                                      <span
+                                        className="text-rose-600 dark:text-rose-400 font-medium truncate"
+                                        title={item.error || item.subtitle}
+                                      >
+                                        {item.error || item.subtitle || 'Upload failed'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground truncate">{item.subtitle}</span>
+                                    )}
+                                  </div>
 
-                              {/* Circular Status Icon */}
-                              {isDone ? (
-                                /* Green Circle with White Checkmark (matches row 1 in screenshot) */
-                                <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  {/* Right Data Metric on Status Line */}
+                                  {item.status === 'uploading' && (
+                                    <span className="font-mono text-[11px] text-muted-foreground shrink-0 ml-2">
+                                      {item.loadedFormatted || '0 B'} / {item.totalFormatted || item.sizeFormatted}
+                                    </span>
+                                  )}
                                 </div>
-                              ) : isError ? (
-                                /* Red Circle with Exclamation */
-                                <div className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0">
-                                  <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-                                </div>
-                              ) : isCompressing ? (
-                                /* Violet Spinning Ring for active compression */
-                                <svg
-                                  className="w-5 h-5 animate-spin shrink-0 text-violet-600 dark:text-violet-400"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                >
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="9.5"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                  />
-                                  <path
-                                    className="opacity-90"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  />
-                                </svg>
-                              ) : isInProgress ? (
-                                /* Circular Spinner Ring with Open Arc (matches rows 2 & 3 in screenshot) */
-                                <svg
-                                  className="w-5 h-5 animate-spin shrink-0 text-blue-600 dark:text-blue-400"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                >
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="9.5"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                  />
-                                  <path
-                                    className="opacity-90"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  />
-                                </svg>
-                              ) : (
-                                /* Idle state: subtle ring */
-                                <div className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-700 shrink-0" />
-                              )}
 
-                              {/* Close / Remove '×' Button (matches screenshot far right) */}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveFile(item.id)}
-                                disabled={isUploading && isInProgress}
-                                className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                                title="Remove file"
-                                aria-label="Remove file"
-                              >
-                                <X className="w-4 h-4 stroke-[2]" />
-                              </button>
-                            </div>
+                                {/* Full-Width Sleek Linear Progress Bar */}
+                                <div className="relative w-full h-1.5 sm:h-2 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ease-out ${
+                                      isDone
+                                        ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                        : isCompressing
+                                        ? 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 animate-pulse shadow-sm shadow-violet-500/30'
+                                        : item.status === 'uploading' || item.status === 'preparing'
+                                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600'
+                                        : item.status === 'registering'
+                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600'
+                                        : isError
+                                        ? 'bg-rose-500'
+                                        : 'bg-transparent'
+                                    }`}
+                                    style={{
+                                      width:
+                                        isDone || isError
+                                          ? '100%'
+                                          : item.status === 'idle'
+                                          ? '0%'
+                                          : `${Math.max(6, item.progress)}%`,
+                                    }}
+                                  />
+                                  {/* Subtle animated highlight pulse while uploading or compressing */}
+                                  {isInProgress && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse pointer-events-none" />
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -816,8 +798,8 @@ export function UploadKbMediaDialog({
                 )}
               </div>
 
-              {/* Fixed Bottom Footer with Safe Area Insets */}
-              <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] border-t border-border/70 bg-white dark:bg-slate-900 flex flex-row items-center justify-end gap-2.5 w-full shrink-0">
+              {/* Fixed Bottom Footer with Safe Area Insets & dev badge clearance */}
+              <div className="px-5 sm:px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] pr-16 sm:pr-6 border-t border-border/70 bg-white dark:bg-slate-900 flex flex-row items-center justify-end gap-2.5 w-full shrink-0">
                 <Button
                   type="button"
                   variant="outline"

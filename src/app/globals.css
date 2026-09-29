@@ -20,72 +20,106 @@
 }
 
 /* ============================================================
-   PREMIUM LIGHT THEME — Utility Classes
+   PREMIUM WARM LIGHT THEME — Utility Classes
+   Warm cream/amber undertone for a premium, night-mode feel
    ============================================================ */
 
 /* Premium card surface */
 .glass-card {
-  background: oklch(1 0 0);
-  border: 1px solid oklch(0.925 0.004 264);
+  background: oklch(0.995 0.006 80);
+  border: 1px solid oklch(0.925 0.012 80);
   border-radius: 0.75rem;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.03),
-    0 4px 8px rgba(15, 23, 42, 0.03),
-    0 8px 24px rgba(100, 116, 145, 0.05);
+    0 1px 2px rgba(42, 32, 15, 0.03),
+    0 4px 8px rgba(42, 32, 15, 0.03),
+    0 8px 24px rgba(120, 100, 60, 0.05);
 }
 
 .glass-card:hover {
-  border-color: oklch(0.86 0.012 264);
+  border-color: oklch(0.86 0.02 80);
   box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.03),
-    0 8px 16px rgba(15, 23, 42, 0.04),
-    0 16px 40px rgba(100, 116, 145, 0.07);
+    0 2px 4px rgba(42, 32, 15, 0.03),
+    0 8px 16px rgba(42, 32, 15, 0.04),
+    0 16px 40px rgba(120, 100, 60, 0.07);
   transform: translateY(-2px);
 }
 
 /* Premium panel surface */
 .glass-panel {
-  background: oklch(1 0 0);
-  border: 1px solid oklch(0.925 0.004 264);
+  background: oklch(0.995 0.006 80);
+  border: 1px solid oklch(0.925 0.012 80);
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.03),
-    0 4px 12px rgba(100, 116, 145, 0.04);
+    0 1px 2px rgba(42, 32, 15, 0.03),
+    0 4px 12px rgba(120, 100, 60, 0.04);
 }
 
 /* Elevated surface */
 .surface-elevated {
-  background: oklch(1 0 0);
+  background: oklch(0.995 0.006 80);
   box-shadow:
-    0 1px 3px rgba(15, 23, 42, 0.03),
-    0 6px 16px rgba(100, 116, 145, 0.05),
-    0 12px 32px rgba(100, 116, 145, 0.04);
-  border: 1px solid oklch(0.93 0.004 264);
+    0 1px 3px rgba(42, 32, 15, 0.03),
+    0 6px 16px rgba(120, 100, 60, 0.05),
+    0 12px 32px rgba(120, 100, 60, 0.04);
+  border: 1px solid oklch(0.93 0.012 80);
 }
 
 /* Muted surface */
 .surface-muted {
-  background: oklch(0.97 0.003 264);
+  background: oklch(0.97 0.008 80);
 }
 
 /* Blending shadow */
 .shadow-blend {
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.03),
-    0 4px 8px rgba(15, 23, 42, 0.03),
-    0 8px 24px rgba(100, 116, 145, 0.05);
+    0 1px 2px rgba(42, 32, 15, 0.03),
+    0 4px 8px rgba(42, 32, 15, 0.03),
+    0 8px 24px rgba(120, 100, 60, 0.05);
 }
 
 /* ============================================================
    MICRO-ANIMATIONS — Press, Click & Interaction Feedback
    ============================================================ */
 
-/* Universal button press — subtle scale-down on click */
-button:not(:disabled):active,
+/* Universal button press — subtle scale-down on click (excludes elements marked with data-no-scale) */
+button:not(:disabled):not([data-no-scale]):active,
 [role="menuitem"]:active,
-[data-slot="button"]:not(:disabled):active {
+[data-slot="button"]:not(:disabled):not([data-no-scale]):active {
   transform: scale(0.97) !important;
   transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Voice recorder button dedicated transform override — prevents global active scale from breaking drag transforms */
+.voice-record-btn,
+.voice-record-btn:active,
+.voice-record-btn:hover {
+  transform: var(--record-btn-transform, scale(1)) !important;
+  -webkit-transform: var(--record-btn-transform, scale(1)) !important;
+}
+
+/* WhatsApp-style flowing slide animations (100% compatible with Safari & WebKit hardware acceleration) */
+@keyframes safariSlideLeft {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate3d(-7px, 0, 0);
+    -webkit-transform: translate3d(-7px, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes safariSlideUp {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -6px, 0);
+    -webkit-transform: translate3d(0, -6px, 0);
+  }
 }
 
 /* Dropdown triggers — bounce on open */
@@ -200,23 +234,23 @@ a .glass-card {
   100% { transform: translateX(100%); }
 }
 
-/* Custom Scrollbar — Light */
+/* Custom Scrollbar — Warm Light */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: oklch(0.97 0.003 264);
+  background: oklch(0.97 0.008 80);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.84 0.008 264);
+  background: oklch(0.84 0.016 80);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.74 0.012 264);
+  background: oklch(0.74 0.022 80);
 }
 
 @theme inline {
@@ -263,40 +297,41 @@ a .glass-card {
 }
 
 /* ============================================================
-   PREMIUM PROFESSIONAL COLOR SYSTEM
-   Refined off-white canvas with sophisticated depth hierarchy
+   PREMIUM WARM COLOR SYSTEM
+   Warm ivory/cream canvas with sophisticated amber undertone
+   Inspired by mobile night-mode warmth for a luxurious feel
    ============================================================ */
 :root {
-  /* Core surfaces */
-  --background: oklch(0.975 0.003 264);
-  --foreground: oklch(0.13 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.02 260);
+  /* Core surfaces — warm ivory/cream base */
+  --background: oklch(0.975 0.008 80);
+  --foreground: oklch(0.14 0.02 75);
+  --card: oklch(0.995 0.006 80);
+  --card-foreground: oklch(0.14 0.02 75);
+  --popover: oklch(0.995 0.006 80);
+  --popover-foreground: oklch(0.14 0.02 75);
 
-  /* Primary brand accent — deep professional blue */
+  /* Primary brand accent — deep professional blue (kept cool for contrast) */
   --primary: oklch(0.47 0.215 264);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary-foreground: oklch(0.995 0.006 80);
 
-  /* Secondary surface */
-  --secondary: oklch(0.97 0.004 264);
-  --secondary-foreground: oklch(0.18 0.02 260);
+  /* Secondary surface — warm tint */
+  --secondary: oklch(0.97 0.01 80);
+  --secondary-foreground: oklch(0.18 0.02 75);
 
-  /* Muted surface & text */
-  --muted: oklch(0.96 0.005 264);
-  --muted-foreground: oklch(0.44 0.025 260);
+  /* Muted surface & text — warm undertone */
+  --muted: oklch(0.96 0.012 80);
+  --muted-foreground: oklch(0.44 0.02 75);
 
-  /* Accent highlight */
-  --accent: oklch(0.96 0.005 264);
-  --accent-foreground: oklch(0.18 0.02 260);
+  /* Accent highlight — warm */
+  --accent: oklch(0.96 0.012 80);
+  --accent-foreground: oklch(0.18 0.02 75);
 
   /* Destructive — refined crimson */
   --destructive: oklch(0.55 0.22 27);
 
-  /* Borders & inputs — softer, less prominent */
-  --border: oklch(0.915 0.005 264);
-  --input: oklch(0.915 0.005 264);
+  /* Borders & inputs — warm sand/cream edges */
+  --border: oklch(0.915 0.014 80);
+  --input: oklch(0.915 0.014 80);
 
   /* Focus ring — matches primary */
   --ring: oklch(0.47 0.215 264);
@@ -311,14 +346,14 @@ a .glass-card {
   /* Base radius */
   --radius: 0.625rem;
 
-  /* Sidebar surfaces */
-  --sidebar: oklch(0.985 0.002 264);
-  --sidebar-foreground: oklch(0.13 0.02 260);
+  /* Sidebar surfaces — warm tint */
+  --sidebar: oklch(0.985 0.007 80);
+  --sidebar-foreground: oklch(0.14 0.02 75);
   --sidebar-primary: oklch(0.47 0.215 264);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.96 0.005 264);
-  --sidebar-accent-foreground: oklch(0.18 0.02 260);
-  --sidebar-border: oklch(0.92 0.004 264);
+  --sidebar-primary-foreground: oklch(0.995 0.006 80);
+  --sidebar-accent: oklch(0.96 0.012 80);
+  --sidebar-accent-foreground: oklch(0.18 0.02 75);
+  --sidebar-border: oklch(0.92 0.012 80);
   --sidebar-ring: oklch(0.47 0.215 264);
 
   /* Extended semantic tokens */
@@ -327,10 +362,10 @@ a .glass-card {
   --warning: oklch(0.62 0.17 75);
   --warning-soft: oklch(0.965 0.025 75);
   --danger-soft: oklch(0.965 0.02 25);
-  --text-secondary: oklch(0.35 0.025 260);
-  --text-muted: oklch(0.44 0.025 260);
-  --text-disabled: oklch(0.60 0.015 260);
-  --surface-soft: oklch(0.97 0.003 264);
+  --text-secondary: oklch(0.35 0.02 75);
+  --text-muted: oklch(0.44 0.02 75);
+  --text-disabled: oklch(0.60 0.015 75);
+  --surface-soft: oklch(0.97 0.008 80);
 }
 
 /* ============================================================

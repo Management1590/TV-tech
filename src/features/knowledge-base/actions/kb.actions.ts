@@ -13,6 +13,7 @@ import {
   getEntityTypeConnectOrCreate,
 } from '@/lib/ensure-entity-types';
 import { processAndUploadThumbnailUrl } from '@/lib/server-upload-thumbnail';
+import { deleteThumbnailFromCloudinary, deleteEntityMediaAttachmentsFromCloudinary } from '@/lib/cloudinary-delete';
 import { validateNameSimilarity } from '@/features/knowledge-base/utils/name-similarity-validator';
 
 function generateSlug(name: string): string {
@@ -190,12 +191,17 @@ export async function setTvBrandThumbnailAction(brandId: string, logoUrl: string
   }
 
   try {
+    const brand = await prisma.tvBrand.findUnique({ where: { id: brandId } });
+    if (!brand) throw new Error('Brand not found.');
+
     const cleanLogoUrl = await processAndUploadThumbnailUrl(logoUrl, 'tv-tech-os/brands');
 
-    await prisma.$transaction(async (tx) => {
-      const brand = await tx.tvBrand.findUnique({ where: { id: brandId } });
-      if (!brand) throw new Error('Brand not found.');
+    // If brand had an existing logo on Cloudinary that is being changed or removed, delete old one from Cloudinary
+    if (brand.logoUrl && brand.logoUrl !== cleanLogoUrl) {
+      await deleteThumbnailFromCloudinary(brand.logoUrl);
+    }
 
+    await prisma.$transaction(async (tx) => {
       await tx.tvBrand.update({
         where: { id: brandId },
         data: { logoUrl: cleanLogoUrl || null },
@@ -242,6 +248,11 @@ export async function deleteTvBrandAction(brandId: string) {
         success: false,
         error: `Cannot delete Brand "${brand.name}". Please delete all ${brand._count.models} model(s) inside this brand first.`,
       };
+    }
+
+    // Clean up brand logo from Cloudinary if present
+    if (brand.logoUrl) {
+      await deleteThumbnailFromCloudinary(brand.logoUrl);
     }
 
     await prisma.$transaction(async (tx) => {
@@ -698,6 +709,16 @@ export async function deleteTvModelAction(modelId: string) {
     });
 
     if (!model) throw new Error('TV Model not found.');
+
+    // Clean up all media attachments from the model and its knowledge folders from Cloudinary
+    const folders = await prisma.knowledgeFolder.findMany({
+      where: { modelId },
+      select: { entityId: true },
+    });
+    for (const f of folders) {
+      await deleteEntityMediaAttachmentsFromCloudinary(f.entityId);
+    }
+    await deleteEntityMediaAttachmentsFromCloudinary(model.entityId);
 
     await prisma.$transaction(async (tx) => {
       await tx.auditLog.create({

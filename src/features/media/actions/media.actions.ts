@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/get-current-user';
 import { cloudinary } from '@/lib/cloudinary';
 import { createMediaAttachment, deleteMediaAttachment } from '@/features/media/services/media.service';
+import { deleteMediaRecordWithCloudinary, deleteFromCloudinary } from '@/lib/cloudinary-delete';
 import { MediaType, StorageProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
@@ -215,20 +216,16 @@ export async function deleteMediaAction(mediaId: string, publicId?: string, enti
   }
 
   try {
-    await deleteMediaAttachment(mediaId);
-
-    if (publicId) {
-      try {
-        await cloudinary.uploader.destroy(publicId);
-      } catch (cloudErr) {
-        console.warn('Cloudinary delete warning:', cloudErr);
-      }
+    const res = await deleteMediaRecordWithCloudinary(mediaId, publicId);
+    if (!res.success && publicId) {
+      await deleteFromCloudinary(publicId);
     }
 
     if (entityId) {
       revalidatePath(`/inventory/items/${entityId}`);
     }
     revalidatePath('/inventory');
+    revalidatePath('/knowledge-base');
 
     return { success: true };
   } catch (error: any) {

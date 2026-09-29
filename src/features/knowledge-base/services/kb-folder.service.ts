@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/prisma';
 import { KnowledgeFolder } from '@prisma/client';
 import { ensureEntityType } from '@/lib/ensure-entity-types';
+import { deleteEntityMediaAttachmentsFromCloudinary } from '@/lib/cloudinary-delete';
 
 export interface CreateKbFolderInput {
   modelId: string;
@@ -75,6 +76,9 @@ export async function deleteKnowledgeFolder(folderId: string): Promise<void> {
 
   if (!folder) throw new Error('Folder not found');
   if (folder.isSystem) throw new Error('System default folders (Backlight, More info) cannot be deleted.');
+
+  // Clean up all attached media files in this knowledge folder from Cloudinary
+  await deleteEntityMediaAttachmentsFromCloudinary(folder.entityId);
 
   await prisma.$transaction(async (tx) => {
     // Delete entity which cascades

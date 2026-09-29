@@ -439,15 +439,20 @@ export function UploadItemMediaDialog({
 
           {/* Upload Progress Bar & Status */}
           {isUploading && (
-            <div className="space-y-2 p-3.5 bg-primary/5 border border-primary/20 rounded-xl">
+            <div className="space-y-2.5 p-3.5 bg-violet-500/[0.04] dark:bg-violet-950/20 border border-violet-500/25 rounded-2xl shadow-2xs">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-primary flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                  {uploadStatusText}
+                <span className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1.5 truncate min-w-0">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-500 shrink-0" />
+                  <span className="truncate">{uploadStatusText}</span>
                 </span>
-                <span className="font-mono text-primary font-bold">{uploadProgress}%</span>
+                <span className="font-mono text-violet-600 dark:text-violet-300 font-bold shrink-0 ml-2">{uploadProgress}%</span>
               </div>
-              <Progress value={uploadProgress} className="h-2 bg-muted" />
+              <div className="relative w-full h-2 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 transition-all duration-300 ease-out"
+                  style={{ width: `${Math.max(6, uploadProgress)}%` }}
+                />
+              </div>
             </div>
           )}
         </div>

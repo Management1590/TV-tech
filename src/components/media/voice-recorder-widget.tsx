@@ -113,6 +113,8 @@ export function VoiceRecorderWidget({
   // DOM Button Ref
   const recordButtonRef = useRef<HTMLButtonElement>(null);
   const pointerIdRef = useRef<number | null>(null);
+  const isTouchActiveRef = useRef<boolean>(false);
+  const streamIdleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Gesture tracking refs
   const isDownRef = useRef<boolean>(false);
@@ -163,15 +165,11 @@ export function VoiceRecorderWidget({
     } catch {}
   }, []);
 
-  // Clean up all streams, timers, and audio contexts
-  const cleanupStream = useCallback(() => {
-    if (cleanupListenersRef.current) {
-      cleanupListenersRef.current();
-      cleanupListenersRef.current = null;
-    }
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
+  // Completely destroy stream, audio context, and timers (called on page exit / backgrounding / 3min idle)
+  const destroyStream = useCallback(() => {
+    if (streamIdleTimerRef.current) {
+      clearTimeout(streamIdleTimerRef.current);
+      streamIdleTimerRef.current = null;
     }
     if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
       audioCtxRef.current.close().catch(() => {});
@@ -188,42 +186,79 @@ export function VoiceRecorderWidget({
       });
       streamRef.current = null;
     }
+  }, []);
 
-    mediaRecorderRef.current = null;
-    audioChunksRef.current = [];
-    startTimeRef.current = 0;
-    lockedAtRef.current = 0;
-    isDownRef.current = false;
-    startCoordRef.current = null;
-    dragOffsetRef.current = { x: 0, y: 0 };
-    axisRef.current = 'none';
-    pendingStopRef.current = false;
-    pendingCancelRef.current = false;
-    isStoppingRef.current = false;
-    isLockedRef.current = false;
-    onMoveRef.current = null;
-    onEndRef.current = null;
+  // Reset recording state while keeping audio stream alive in memory
+  // This prevents Safari from prompting for microphone permission on every subsequent recording!
+  const cleanupRecordingState = useCallback(
+    (options?: { destroyAudioPipe?: boolean }) => {
+      if (cleanupListenersRef.current) {
+        cleanupListenersRef.current();
+        cleanupListenersRef.current = null;
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
 
-    if (recordButtonRef.current) {
-      const resetTransform = 'translate3d(0, 0, 0) scale(1)';
-      recordButtonRef.current.style.transform = resetTransform;
-      (recordButtonRef.current.style as any).webkitTransform = resetTransform;
-      recordButtonRef.current.style.transition =
-        'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      (recordButtonRef.current.style as any).webkitTransition =
-        '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    }
+      mediaRecorderRef.current = null;
+      audioChunksRef.current = [];
+      startTimeRef.current = 0;
+      lockedAtRef.current = 0;
+      isDownRef.current = false;
+      isTouchActiveRef.current = false;
+      startCoordRef.current = null;
+      dragOffsetRef.current = { x: 0, y: 0 };
+      axisRef.current = 'none';
+      pendingStopRef.current = false;
+      pendingCancelRef.current = false;
+      isStoppingRef.current = false;
+      isLockedRef.current = false;
+      onMoveRef.current = null;
+      onEndRef.current = null;
 
-    setIsHolding(false);
-    setDragOffset({ x: 0, y: 0 });
-    setRecordingDuration(0);
-    setStatus('idle');
-    setIsPaused(false);
-    setIsLocked(false);
-    unlockBodyScroll();
-  }, [unlockBodyScroll]);
+      if (recordButtonRef.current) {
+        const resetTransform = 'translate3d(0, 0, 0) scale(1)';
+        recordButtonRef.current.style.setProperty('--record-btn-transform', resetTransform);
+        recordButtonRef.current.style.transform = resetTransform;
+        (recordButtonRef.current.style as any).webkitTransform = resetTransform;
+        recordButtonRef.current.style.transition =
+          'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        (recordButtonRef.current.style as any).webkitTransition =
+          '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      }
 
-  // Global listeners for page transitions and external stop events
+      setIsHolding(false);
+      setDragOffset({ x: 0, y: 0 });
+      setRecordingDuration(0);
+      setStatus('idle');
+      setIsPaused(false);
+      setIsLocked(false);
+      unlockBodyScroll();
+
+      if (options?.destroyAudioPipe) {
+        destroyStream();
+      } else {
+        // Mute audio track so privacy is 100% safeguarded, but keep the hardware channel open.
+        // This stops Safari from revoking the session permission context!
+        if (streamRef.current) {
+          streamRef.current.getAudioTracks().forEach((track) => {
+            track.enabled = false;
+          });
+        }
+        // Auto-terminate hardware stream after 3 minutes of inactivity
+        if (streamIdleTimerRef.current) {
+          clearTimeout(streamIdleTimerRef.current);
+        }
+        streamIdleTimerRef.current = setTimeout(() => {
+          destroyStream();
+        }, 180000);
+      }
+    },
+    [unlockBodyScroll, destroyStream]
+  );
+
+  // Global listeners for page transitions, visibility changes, and external stop events
   useEffect(() => {
     const handleForceStop = (e: any) => {
       // Ignore if event was dispatched by this exact instance!
@@ -234,7 +269,8 @@ export function VoiceRecorderWidget({
           mediaRecorderRef.current.stop();
         } catch {}
       }
-      cleanupStream();
+      // Clean up and completely release microphone hardware on page exit/switch
+      cleanupRecordingState({ destroyAudioPipe: true });
     };
 
     window.addEventListener('popstate', handleForceStop);
@@ -255,7 +291,7 @@ export function VoiceRecorderWidget({
       window.removeEventListener('tv-tech-stop-all-recording', handleForceStop as EventListener);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [cleanupStream]);
+  }, [cleanupRecordingState]);
 
   // Audio Analyser Setup
   const setupAudioAnalyser = (stream: MediaStream) => {
@@ -298,19 +334,54 @@ export function VoiceRecorderWidget({
     pendingCancelRef.current = false;
     isStoppingRef.current = false;
 
+    // Clear idle timeout if stream was waiting to be cleaned up
+    if (streamIdleTimerRef.current) {
+      clearTimeout(streamIdleTimerRef.current);
+      streamIdleTimerRef.current = null;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
+      let stream = streamRef.current;
+      const isStreamLive =
+        stream &&
+        stream.active &&
+        stream.getAudioTracks().some((t) => t.readyState === 'live');
+
+      if (isStreamLive && stream) {
+        // Reuse warm audio track: Unmute immediately without re-prompting the user!
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+        });
+      } else {
+        // First-time or stream was closed: Request from browser
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
+        streamRef.current = stream;
+
+        // One-time Safari setting recommendation to permanently remember permission
+        if (typeof window !== 'undefined') {
+          const isSafari =
+            /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ||
+            /iPhone|iPad|iPod/i.test(navigator.userAgent);
+          if (isSafari && !localStorage.getItem('tv_tech_safari_mic_guide_seen')) {
+            localStorage.setItem('tv_tech_safari_mic_guide_seen', 'true');
+            setTimeout(() => {
+              toast.info(
+                '💡 Safari Tip: Tap "aA" in the address bar → Website Settings → Microphone → "Allow" to remember permanently.',
+                { duration: 7000 }
+              );
+            }, 1200);
+          }
+        }
+      }
 
       // Check if cancelled while mic permission was being requested
       if (pendingCancelRef.current) {
-        stream.getTracks().forEach((t) => t.stop());
-        cleanupStream();
+        cleanupRecordingState();
         return;
       }
 
-      streamRef.current = stream;
       audioChunksRef.current = [];
 
       const mimeTypes = [
@@ -365,7 +436,7 @@ export function VoiceRecorderWidget({
           ? 'Microphone permission denied. Please allow microphone access in your browser settings.'
           : 'Could not access microphone: ' + (err.message || 'Unknown error')
       );
-      cleanupStream();
+      cleanupRecordingState({ destroyAudioPipe: true });
     }
   };
 
@@ -389,7 +460,7 @@ export function VoiceRecorderWidget({
         pendingStopRef.current = true;
         return;
       }
-      cleanupStream();
+      cleanupRecordingState();
       return;
     }
 
@@ -407,7 +478,7 @@ export function VoiceRecorderWidget({
         const elapsedMs = Date.now() - startTimeRef.current;
         if (audioBlob.size < 200 && elapsedMs < 350) {
           toast.error('Voice note too short.');
-          cleanupStream();
+          cleanupRecordingState();
           return;
         }
 
@@ -463,7 +534,7 @@ export function VoiceRecorderWidget({
         console.error('Audio upload error:', err);
         toast.error('Failed to save voice note: ' + (err.message || 'Network error'));
       } finally {
-        cleanupStream();
+        cleanupRecordingState();
       }
     };
 
@@ -471,7 +542,7 @@ export function VoiceRecorderWidget({
       recorder.requestData();
       recorder.stop();
     } catch {
-      cleanupStream();
+      cleanupRecordingState();
     }
   };
 
@@ -490,7 +561,7 @@ export function VoiceRecorderWidget({
       } catch {}
     }
     triggerHaptic([40, 50, 40]);
-    cleanupStream();
+    cleanupRecordingState();
     toast.info('Voice recording discarded');
   };
 
@@ -522,6 +593,7 @@ export function VoiceRecorderWidget({
     isLockedRef.current = true;
     setIsLocked(true);
     isDownRef.current = false;
+    isTouchActiveRef.current = false;
     setIsHolding(false);
     setDragOffset({ x: 0, y: 0 });
     dragOffsetRef.current = { x: 0, y: 0 };
@@ -533,6 +605,7 @@ export function VoiceRecorderWidget({
 
     if (recordButtonRef.current) {
       const resetTransform = 'translate3d(0, 0, 0) scale(1)';
+      recordButtonRef.current.style.setProperty('--record-btn-transform', resetTransform);
       recordButtonRef.current.style.transform = resetTransform;
       (recordButtonRef.current.style as any).webkitTransform = resetTransform;
       recordButtonRef.current.style.transition =
@@ -547,9 +620,9 @@ export function VoiceRecorderWidget({
   // ============================================================
   // PHYSICAL BUTTON GESTURE & ORTHOGONAL SLIDE ENGINE
   // - Directional Axis Lock: sideways slide cannot go up; upward slide cannot go sideways!
-  // - Smooth, seamless 60/120fps direct hardware transform
+  // - Smooth, seamless 60/120fps direct hardware transform via CSS variable & WebKit prefixes
   // - Discard only upon release at the bin icon (no auto-cancel mid-slide)
-  // - Flawless on both Mobile (Safari/Chrome touch) and Desktop (mouse)
+  // - Flawless on Safari (iOS touch & macOS mouse) without pointercancel hijacking
   // ============================================================
   const startPhysicalGestureTracking = (clientX: number, clientY: number) => {
     if (cleanupListenersRef.current) {
@@ -569,6 +642,7 @@ export function VoiceRecorderWidget({
 
     if (recordButtonRef.current) {
       const initTransform = 'translate3d(0, 0, 0) scale(1.26)';
+      recordButtonRef.current.style.setProperty('--record-btn-transform', initTransform);
       recordButtonRef.current.style.transform = initTransform;
       (recordButtonRef.current.style as any).webkitTransform = initTransform;
       recordButtonRef.current.style.transition =
@@ -580,16 +654,20 @@ export function VoiceRecorderWidget({
     const onMove = (currX: number, currY: number) => {
       if (!isDownRef.current || isLockedRef.current) return;
 
-      const rawDx = startX - currX;
-      const rawDy = startY - currY;
+      const rawDx = startX - currX; // sliding left is positive
+      const rawDy = startY - currY; // sliding up is positive
 
-      // Determine and lock axis once movement exceeds a deadzone of 7px
+      // Determine and lock axis once movement exceeds a deadzone of 8px
       if (axisRef.current === 'none') {
-        if (rawDx > 7 && rawDx >= rawDy) {
+        if (rawDx > 8 && rawDx >= rawDy * 0.7) {
           axisRef.current = 'horizontal';
-        } else if (rawDy > 7 && rawDy > rawDx) {
+        } else if (rawDy > 8 && rawDy > rawDx * 0.7) {
           axisRef.current = 'vertical';
         }
+      } else if (axisRef.current === 'horizontal' && rawDy > 28 && rawDy > rawDx * 1.5) {
+        axisRef.current = 'vertical';
+      } else if (axisRef.current === 'vertical' && rawDx > 28 && rawDx > rawDy * 1.5) {
+        axisRef.current = 'horizontal';
       }
 
       let dx = 0;
@@ -597,8 +675,8 @@ export function VoiceRecorderWidget({
 
       if (axisRef.current === 'horizontal') {
         // Sliding sideways: Strictly horizontal! Cannot move upward (dy = 0)
-        // Allows sliding all the way to the bin icon (up to 210px)
-        dx = Math.max(0, Math.min(rawDx, 210));
+        // Allows sliding all the way to the bin icon (up to 220px)
+        dx = Math.max(0, Math.min(rawDx, 220));
         dy = 0;
       } else if (axisRef.current === 'vertical') {
         // Sliding upward: Strictly vertical! Cannot move sideways (dx = 0)
@@ -609,9 +687,10 @@ export function VoiceRecorderWidget({
       dragOffsetRef.current = { x: dx, y: dy };
       setDragOffset({ x: dx, y: dy });
 
-      // Direct DOM update for instant zero-lag hardware-accelerated movement in all browsers
+      // Direct DOM update with CSS variable & WebKit transform for instant 60/120fps hardware acceleration
       if (recordButtonRef.current) {
         const trans = `translate3d(-${dx}px, -${dy}px, 0) scale(1.26)`;
+        recordButtonRef.current.style.setProperty('--record-btn-transform', trans);
         recordButtonRef.current.style.transform = trans;
         (recordButtonRef.current.style as any).webkitTransform = trans;
         recordButtonRef.current.style.transition = 'none';
@@ -624,6 +703,7 @@ export function VoiceRecorderWidget({
 
       if (!isDownRef.current) return;
       isDownRef.current = false;
+      isTouchActiveRef.current = false;
       unlockBodyScroll();
 
       if (isLockedRef.current) return;
@@ -639,6 +719,7 @@ export function VoiceRecorderWidget({
 
       if (recordButtonRef.current) {
         const resetTransform = 'translate3d(0, 0, 0) scale(1)';
+        recordButtonRef.current.style.setProperty('--record-btn-transform', resetTransform);
         recordButtonRef.current.style.transform = resetTransform;
         (recordButtonRef.current.style as any).webkitTransform = resetTransform;
         recordButtonRef.current.style.transition =
@@ -648,13 +729,13 @@ export function VoiceRecorderWidget({
       }
 
       // 1. User slid sideways to the bin icon and released -> DISCARD!
-      if (currentAxis === 'horizontal' && currentOffset.x >= 120) {
+      if (currentAxis === 'horizontal' && currentOffset.x >= 100) {
         cancelRecording();
         return;
       }
 
       // 2. User slid upward to the lock badge and released -> LOCK HANDS-FREE!
-      if (currentAxis === 'vertical' && currentOffset.y >= 32) {
+      if (currentAxis === 'vertical' && currentOffset.y >= 30) {
         lockToHandsFree();
         return;
       }
@@ -675,19 +756,26 @@ export function VoiceRecorderWidget({
 
     // Robust document & window listeners (Capture phase guarantees events on both Desktop & Mobile)
     const handleDocPointerMove = (e: PointerEvent) => {
+      if (isTouchActiveRef.current) return;
       onMove(e.clientX, e.clientY);
     };
     const handleDocPointerUp = (e: PointerEvent) => {
+      if (isTouchActiveRef.current) return;
       onEnd(e.clientX, e.clientY);
     };
     const handleDocPointerCancel = (e: PointerEvent) => {
+      // WebKit on iOS emits pointercancel during legitimate touch sliding gestures.
+      // If touch is active, ignore pointercancel so Safari doesn't abort the slide!
+      if (isTouchActiveRef.current) return;
       onEnd(e.clientX, e.clientY);
     };
 
     const handleDocMouseMove = (e: MouseEvent) => {
+      if (isTouchActiveRef.current) return;
       onMove(e.clientX, e.clientY);
     };
     const handleDocMouseUp = (e: MouseEvent) => {
+      if (isTouchActiveRef.current) return;
       onEnd(e.clientX, e.clientY);
     };
 
@@ -696,13 +784,15 @@ export function VoiceRecorderWidget({
         if (!isLockedRef.current && isDownRef.current) {
           if (e.cancelable) e.preventDefault();
         }
-        onMove(e.touches[0].clientX, e.touches[0].clientY);
+        const touch = e.touches[0];
+        onMove(touch.clientX, touch.clientY);
       }
     };
 
     const handleDocTouchEnd = (e: TouchEvent) => {
       const endX = e.changedTouches.length > 0 ? e.changedTouches[0].clientX : startX;
       const endY = e.changedTouches.length > 0 ? e.changedTouches[0].clientY : startY;
+      isTouchActiveRef.current = false;
       onEnd(endX, endY);
     };
 
@@ -718,6 +808,7 @@ export function VoiceRecorderWidget({
 
       onMoveRef.current = null;
       onEndRef.current = null;
+      isTouchActiveRef.current = false;
 
       try {
         if (recordButtonRef.current && pointerIdRef.current !== null) {
@@ -730,7 +821,7 @@ export function VoiceRecorderWidget({
 
     cleanupListenersRef.current = cleanup;
 
-    // Use capture: true on window so drag is never intercepted or swallowed on desktop or mobile
+    // Use capture: true on window with non-passive listeners so drag is never cancelled or swallowed
     window.addEventListener('pointermove', handleDocPointerMove, { capture: true, passive: false });
     window.addEventListener('pointerup', handleDocPointerUp, { capture: true, passive: false });
     window.addEventListener('pointercancel', handleDocPointerCancel, { capture: true, passive: false });
@@ -741,8 +832,13 @@ export function VoiceRecorderWidget({
     window.addEventListener('touchcancel', handleDocTouchEnd, { capture: true, passive: false });
   };
 
-  // Button Pointer Down Handler
+  // Button Pointer Down Handler (Desktop mouse drag)
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    // If touch was already triggered, let touch handlers manage mobile gestures
+    if (isTouchActiveRef.current || e.pointerType === 'touch') {
+      return;
+    }
+
     // If in locked mode: clicking Send button saves recording!
     if (isLockedRef.current && (status === 'recording' || status === 'starting')) {
       if (Date.now() - lockedAtRef.current < 300) return;
@@ -757,7 +853,7 @@ export function VoiceRecorderWidget({
       return;
     }
 
-    // Only respond to primary button (left click = 0 or touch)
+    // Only respond to primary button (left click = 0)
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     e.preventDefault();
@@ -776,30 +872,9 @@ export function VoiceRecorderWidget({
     startRecording();
   };
 
-  // Direct Button Pointer Move Handler (Crucial for Safari when pointer capture routes to target!)
-  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (isDownRef.current && onMoveRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-      onMoveRef.current(e.clientX, e.clientY);
-    }
-  };
-
-  // Direct Button Pointer Up Handler
-  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (isDownRef.current && onEndRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-      onEndRef.current(e.clientX, e.clientY);
-    }
-  };
-
   // Touch handlers for Mobile Safari / WebKit touch gestures
   const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (isDownRef.current) {
-      if (e.cancelable) e.preventDefault();
-      return;
-    }
+    if (disabled || status === 'uploading') return;
 
     if (isLockedRef.current && (status === 'recording' || status === 'starting')) {
       if (Date.now() - lockedAtRef.current < 300) return;
@@ -810,10 +885,11 @@ export function VoiceRecorderWidget({
       return;
     }
 
-    if (disabled || status === 'uploading' || status === 'recording' || status === 'starting') {
+    if (status === 'recording' || status === 'starting') {
       return;
     }
 
+    isTouchActiveRef.current = true;
     if (e.cancelable) e.preventDefault();
     e.stopPropagation();
 
@@ -826,31 +902,6 @@ export function VoiceRecorderWidget({
     lockBodyScroll();
     startPhysicalGestureTracking(touch.clientX, touch.clientY);
     startRecording();
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (isDownRef.current && onMoveRef.current && e.touches.length > 0) {
-      if (e.cancelable) e.preventDefault();
-      e.stopPropagation();
-      const touch = e.touches[0];
-      onMoveRef.current(touch.clientX, touch.clientY);
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (isDownRef.current && onEndRef.current) {
-      if (e.cancelable) e.preventDefault();
-      e.stopPropagation();
-      const endX =
-        e.changedTouches.length > 0
-          ? e.changedTouches[0].clientX
-          : startCoordRef.current?.x || 0;
-      const endY =
-        e.changedTouches.length > 0
-          ? e.changedTouches[0].clientY
-          : startCoordRef.current?.y || 0;
-      onEndRef.current(endX, endY);
-    }
   };
 
   // Button Click Handler (Fallback)
@@ -889,22 +940,28 @@ export function VoiceRecorderWidget({
         <div
           onClick={lockToHandsFree}
           style={{
-            transform: `translateY(-${Math.min(dragOffset.y * 0.35, 12)}px)`,
-            WebkitTransform: `translateY(-${Math.min(dragOffset.y * 0.35, 12)}px)`,
+            transform: `translate3d(0, -${Math.min(dragOffset.y * 0.45, 16)}px, 0)`,
+            WebkitTransform: `translate3d(0, -${Math.min(dragOffset.y * 0.45, 16)}px, 0)`,
           }}
           className="absolute right-1 -top-14 z-20 flex flex-col items-center select-none cursor-pointer transition-transform touch-none"
           title="Slide up or click to lock hands-free"
         >
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-lg transition-all active:scale-95 ${
-              dragOffset.y >= 32
+              dragOffset.y >= 30
                 ? 'bg-violet-600 text-white scale-125 ring-4 ring-violet-400/50 border-violet-300 shadow-violet-500/50'
                 : 'bg-slate-950/90 text-slate-200 border-violet-500/30 hover:bg-slate-900'
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
           </div>
-          <ChevronUp className="w-3 h-3 text-violet-400 animate-bounce mt-0.5" />
+          <ChevronUp
+            className="w-3.5 h-3.5 text-violet-400 mt-0.5"
+            style={{
+              animation: 'safariSlideUp 1s ease-in-out infinite',
+              WebkitAnimation: 'safariSlideUp 1s ease-in-out infinite',
+            }}
+          />
         </div>
       )}
 
@@ -925,7 +982,7 @@ export function VoiceRecorderWidget({
             type="button"
             onClick={cancelRecording}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-90 ${
-              dragOffset.x >= 120
+              dragOffset.x >= 100
                 ? 'bg-red-600 text-white scale-125 shadow-xl shadow-red-600/60 ring-4 ring-red-400/60 animate-pulse'
                 : 'bg-white/10 hover:bg-red-600 text-white/80 hover:text-white'
             }`}
@@ -957,17 +1014,48 @@ export function VoiceRecorderWidget({
           {/* Real-time soundwave equalizer bars */}
           <AudioVisualizer analyser={analyserState} isPaused={isPaused} />
 
-          {/* Slide-to-cancel gesture track (Case 1: Holding Mode) */}
+          {/* WhatsApp-Style Flowing Tri-Chevron Slide Track (Case 1: Holding Mode) */}
           {!isLocked ? (
             <div
               style={{
-                opacity: Math.max(0.15, 1 - dragOffset.x / 140),
+                opacity: Math.max(0.15, 1 - dragOffset.x / 130),
               }}
-              className="flex items-center gap-1 text-slate-300 text-[10px] sm:text-[11px] font-semibold select-none transition-opacity pointer-events-none pr-12"
+              className="flex items-center gap-1.5 text-slate-300 text-[10px] sm:text-[11px] font-semibold select-none transition-opacity pointer-events-none pr-8 sm:pr-10 shrink-0"
             >
-              <ChevronLeft className="w-3.5 h-3.5 text-slate-400 animate-[pulse_1s_ease-in-out_infinite]" />
-              <span className={dragOffset.x >= 120 ? 'text-red-400 font-bold animate-pulse' : ''}>
-                {dragOffset.x >= 120 ? 'Release to discard' : 'Slide to cancel'}
+              <div className="flex items-center -space-x-2 text-slate-400">
+                <ChevronLeft
+                  className="w-3.5 h-3.5"
+                  style={{
+                    animation: 'safariSlideLeft 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                    animationDelay: '0s',
+                    WebkitAnimation: 'safariSlideLeft 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                  }}
+                />
+                <ChevronLeft
+                  className="w-3.5 h-3.5"
+                  style={{
+                    animation: 'safariSlideLeft 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                    animationDelay: '0.18s',
+                    WebkitAnimation: 'safariSlideLeft 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                  }}
+                />
+                <ChevronLeft
+                  className="w-3.5 h-3.5"
+                  style={{
+                    animation: 'safariSlideLeft 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                    animationDelay: '0.36s',
+                    WebkitAnimation: 'safariSlideLeft 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                  }}
+                />
+              </div>
+              <span
+                className={`transition-colors duration-150 whitespace-nowrap ${
+                  dragOffset.x >= 100
+                    ? 'text-red-400 font-bold animate-pulse'
+                    : 'text-slate-300 font-medium'
+                }`}
+              >
+                {dragOffset.x >= 100 ? 'Release to cancel' : 'Slide to cancel'}
               </span>
             </div>
           ) : (
@@ -1018,46 +1106,45 @@ export function VoiceRecorderWidget({
         <button
           ref={recordButtonRef}
           type="button"
+          data-no-scale="true"
           draggable={false}
           onDragStart={(e) => {
             e.preventDefault();
             return false;
           }}
           onMouseDown={(e) => {
-            // Prevent desktop text selection and native drag
             e.preventDefault();
           }}
           onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
           onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
           onClick={handleClick}
           disabled={disabled || status === 'uploading'}
-          style={{
-            transform: isHolding
-              ? `translate3d(-${dragOffset.x}px, -${dragOffset.y}px, 0) scale(1.26)`
-              : 'translate3d(0, 0, 0) scale(1)',
-            WebkitTransform: isHolding
-              ? `translate3d(-${dragOffset.x}px, -${dragOffset.y}px, 0) scale(1.26)`
-              : 'translate3d(0, 0, 0) scale(1)',
-            transition: isHolding
-              ? 'none'
-              : 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
-            WebkitTransition: isHolding
-              ? 'none'
-              : '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
-            touchAction: 'none',
-            WebkitTouchCallout: 'none',
-            WebkitUserSelect: 'none',
-            userSelect: 'none',
-            WebkitAppearance: 'none',
-            willChange: 'transform',
-          }}
-          className={`w-11 h-11 rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 ${
+          style={
+            {
+              '--record-btn-transform': isHolding
+                ? `translate3d(-${dragOffset.x}px, -${dragOffset.y}px, 0) scale(1.26)`
+                : 'translate3d(0, 0, 0) scale(1)',
+              transform: isHolding
+                ? `translate3d(-${dragOffset.x}px, -${dragOffset.y}px, 0) scale(1.26)`
+                : 'translate3d(0, 0, 0) scale(1)',
+              WebkitTransform: isHolding
+                ? `translate3d(-${dragOffset.x}px, -${dragOffset.y}px, 0) scale(1.26)`
+                : 'translate3d(0, 0, 0) scale(1)',
+              transition: isHolding
+                ? 'none'
+                : 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), -webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+              WebkitTransition: isHolding
+                ? 'none'
+                : '-webkit-transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+              touchAction: 'none',
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              WebkitAppearance: 'none',
+              willChange: 'transform',
+            } as React.CSSProperties
+          }
+          className={`voice-record-btn w-11 h-11 rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 ${
             status === 'uploading'
               ? 'bg-violet-950 border-violet-500/50 opacity-0 pointer-events-none'
               : isLocked

@@ -44,6 +44,16 @@ export function ScrollToTopButton() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Allow fullscreen/selection modes to suppress floating FABs
+  const [isSuppressed, setIsSuppressed] = useState(false);
+  useEffect(() => {
+    const handleSuppress = (e: any) => {
+      setIsSuppressed(Boolean(e.detail?.suppressed));
+    };
+    window.addEventListener('tv-tech-suppress-floating-fabs', handleSuppress);
+    return () => window.removeEventListener('tv-tech-suppress-floating-fabs', handleSuppress);
+  }, []);
+
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -51,7 +61,7 @@ export function ScrollToTopButton() {
     });
   };
 
-  if (!isVisible) return null;
+  if (!isVisible || isSuppressed) return null;
 
   // SVG circular progress math (Radius = 18, Circumference = 2 * PI * 18 ≈ 113.1)
   const radius = 18;

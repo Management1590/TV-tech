@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { Folder } from '@prisma/client';
 import { recordAuditLog } from '@/lib/audit';
 import { ensureEntityType } from '@/lib/ensure-entity-types';
+import { deleteThumbnailFromCloudinary, deleteEntityMediaAttachmentsFromCloudinary } from '@/lib/cloudinary-delete';
 
 export interface CreateFolderInput {
   name: string;
@@ -312,7 +313,7 @@ export async function moveFolder(folderId: string, newParentId: string | null, u
 export async function deleteFolder(folderId: string, userId?: string): Promise<void> {
   const folder = await prisma.folder.findUnique({
     where: { id: folderId },
-    select: { id: true, entityId: true, parentId: true, childFolderCount: true },
+    select: { id: true, entityId: true, parentId: true, childFolderCount: true, thumbnailUrl: true },
   });
 
   if (!folder) return;
@@ -320,6 +321,12 @@ export async function deleteFolder(folderId: string, userId?: string): Promise<v
   if (folder.childFolderCount > 0) {
     throw new Error('Cannot delete a folder that contains sub-folders. Move or delete sub-folders first.');
   }
+
+  // Clean up folder thumbnail and media from Cloudinary
+  if (folder.thumbnailUrl) {
+    await deleteThumbnailFromCloudinary(folder.thumbnailUrl);
+  }
+  await deleteEntityMediaAttachmentsFromCloudinary(folder.entityId);
 
   await prisma.$transaction(async (tx) => {
     // 1. If folder has parent, decrement childFolderCount

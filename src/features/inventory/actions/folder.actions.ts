@@ -10,6 +10,7 @@ import { getCurrentUser } from '@/lib/auth/get-current-user';
 import * as folderService from '@/features/inventory/services/folder.service';
 import { matchesOrderedPattern, calculateMatchScore } from '@/features/search/services/search.service';
 import { processAndUploadThumbnailUrl } from '@/lib/server-upload-thumbnail';
+import { deleteThumbnailFromCloudinary, deleteEntityMediaAttachmentsFromCloudinary } from '@/lib/cloudinary-delete';
 
 function generateSlug(name: string): string {
   return name
@@ -58,12 +59,17 @@ export async function updateFolderThumbnailAction(folderId: string, thumbnailUrl
   try {
     const folder = await prisma.folder.findUnique({
       where: { id: folderId },
-      select: { id: true, entityId: true, name: true },
+      select: { id: true, entityId: true, name: true, thumbnailUrl: true },
     });
 
     if (!folder) return { success: false, error: 'Folder not found.' };
 
     const cleanThumb = await processAndUploadThumbnailUrl(thumbnailUrl, 'tv-tech-os/folders');
+
+    // If folder had an existing Cloudinary thumbnail that was changed or removed, delete it from Cloudinary
+    if (folder.thumbnailUrl && folder.thumbnailUrl !== cleanThumb) {
+      await deleteThumbnailFromCloudinary(folder.thumbnailUrl);
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.folder.update({
@@ -164,6 +170,12 @@ export async function deleteFolderAction(folderId: string) {
     if (!folder) return { success: false, error: 'Folder not found.' };
     if (folder._count.children > 0) return { success: false, error: 'Cannot delete folder with sub-folders. Move or delete them first.' };
     if (folder._count.folderItems > 0) return { success: false, error: 'Cannot delete folder with linked items. Unlink them first.' };
+
+    // Clean up folder thumbnail and any attached media from Cloudinary
+    if (folder.thumbnailUrl) {
+      await deleteThumbnailFromCloudinary(folder.thumbnailUrl);
+    }
+    await deleteEntityMediaAttachmentsFromCloudinary(folder.entityId);
 
     await prisma.$transaction(async (tx) => {
       // Update parent child count

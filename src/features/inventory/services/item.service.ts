@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { Item, QuantityMode } from '@prisma/client';
 import { linkItemToFolder } from './folder-item.service';
 import { ensureEntityType } from '@/lib/ensure-entity-types';
+import { deleteEntityMediaAttachmentsFromCloudinary } from '@/lib/cloudinary-delete';
 
 export interface CreateItemInput {
   name: string;
@@ -146,6 +147,9 @@ export async function deleteItem(itemId: string): Promise<void> {
   });
 
   if (!item) return;
+
+  // Clean up all attached media files from Cloudinary
+  await deleteEntityMediaAttachmentsFromCloudinary(item.entityId);
 
   await prisma.$transaction(async (tx) => {
     // Delete entity record (cascades to Item)
