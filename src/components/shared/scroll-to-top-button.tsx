@@ -9,7 +9,8 @@ export function ScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Check if bottom nav is shown on current route
+  // Check if bottom nav or folder action deck is shown on current route
+  const isFolderDetail = pathname.includes('/folders/');
   const hasBottomNav =
     pathname === '/' ||
     pathname === '/inventory' ||
@@ -24,8 +25,11 @@ export function ScrollToTopButton() {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
 
-      // Visibility threshold: 240px
-      if (scrollTop > 240) {
+      // Automatically hide when user reaches near the bottom of the page where the control deck is located
+      const isNearBottom = scrollHeight > 0 && scrollTop >= scrollHeight - 140;
+
+      // Visibility threshold: 240px and NOT near bottom footer action deck
+      if (scrollTop > 240 && !isNearBottom) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
@@ -71,7 +75,9 @@ export function ScrollToTopButton() {
   return (
     <div
       className={`fixed z-50 animate-in fade-in zoom-in-95 duration-200 right-4 sm:right-8 ${
-        hasBottomNav
+        isFolderDetail
+          ? 'bottom-[calc(6.25rem+env(safe-area-inset-bottom,0px))] md:bottom-8'
+          : hasBottomNav
           ? 'bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-8'
           : 'bottom-5 md:bottom-8'
       }`}

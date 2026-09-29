@@ -97,7 +97,7 @@ export function KbBacklightLinker({
   userRole = 'STAFF',
 }: KbBacklightLinkerProps) {
   const router = useRouter();
-  const isAdmin = userRole === 'ADMIN';
+  const isAdmin = !!userRole;
 
   // Linked items local state for instantaneous optimistic UI updates
   const [linkedItems, setLinkedItems] = useState<LinkedBacklightItem[]>(initialLinkedItems);

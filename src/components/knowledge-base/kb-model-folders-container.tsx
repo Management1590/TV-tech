@@ -23,7 +23,7 @@ export function KbModelFoldersContainer({
   hasLinkedBacklights = false,
   linkedBacklightCount = 0,
 }: KbModelFoldersContainerProps) {
-  const isAdmin = userRole === 'ADMIN';
+  const isAdmin = !!userRole;
 
   // Strictly display the 2 premade technical folders (Backlight & More info)
   // In Admin panel: Backlight Linker is ALWAYS present.

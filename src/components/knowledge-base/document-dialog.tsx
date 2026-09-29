@@ -186,7 +186,7 @@ export function DocumentDialog({
                 className="px-5 sm:px-6 pt-0.5 pb-2.5 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
               >
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-violet-600/15 via-purple-600/10 to-indigo-600/15 border border-violet-500/25 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-sm shrink-0">
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-600/15 via-teal-600/10 to-emerald-600/15 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
                     <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -221,7 +221,7 @@ export function DocumentDialog({
                       <span>
                         Heading / Title <span className="text-rose-500">*</span>
                       </span>
-                      <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                         Bolder & Standout
                       </span>
                     </label>
@@ -231,7 +231,7 @@ export function DocumentDialog({
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g. Inverter 3.3V Specs"
                       disabled={isSaving}
-                      className="h-11 rounded-2xl text-sm font-bold bg-muted/40 hover:bg-muted/60 focus:bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:border-violet-500 shadow-2xs placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:italic transition-all"
+                      className="h-11 rounded-2xl text-sm font-bold bg-muted/40 hover:bg-muted/60 focus:bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus-visible:border-emerald-500 shadow-2xs placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:italic transition-all"
                     />
                   </div>
 
@@ -247,10 +247,10 @@ export function DocumentDialog({
                       placeholder="Write your technical notes here..."
                       disabled={isSaving}
                       rows={5}
-                      className="rounded-2xl text-sm leading-relaxed bg-muted/40 hover:bg-muted/60 focus:bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:border-violet-500 shadow-2xs resize-none min-h-[130px] max-h-[220px] placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:italic transition-all"
+                      className="rounded-2xl text-sm leading-relaxed bg-muted/40 hover:bg-muted/60 focus:bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-emerald-500/25 focus-visible:border-emerald-500 shadow-2xs resize-none min-h-[130px] max-h-[220px] placeholder:text-muted-foreground/40 placeholder:font-normal placeholder:italic transition-all"
                     />
                     <div className="flex items-center gap-1.5 pt-0.5 text-[11px] text-muted-foreground/80">
-                      <Sparkles className="w-3 h-3 text-violet-600 dark:text-violet-400 shrink-0" />
+                      <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span>
                         Tip: Include fault symptoms, voltages, component part numbers, or repair steps.
                       </span>
@@ -277,7 +277,7 @@ export function DocumentDialog({
                   <Button
                     type="submit"
                     disabled={isSaving || !title.trim()}
-                    className="rounded-xl sm:rounded-2xl h-9 sm:h-10 px-5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm gap-2 shadow-md shadow-violet-500/25 active:scale-95 transition-all cursor-pointer"
+                    className="rounded-xl sm:rounded-2xl h-9 sm:h-10 px-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:via-teal-500 hover:to-emerald-500 text-white font-bold text-xs sm:text-sm gap-2 shadow-md shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer"
                   >
                     {isSaving ? (
                       <>

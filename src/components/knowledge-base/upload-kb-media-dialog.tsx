@@ -466,7 +466,7 @@ export function UploadKbMediaDialog({
                 className="px-5 sm:px-6 pt-0.5 pb-3 border-b border-border/60 flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-violet-500/25 shrink-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-sky-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25 shrink-0">
                     <UploadCloud className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -518,17 +518,17 @@ export function UploadKbMediaDialog({
                     }}
                     className={`relative w-full rounded-3xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-4 box-border overflow-hidden group select-none ${
                       isDragging
-                        ? 'border-2 border-dashed border-violet-500 bg-violet-500/10 scale-[0.99] shadow-lg shadow-violet-500/20'
-                        : 'border-2 border-dashed border-violet-400/40 dark:border-violet-500/30 hover:border-violet-600 dark:hover:border-violet-400 bg-gradient-to-b from-violet-500/[0.05] via-purple-500/[0.02] to-transparent hover:from-violet-500/[0.09] shadow-xs hover:shadow-xl hover:shadow-violet-500/10 active:scale-[0.985]'
+                        ? 'border-2 border-dashed border-blue-500 bg-blue-500/10 scale-[0.99] shadow-lg shadow-blue-500/20'
+                        : 'border-2 border-dashed border-blue-400/40 dark:border-blue-500/30 hover:border-blue-600 dark:hover:border-blue-400 bg-gradient-to-b from-blue-500/[0.05] via-sky-500/[0.02] to-transparent hover:from-blue-500/[0.09] shadow-xs hover:shadow-xl hover:shadow-blue-500/10 active:scale-[0.985]'
                     }`}
                   >
                     {/* Ambient Glow */}
-                    <div className="absolute inset-0 bg-radial from-violet-500/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    <div className="absolute inset-0 bg-radial from-blue-500/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
                     {/* Click SVG Centerpiece */}
-                    <div className="relative mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-violet-500/15 via-purple-500/10 to-indigo-500/15 border border-violet-500/25 flex items-center justify-center text-violet-600 shadow-sm group-hover:scale-108 transition-all duration-300">
-                      <MousePointerClick className="w-7 h-7 sm:w-8 sm:h-8 text-violet-600 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                      <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-sm">
+                    <div className="relative mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-blue-500/15 via-sky-500/10 to-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-600 shadow-sm group-hover:scale-108 transition-all duration-300">
+                      <MousePointerClick className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-sm">
                         <Plus className="w-3 h-3 stroke-[3]" />
                       </span>
                     </div>
@@ -551,16 +551,16 @@ export function UploadKbMediaDialog({
                           e.stopPropagation();
                           fileInputRef.current?.click();
                         }}
-                        className="h-11 sm:h-12 px-7 sm:px-9 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-violet-500/35 hover:shadow-xl hover:shadow-violet-500/50 active:scale-95 transition-all gap-2.5 cursor-pointer border-0 ring-4 ring-violet-500/15 hover:ring-violet-500/30"
+                        className="h-11 sm:h-12 px-7 sm:px-9 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-blue-600 hover:from-blue-500 hover:via-sky-500 hover:to-blue-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-blue-500/35 hover:shadow-xl hover:shadow-blue-500/50 active:scale-95 transition-all gap-2.5 cursor-pointer border-0 ring-4 ring-blue-500/15 hover:ring-blue-500/30"
                       >
-                        <MousePointerClick className="w-4 h-4 text-violet-100" />
+                        <MousePointerClick className="w-4 h-4 text-blue-100" />
                         <span>Choose Files</span>
                       </Button>
                     </div>
 
                     {/* Quality Assurance Tag */}
-                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 dark:text-violet-400 pt-0.5">
-                      <Sparkles className="w-3.5 h-3.5 text-violet-500" />
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 pt-0.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-500" />
                       <span>Cloudinary Auto-Compressed Video (q_auto:eco) & Photo</span>
                     </div>
                   </div>
@@ -582,7 +582,7 @@ export function UploadKbMediaDialog({
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isUploading}
-                          className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 flex items-center gap-1 cursor-pointer hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 cursor-pointer hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Add more</span>
@@ -601,22 +601,22 @@ export function UploadKbMediaDialog({
 
                     {/* Optional Macro Progress Bar during multi-file uploads */}
                     {isUploading && selectedFiles.length > 1 && (
-                      <div className="p-3.5 rounded-2xl bg-violet-500/[0.06] dark:bg-violet-950/30 border border-violet-500/25 flex flex-col gap-2 text-xs animate-in fade-in duration-200 shadow-2xs">
+                      <div className="p-3.5 rounded-2xl bg-blue-500/[0.06] dark:bg-blue-950/30 border border-blue-500/25 flex flex-col gap-2 text-xs animate-in fade-in duration-200 shadow-2xs">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-2 h-2 rounded-full bg-violet-600 dark:bg-violet-400 animate-pulse shrink-0" />
+                            <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse shrink-0" />
                             <span className="font-semibold text-foreground truncate">
                               Uploading file {Math.min(selectedFiles.length, currentFileIndex + 1)} of{' '}
                               {selectedFiles.length}...
                             </span>
                           </div>
-                          <span className="font-mono font-extrabold text-violet-700 dark:text-violet-300 shrink-0">
+                          <span className="font-mono font-extrabold text-blue-700 dark:text-blue-300 shrink-0">
                             {overallProgress}% Total
                           </span>
                         </div>
                         <div className="w-full h-1.5 bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 transition-all duration-300 ease-out"
+                            className="h-full rounded-full bg-gradient-to-r from-blue-600 via-sky-600 to-blue-600 transition-all duration-300 ease-out"
                             style={{ width: `${Math.max(4, overallProgress)}%` }}
                           />
                         </div>
@@ -630,10 +630,10 @@ export function UploadKbMediaDialog({
                         const isError = item.status === 'error';
                         const isCompressing = item.status === 'compressing';
                         const isInProgress =
-                          item.status === 'uploading' ||
-                          item.status === 'compressing' ||
-                          item.status === 'registering' ||
-                          item.status === 'preparing';
+                           item.status === 'uploading' ||
+                           item.status === 'compressing' ||
+                           item.status === 'registering' ||
+                           item.status === 'preparing';
 
                         return (
                           <div
@@ -647,7 +647,7 @@ export function UploadKbMediaDialog({
                                 : isError
                                 ? 'bg-rose-500/[0.03] dark:bg-rose-950/20 border-rose-500/30 dark:border-rose-500/30 shadow-2xs'
                                 : isCompressing
-                                ? 'bg-violet-500/[0.04] dark:bg-violet-950/25 border-violet-500/40 dark:border-violet-500/40 shadow-xs ring-1 ring-violet-500/20'
+                                ? 'bg-blue-500/[0.04] dark:bg-blue-950/25 border-blue-500/40 dark:border-blue-500/40 shadow-xs ring-1 ring-blue-500/20'
                                 : isInProgress
                                 ? 'bg-blue-500/[0.03] dark:bg-blue-950/20 border-blue-500/30 dark:border-blue-500/30 shadow-xs ring-1 ring-blue-500/15'
                                 : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
@@ -664,7 +664,7 @@ export function UploadKbMediaDialog({
                                     className="w-full h-full object-cover rounded-xl"
                                   />
                                 ) : item.isVideo ? (
-                                  <div className="w-full h-full rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                                  <div className="w-full h-full rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                                     <Film className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
                                   </div>
                                 ) : (
@@ -697,7 +697,7 @@ export function UploadKbMediaDialog({
                                     {item.isVideo ? 'Video' : 'Photo'}
                                   </span>
                                   {isCompressing && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                                       {item.isVideo ? 'auto:eco' : 'auto:good'}
                                     </span>
                                   )}
@@ -717,8 +717,8 @@ export function UploadKbMediaDialog({
                                     <span>Failed</span>
                                   </div>
                                 ) : isCompressing ? (
-                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/15 dark:bg-violet-500/25 text-violet-600 dark:text-violet-300 border border-violet-500/30 text-xs font-mono font-bold tracking-tight shadow-xs">
-                                    <Sparkles className="w-3.5 h-3.5 animate-spin text-violet-500 shrink-0" />
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/15 dark:bg-blue-500/25 text-blue-600 dark:text-blue-300 border border-blue-500/30 text-xs font-mono font-bold tracking-tight shadow-xs">
+                                    <Sparkles className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />
                                     <span>{item.progress}%</span>
                                   </div>
                                 ) : isInProgress ? (
@@ -748,8 +748,8 @@ export function UploadKbMediaDialog({
                                 <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium w-full min-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
                                     {isCompressing ? (
-                                      <span className="text-violet-600 dark:text-violet-400 font-semibold truncate flex items-center gap-1.5">
-                                        <Sparkles className="w-3.5 h-3.5 animate-spin text-violet-500 shrink-0" />
+                                      <span className="text-blue-600 dark:text-blue-400 font-semibold truncate flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />
                                         <span className="truncate">
                                           {item.subtitle || 'Cloudinary compressing video (auto:eco)...'}
                                         </span>
@@ -796,11 +796,11 @@ export function UploadKbMediaDialog({
                                       isDone
                                         ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
                                         : isCompressing
-                                        ? 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 animate-pulse shadow-sm shadow-violet-500/30'
+                                        ? 'bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-500 animate-pulse shadow-sm shadow-blue-500/30'
                                         : item.status === 'uploading' || item.status === 'preparing'
-                                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600'
+                                        ? 'bg-gradient-to-r from-blue-600 via-sky-600 to-blue-500'
                                         : item.status === 'registering'
-                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600'
+                                        ? 'bg-gradient-to-r from-sky-500 to-blue-600'
                                         : isError
                                         ? 'bg-rose-500'
                                         : 'bg-transparent'
@@ -859,7 +859,7 @@ export function UploadKbMediaDialog({
                   type="button"
                   onClick={handleUpload}
                   disabled={isUploading || selectedFiles.length === 0 || hasOversizedMedia}
-                  className="rounded-2xl h-11 px-6 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm gap-2 shadow-md shadow-violet-500/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex-1 sm:flex-initial"
+                  className="rounded-2xl h-11 px-6 bg-gradient-to-r from-blue-600 via-sky-600 to-blue-600 hover:from-blue-500 hover:via-sky-500 hover:to-blue-500 text-white font-extrabold text-xs sm:text-sm gap-2 shadow-md shadow-blue-500/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex-1 sm:flex-initial"
                 >
                   {hasOversizedVideo && hasOversizedPhoto ? (
                     <>

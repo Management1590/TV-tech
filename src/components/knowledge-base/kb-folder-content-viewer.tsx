@@ -392,8 +392,21 @@ export function KbFolderContentViewer({
   const manageSnapshotRef = useRef<UnifiedItem[] | null>(null);
   const [hasOrderChanges, setHasOrderChanges] = useState<boolean>(false);
 
+  interface SlotRectInfo {
+    index: number;
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+    midX: number;
+    midY: number;
+    height: number;
+    pairBlockIdx?: number;
+    pairSide?: 'left' | 'right';
+  }
+
   // Cached slot boundaries to ensure stable targeting without CSS transform distortion
-  const itemSlotRectsRef = useRef<{ index: number; top: number; bottom: number; midY: number; height: number }[]>([]);
+  const itemSlotRectsRef = useRef<SlotRectInfo[]>([]);
   const draggedItemHeightRef = useRef<number>(200);
 
   // Reorder locally in UI state (without saving to backend until "Done" is clicked)
@@ -467,6 +480,7 @@ export function KbFolderContentViewer({
     deltaX: number;
     deltaY: number;
     isFloating: boolean;
+    nearPairBlockIdx?: number | null;
   } | null>(null);
 
   const pointerRef = useRef<{
@@ -488,22 +502,42 @@ export function KbFolderContentViewer({
     };
     dragPointerPosRef.current = { clientX: sX, clientY: sY };
 
-    // Capture initial slot coordinates of all items for stable target detection
-    const slots: { index: number; top: number; bottom: number; midY: number; height: number }[] = [];
+    // Snapshot current sequence for cancel if not already saved
+    if (!manageSnapshotRef.current) {
+      manageSnapshotRef.current = [...unifiedItems];
+    }
+    setIsManageMode(true);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tv-tech-pause-all-audio'));
+      window.dispatchEvent(new CustomEvent('tv-tech-stop-all-recording'));
+    }
+
+    // Capture initial slot coordinates of all items in 2D for stable target & pair detection
+    const slots: SlotRectInfo[] = [];
     document.querySelectorAll('[data-unified-index]').forEach((el) => {
       const idx = Number(el.getAttribute('data-unified-index'));
       if (!isNaN(idx)) {
         const rect = el.getBoundingClientRect();
+        const pBlockIdxStr = el.getAttribute('data-pair-block-idx');
+        const pBlockIdx = pBlockIdxStr !== null ? Number(pBlockIdxStr) : undefined;
+        const pSide = el.getAttribute('data-pair-side') as 'left' | 'right' | undefined;
+
         slots.push({
           index: idx,
           top: rect.top + window.scrollY,
           bottom: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          right: rect.right + window.scrollX,
+          midX: (rect.left + rect.right) / 2 + window.scrollX,
           midY: (rect.top + rect.bottom) / 2 + window.scrollY,
           height: rect.height,
+          pairBlockIdx: pBlockIdx,
+          pairSide: pSide,
         });
       }
     });
-    slots.sort((a, b) => a.top - b.top);
+    slots.sort((a, b) => a.top - b.top || a.left - b.left);
     itemSlotRectsRef.current = slots;
 
     const draggedSlot = slots.find((s) => s.index === srcIdx);
@@ -515,45 +549,87 @@ export function KbFolderContentViewer({
       deltaX: 0,
       deltaY: 0,
       isFloating: true,
+      nearPairBlockIdx: null,
     });
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate?.(40);
     }
-  }, []);
+  }, [unifiedItems]);
 
-  // Compute drop target index from pointer Y without being affected by shifted element positions
-  const getTargetSlotIndex = useCallback((clientY: number, scrollY: number, fallbackIdx: number): number => {
-    const slots = itemSlotRectsRef.current;
-    if (!slots || slots.length === 0) return fallbackIdx;
+  // Compute drop target index and detect proximity to paired photo blocks for separation animations
+  const getTargetSlotIndex = useCallback(
+    (
+      clientX: number,
+      clientY: number,
+      scrollX: number,
+      scrollY: number,
+      fallbackIdx: number
+    ): { targetIdx: number; nearPairBlockIdx: number | null } => {
+      const slots = itemSlotRectsRef.current;
+      if (!slots || slots.length === 0) return { targetIdx: fallbackIdx, nearPairBlockIdx: null };
 
-    const pointerDocY = clientY + scrollY;
+      const pointerDocX = clientX + scrollX;
+      const pointerDocY = clientY + scrollY;
 
-    if (pointerDocY < slots[0].midY) {
-      return slots[0].index;
-    }
-    if (pointerDocY > slots[slots.length - 1].midY) {
-      return slots[slots.length - 1].index;
-    }
-
-    let closestIdx = fallbackIdx;
-    let minDistance = Infinity;
-
-    for (let i = 0; i < slots.length; i++) {
-      const dist = Math.abs(pointerDocY - slots[i].midY);
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestIdx = slots[i].index;
+      // Check if pointer is vertically near any pair block (proximity threshold: 50px)
+      let nearPairBlockIdx: number | null = null;
+      for (const slot of slots) {
+        if (slot.pairBlockIdx !== undefined) {
+          const verticalPadding = 50;
+          if (
+            pointerDocY >= slot.top - verticalPadding &&
+            pointerDocY <= slot.bottom + verticalPadding
+          ) {
+            nearPairBlockIdx = slot.pairBlockIdx;
+            break;
+          }
+        }
       }
-    }
 
-    return closestIdx;
-  }, []);
+      // If near a pair block, detect left vs right photo target based on X
+      if (nearPairBlockIdx !== null) {
+        const pairSlots = slots.filter((s) => s.pairBlockIdx === nearPairBlockIdx);
+        if (pairSlots.length >= 2) {
+          const leftSlot = pairSlots.find((s) => s.pairSide === 'left') || pairSlots[0];
+          const rightSlot = pairSlots.find((s) => s.pairSide === 'right') || pairSlots[1];
+          const midDividerX = (leftSlot.right + rightSlot.left) / 2;
 
-  // Calculate slide displacement so other items visually slide apart smoothly to open space for the dragged item
-  const getSlideTransform = useCallback((index: number) => {
-    if (!activeDrag?.isFloating) return undefined;
+          return {
+            targetIdx: pointerDocX < midDividerX ? leftSlot.index : rightSlot.index,
+            nearPairBlockIdx,
+          };
+        }
+      }
+
+      // Otherwise find closest slot by midY
+      if (pointerDocY < slots[0].midY) {
+        return { targetIdx: slots[0].index, nearPairBlockIdx };
+      }
+      if (pointerDocY > slots[slots.length - 1].midY) {
+        return { targetIdx: slots[slots.length - 1].index, nearPairBlockIdx };
+      }
+
+      let closestIdx = fallbackIdx;
+      let minDistance = Infinity;
+
+      for (let i = 0; i < slots.length; i++) {
+        const dist = Math.abs(pointerDocY - slots[i].midY);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIdx = slots[i].index;
+        }
+      }
+
+      return { targetIdx: closestIdx, nearPairBlockIdx };
+    },
+    []
+  );
+
+  // Calculate slide vertical displacement in pixels so other items visually slide apart smoothly
+  const getSlideY = useCallback((index: number): number => {
+    if (!activeDrag?.isFloating) return 0;
     const { sourceIdx, targetIdx } = activeDrag;
-    if (sourceIdx === targetIdx || index === sourceIdx) return undefined;
+    if (sourceIdx === targetIdx || index === sourceIdx) return 0;
 
     const gap = 20; // 1.25rem gap matching space-y-5
     const slideOffset = (draggedItemHeightRef.current || 190) + gap;
@@ -561,22 +637,29 @@ export function KbFolderContentViewer({
     // When dragging downwards: items between sourceIdx + 1 and targetIdx slide UP
     if (sourceIdx < targetIdx) {
       if (index > sourceIdx && index <= targetIdx) {
-        return `translate3d(0, -${slideOffset}px, 0)`;
+        return -slideOffset;
       }
     }
     // When dragging upwards: items between targetIdx and sourceIdx - 1 slide DOWN
     else if (sourceIdx > targetIdx) {
       if (index >= targetIdx && index < sourceIdx) {
-        return `translate3d(0, ${slideOffset}px, 0)`;
+        return slideOffset;
       }
     }
 
-    return undefined;
+    return 0;
   }, [activeDrag]);
 
+  // Visual slide transform for single-column feed items
+  const getSlideTransform = useCallback((index: number) => {
+    const y = getSlideY(index);
+    return y !== 0 ? `translate3d(0, ${y}px, 0)` : undefined;
+  }, [getSlideY]);
+
   const onPointerDownUnified = (index: number, e: React.PointerEvent) => {
-    if (!isAdmin || !isGlobalEditMode || !isManageMode) return;
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
+    if (!isAdmin || !isGlobalEditMode || isSelectionMode) return;
+    if ((e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('[data-drag-handle]')) return;
+    if ((e.target as HTMLElement).closest('a')) return;
 
     const pointerId = e.pointerId;
     const startX = e.clientX;
@@ -590,7 +673,7 @@ export function KbFolderContentViewer({
       (e.currentTarget as HTMLElement).setPointerCapture(pointerId);
     } catch {}
 
-    // Immediate floating drag activation: zero delay, instantaneous mobile touch response
+    // Immediate floating drag activation
     pointerRef.current = { pointerId, startX, startY, sourceIdx: index, timer: null };
     startFloating(index, pointerId, startX, startY);
   };
@@ -610,7 +693,13 @@ export function KbFolderContentViewer({
       const deltaX = (e.clientX - startX) + (currentScrollX - dragStartScrollRef.current.x);
       const deltaY = (e.clientY - startY) + (currentScrollY - dragStartScrollRef.current.y);
 
-      const targetIdx = getTargetSlotIndex(e.clientY, currentScrollY, activeDrag.targetIdx);
+      const { targetIdx, nearPairBlockIdx } = getTargetSlotIndex(
+        e.clientX,
+        e.clientY,
+        currentScrollX,
+        currentScrollY,
+        activeDrag.targetIdx
+      );
       if (targetIdx !== activeDrag.targetIdx) {
         if (typeof window !== 'undefined' && 'vibrate' in navigator) {
           navigator.vibrate?.(18);
@@ -623,6 +712,7 @@ export function KbFolderContentViewer({
         deltaX,
         deltaY,
         isFloating: true,
+        nearPairBlockIdx,
       });
     };
 
@@ -731,7 +821,13 @@ export function KbFolderContentViewer({
 
           setActiveDrag((prev) => {
             if (!prev?.isFloating) return prev;
-            const updatedTarget = getTargetSlotIndex(clientY, currentScrollY, prev.targetIdx);
+            const { targetIdx: updatedTarget, nearPairBlockIdx } = getTargetSlotIndex(
+              clientX,
+              clientY,
+              currentScrollX,
+              currentScrollY,
+              prev.targetIdx
+            );
             if (updatedTarget !== prev.targetIdx) {
               if (typeof window !== 'undefined' && 'vibrate' in navigator) {
                 navigator.vibrate?.(18);
@@ -743,6 +839,7 @@ export function KbFolderContentViewer({
               deltaX,
               deltaY,
               isFloating: true,
+              nearPairBlockIdx,
             };
           });
         }
@@ -777,15 +874,42 @@ export function KbFolderContentViewer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isManageMode, handleCancelOrganize]);
 
-  // Stop audio on modal open
+  // Stop audio and recordings on modal open or organize mode activation
   useEffect(() => {
-    if (isPlayerOpen || isUploadDialogOpen || isDocDialogOpen || deleteTarget) {
+    if (isManageMode || isPlayerOpen || isUploadDialogOpen || isDocDialogOpen || deleteTarget) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('tv-tech-pause-all-audio'));
         window.dispatchEvent(new CustomEvent('tv-tech-stop-all-recording'));
       }
     }
-  }, [isPlayerOpen, isUploadDialogOpen, isDocDialogOpen, deleteTarget, isBatchDeleteDialogOpen]);
+  }, [isManageMode, isPlayerOpen, isUploadDialogOpen, isDocDialogOpen, deleteTarget, isBatchDeleteDialogOpen]);
+
+  // Mute outside breadcrumbs and header when organize mode is active
+  useEffect(() => {
+    const breadcrumbs = document.getElementById('kb-folder-breadcrumbs');
+    if (breadcrumbs) {
+      if (isManageMode) {
+        breadcrumbs.style.opacity = '0.3';
+        breadcrumbs.style.pointerEvents = 'none';
+        breadcrumbs.style.userSelect = 'none';
+        breadcrumbs.style.filter = 'grayscale(70%)';
+        breadcrumbs.style.transition = 'opacity 0.3s ease, filter 0.3s ease';
+      } else {
+        breadcrumbs.style.opacity = '';
+        breadcrumbs.style.pointerEvents = '';
+        breadcrumbs.style.userSelect = '';
+        breadcrumbs.style.filter = '';
+      }
+    }
+    return () => {
+      if (breadcrumbs) {
+        breadcrumbs.style.opacity = '';
+        breadcrumbs.style.pointerEvents = '';
+        breadcrumbs.style.userSelect = '';
+        breadcrumbs.style.filter = '';
+      }
+    };
+  }, [isManageMode]);
 
   // Reset selection when exiting edit mode or activating organize mode
   useEffect(() => {
@@ -1162,13 +1286,11 @@ export function KbFolderContentViewer({
       if (activeFilter === 'AUDIO' && item.kind !== 'AUDIO') return;
       if (activeFilter === 'DOC' && item.kind !== 'DOC') return;
 
-      if (item.kind === 'IMAGE' && !isManageMode) {
+      if (item.kind === 'IMAGE') {
         currentPhotoGroup.push({ item, index });
       } else {
         flushPhotos();
-        if (item.kind === 'IMAGE') {
-          blocks.push({ type: 'SINGLE_PHOTO', item, index });
-        } else if (item.kind === 'VIDEO') {
+        if (item.kind === 'VIDEO') {
           blocks.push({ type: 'VIDEO', item, index });
         } else if (item.kind === 'AUDIO') {
           blocks.push({ type: 'AUDIO', item, index });
@@ -1180,14 +1302,16 @@ export function KbFolderContentViewer({
 
     flushPhotos();
     return blocks;
-  }, [unifiedItems, activeFilter, isManageMode]);
+  }, [unifiedItems, activeFilter]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* ========================================================================= */}
       {/* 1. MASTER FOLDER HEADER & MODE CONTROLLER                                 */}
       {/* ========================================================================= */}
-      <div className="p-4 sm:p-6 bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl sm:rounded-3xl shadow-2xs transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className={`p-4 sm:p-6 bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl sm:rounded-3xl shadow-2xs transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        isManageMode ? 'opacity-30 pointer-events-none select-none grayscale-[70%]' : ''
+      }`}>
         {/* Left: Folder Info (Color-muted, calm & focus-friendly) */}
         <div
           onClick={scrollToContainer}
@@ -1290,9 +1414,11 @@ export function KbFolderContentViewer({
             : 'border-border/80 shadow-sm'
         }`}
       >
-        {/* Partition Top Bar: Summary Header & Segmented Quick Filter Tabs (Muted in Edit Mode) */}
+        {/* Partition Top Bar: Summary Header & Segmented Quick Filter Tabs (Muted in Edit Mode or Organize Mode) */}
         <div className={`flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-border/70 transition-all duration-300 ${
-          isGlobalEditMode && !isManageMode
+          isManageMode
+            ? 'opacity-30 pointer-events-none select-none grayscale-[70%]'
+            : isGlobalEditMode
             ? 'opacity-40 grayscale-[80%] hover:opacity-100 hover:grayscale-0'
             : 'opacity-100 grayscale-0'
         }`}>
@@ -1404,44 +1530,6 @@ export function KbFolderContentViewer({
           )}
         </div>
 
-        {/* Manage Mode Informational Help Banner */}
-        {isGlobalEditMode && isManageMode && unifiedItems.length > 1 && (
-          <div className="p-3.5 px-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200 font-semibold animate-in fade-in duration-200">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-              <span>
-                <strong>Organize Mode:</strong> Drag items to rearrange. Tap <strong>Done</strong> to save your new sequence or <strong>Cancel</strong> to discard.
-              </span>
-              {hasOrderChanges && (
-                <span className="hidden md:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold border border-amber-400/30">
-                  Unsaved changes
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelOrganize}
-                disabled={isSavingOrder}
-                className="h-7 px-2.5 text-amber-900 dark:text-amber-200 hover:bg-amber-200/50 dark:hover:bg-amber-900/40 rounded-xl text-xs font-bold active:scale-95 cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleDoneOrganize}
-                disabled={isSavingOrder}
-                className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 cursor-pointer"
-              >
-                {isSavingOrder ? 'Saving...' : 'Done Organizing'}
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* ========================================================================= */}
         {/* 3. UNIFIED ADAPTIVE FEED CONTENT                                          */}
         {/* ========================================================================= */}
@@ -1480,14 +1568,10 @@ export function KbFolderContentViewer({
                   <div
                     key={item.id}
                     data-unified-index={index}
-                    onPointerDown={(e) => {
-                      onPointerDownUnified(index, e);
-                      handleItemPointerDownForSelection(item.id, e);
+                    onClick={() => {
+                      if (isManageMode) return;
+                      handleItemClickWithSelection(item.id, () => handleMediaClick(item.id));
                     }}
-                    onPointerMove={handleItemPointerMoveForSelection}
-                    onPointerUp={handleItemPointerUpForSelection}
-                    onPointerCancel={handleItemPointerUpForSelection}
-                    onClick={() => handleItemClickWithSelection(item.id, () => handleMediaClick(item.id))}
                     style={{
                       transform: isFloating
                         ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.02)`
@@ -1499,20 +1583,42 @@ export function KbFolderContentViewer({
                     }}
                     className={`group relative w-full aspect-video sm:aspect-[16/9] rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 border select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
-                        ? 'shadow-2xl ring-4 ring-amber-500 opacity-95 pointer-events-none'
+                        ? 'shadow-2xl ring-4 ring-blue-500 opacity-95 pointer-events-none'
                         : isSource && activeDrag?.isFloating
-                        ? 'opacity-25 border-dashed border-2 border-amber-500 scale-95'
+                        ? 'opacity-25 border-dashed border-2 border-blue-500 scale-95'
                         : isTarget && activeDrag?.isFloating
-                        ? 'border-primary ring-4 ring-primary/40 scale-[1.01] shadow-xl'
-                        : isGlobalEditMode && isManageMode
-                        ? 'border-amber-400 ring-2 ring-amber-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
+                        ? 'border-blue-500 ring-4 ring-blue-500/40 scale-[1.01] shadow-xl'
                         : isSelected
                         ? 'scale-[0.93] sm:scale-[0.94] ring-4 ring-blue-500 ring-offset-2 ring-offset-background shadow-2xl shadow-blue-500/30 cursor-pointer z-10'
                         : isSelectionMode
                         ? 'scale-100 opacity-80 hover:opacity-100 ring-1 ring-white/20 cursor-pointer'
+                        : isManageMode
+                        ? 'border-border/80 shadow-2xs cursor-default'
                         : 'border-border/80 shadow-sm hover:shadow-xl hover:scale-[1.005] cursor-pointer'
                     }`}
                   >
+                    {/* Top-Right Corner Blue Line Drag Handle */}
+                    {isAdmin && isGlobalEditMode && !isSelectionMode && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Drag to rearrange video"
+                        title="Drag to rearrange"
+                        data-drag-handle="true"
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          onPointerDownUnified(index, e);
+                        }}
+                        className="absolute top-0 right-0 z-30 p-2 sm:p-2.5 pt-2 pr-2 cursor-grab active:cursor-grabbing touch-none select-none group/handle pointer-events-auto"
+                      >
+                        <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-blue-500/35 shadow-md shadow-blue-500/15 backdrop-blur-md transition-all duration-200 group-hover/handle:scale-110 group-hover/handle:border-blue-500 group-hover/handle:shadow-blue-500/30 group-active/handle:scale-95 group-active/handle:ring-2 group-active/handle:ring-blue-500/40">
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Video Thumbnail Frame Preview */}
                     <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-950 pointer-events-none">
                       {videoPoster && !videoPosterErrors[item.id] ? (
@@ -1539,8 +1645,8 @@ export function KbFolderContentViewer({
                     {/* Clean Hover Tint */}
                     <div className="absolute inset-0 bg-black/15 group-hover:bg-black/30 transition-colors duration-300 pointer-events-none" />
 
-                    {/* Centered Glowing Play Button — Clean & Pure with no corner clutter */}
-                    {!isManageMode && !isSelectionMode && (
+                    {/* Centered Glowing Play Button */}
+                    {!isManageMode && !activeDrag?.isFloating && !isSelectionMode && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/95 dark:bg-white/90 text-slate-900 shadow-2xl flex items-center justify-center group-hover:scale-115 group-active:scale-95 transition-all duration-300 ring-4 ring-white/30 backdrop-blur-md">
                           <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-slate-900 ml-1 text-slate-900" />
@@ -1565,20 +1671,6 @@ export function KbFolderContentViewer({
                     {isSelected && (
                       <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-600/30 pointer-events-none rounded-2xl sm:rounded-3xl z-20 backdrop-contrast-105" />
                     )}
-
-                    {/* Organize Mode Overlay: Subtle Tint + Centered Floating Move Button */}
-                    {isGlobalEditMode && isManageMode && (
-                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in zoom-in-95 duration-200 z-20 cursor-grab active:cursor-grabbing">
-                        <div className="flex flex-col items-center gap-2 select-none pointer-events-none group-hover:scale-110 transition-transform duration-200">
-                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-slate-100 shadow-2xl flex items-center justify-center ring-4 ring-amber-400/50 backdrop-blur-md">
-                            <Move className="w-6 h-6 sm:w-7 sm:h-7 text-amber-500 animate-pulse" />
-                          </div>
-                          <span className="text-[11px] font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                            Drag to Move
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               }
@@ -1597,14 +1689,10 @@ export function KbFolderContentViewer({
                   <div
                     key={item.id}
                     data-unified-index={index}
-                    onPointerDown={(e) => {
-                      onPointerDownUnified(index, e);
-                      handleItemPointerDownForSelection(item.id, e);
+                    onClick={() => {
+                      if (isManageMode) return;
+                      handleItemClickWithSelection(item.id, () => handleMediaClick(item.id));
                     }}
-                    onPointerMove={handleItemPointerMoveForSelection}
-                    onPointerUp={handleItemPointerUpForSelection}
-                    onPointerCancel={handleItemPointerUpForSelection}
-                    onClick={() => handleItemClickWithSelection(item.id, () => handleMediaClick(item.id))}
                     style={{
                       transform: isFloating
                         ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.02)`
@@ -1616,20 +1704,42 @@ export function KbFolderContentViewer({
                     }}
                     className={`group relative w-full aspect-[16/10] sm:aspect-video rounded-2xl sm:rounded-3xl overflow-hidden bg-muted border select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
-                        ? 'shadow-2xl ring-4 ring-amber-500 opacity-95 pointer-events-none'
+                        ? 'shadow-2xl ring-4 ring-blue-500 opacity-95 pointer-events-none'
                         : isSource && activeDrag?.isFloating
-                        ? 'opacity-25 border-dashed border-2 border-amber-500 scale-95'
+                        ? 'opacity-25 border-dashed border-2 border-blue-500 scale-95'
                         : isTarget && activeDrag?.isFloating
-                        ? 'border-primary ring-4 ring-primary/40 scale-[1.01] shadow-xl'
-                        : isGlobalEditMode && isManageMode
-                        ? 'border-amber-400 ring-2 ring-amber-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
+                        ? 'border-blue-500 ring-4 ring-blue-500/40 scale-[1.01] shadow-xl'
                         : isSelected
                         ? 'scale-[0.93] sm:scale-[0.94] ring-4 ring-blue-500 ring-offset-2 ring-offset-background shadow-2xl shadow-blue-500/30 cursor-pointer z-10'
                         : isSelectionMode
                         ? 'scale-100 opacity-80 hover:opacity-100 ring-1 ring-white/20 cursor-pointer'
+                        : isManageMode
+                        ? 'border-border/80 shadow-2xs cursor-default'
                         : 'border-border/80 shadow-2xs hover:shadow-xl hover:scale-[1.005] cursor-pointer'
                     }`}
                   >
+                    {/* Top-Right Corner Blue Line Drag Handle */}
+                    {isAdmin && isGlobalEditMode && !isSelectionMode && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Drag to rearrange photo"
+                        title="Drag to rearrange"
+                        data-drag-handle="true"
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          onPointerDownUnified(index, e);
+                        }}
+                        className="absolute top-0 right-0 z-30 p-2 sm:p-2.5 pt-2 pr-2 cursor-grab active:cursor-grabbing touch-none select-none group/handle pointer-events-auto"
+                      >
+                        <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-blue-500/35 shadow-md shadow-blue-500/15 backdrop-blur-md transition-all duration-200 group-hover/handle:scale-110 group-hover/handle:border-blue-500 group-hover/handle:shadow-blue-500/30 group-active/handle:scale-95 group-active/handle:ring-2 group-active/handle:ring-blue-500/40">
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                        </div>
+                      </div>
+                    )}
+
                     <img
                       src={item.secureUrl || item.url}
                       alt={item.filename || 'Photo'}
@@ -1639,7 +1749,7 @@ export function KbFolderContentViewer({
                     {/* Clean Subtle Hover Tint */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-300 pointer-events-none" />
 
-                    {!isManageMode && !isSelectionMode && (
+                    {!isManageMode && !activeDrag?.isFloating && !isSelectionMode && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="w-12 h-12 rounded-2xl bg-white/90 dark:bg-white/80 text-slate-800 flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 scale-90 group-hover:scale-100 backdrop-blur-sm">
                           <Maximize2 className="w-5 h-5" />
@@ -1664,20 +1774,6 @@ export function KbFolderContentViewer({
                     {isSelected && (
                       <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-600/30 pointer-events-none rounded-2xl sm:rounded-3xl z-20 backdrop-contrast-105" />
                     )}
-
-                    {/* Organize Mode Overlay: Subtle Tint + Centered Floating Move Button */}
-                    {isGlobalEditMode && isManageMode && (
-                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in zoom-in-95 duration-200 z-20 cursor-grab active:cursor-grabbing">
-                        <div className="flex flex-col items-center gap-2 select-none pointer-events-none group-hover:scale-110 transition-transform duration-200">
-                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-slate-100 shadow-2xl flex items-center justify-center ring-4 ring-amber-400/50 backdrop-blur-md">
-                            <Move className="w-6 h-6 sm:w-7 sm:h-7 text-amber-500 animate-pulse" />
-                          </div>
-                          <span className="text-[11px] font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                            Drag to Move
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               }
@@ -1686,51 +1782,87 @@ export function KbFolderContentViewer({
               // BLOCK TYPE 3: PAIRED PHOTOS (2 Square photos side-by-side)
               // -------------------------------------------------------------
               if (block.type === 'PHOTO_PAIR') {
+                const isNearThisPair = Boolean(activeDrag?.isFloating && activeDrag?.nearPairBlockIdx === bIdx);
+
                 return (
-                  <div key={`photo-pair-${bIdx}`} className="grid grid-cols-2 gap-3.5 sm:gap-4">
-                    {block.items.map(({ item, index }) => {
+                  <div key={`photo-pair-${bIdx}`} className="grid grid-cols-2 gap-3.5 sm:gap-4 overflow-visible">
+                    {block.items.map(({ item, index }, pIdx) => {
+                      const isLeft = pIdx === 0;
                       const isSource = activeDrag?.sourceIdx === index;
                       const isTarget = activeDrag?.targetIdx === index;
                       const isFloating = isSource && activeDrag?.isFloating;
                       const isSelected = selectedItemIds.has(item.id);
 
+                      // Flawless spring separation animation when dragged item approaches nearby
+                      const yOffset = getSlideY(index);
+                      const xSeparation = isNearThisPair && !isFloating ? (isLeft ? -26 : 26) : 0;
+                      const pairScale = isNearThisPair && !isFloating ? 0.98 : 1;
+
+                      const finalTransform = isFloating
+                        ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.06) rotate(1.5deg)`
+                        : `translate3d(${xSeparation}px, ${yOffset}px, 0) scale(${pairScale})`;
+
                       return (
                         <div
                           key={item.id}
                           data-unified-index={index}
+                          data-pair-block-idx={bIdx}
+                          data-pair-side={isLeft ? 'left' : 'right'}
                           onPointerDown={(e) => {
-                            onPointerDownUnified(index, e);
                             handleItemPointerDownForSelection(item.id, e);
                           }}
                           onPointerMove={handleItemPointerMoveForSelection}
                           onPointerUp={handleItemPointerUpForSelection}
                           onPointerCancel={handleItemPointerUpForSelection}
-                          onClick={() => handleItemClickWithSelection(item.id, () => handleMediaClick(item.id))}
+                          onClick={() => {
+                            if (isManageMode) return;
+                            handleItemClickWithSelection(item.id, () => handleMediaClick(item.id));
+                          }}
                           style={{
-                            transform: isFloating
-                              ? `translate3d(${activeDrag.deltaX}px, ${activeDrag.deltaY}px, 0) scale(1.06) rotate(1.5deg)`
-                              : getSlideTransform(index),
-                            zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : undefined,
+                            transform: finalTransform,
+                            zIndex: isFloating ? 9999 : isTarget && !isSource ? 30 : isNearThisPair ? 20 : undefined,
                             transition: isFloating
                               ? 'none'
-                              : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease',
+                              : 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease',
                           }}
                           className={`group relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-muted border select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                             isFloating
-                              ? 'shadow-2xl ring-4 ring-amber-500 opacity-95 pointer-events-none'
+                              ? 'shadow-2xl ring-4 ring-blue-500 opacity-95 pointer-events-none'
                               : isSource && activeDrag?.isFloating
-                              ? 'opacity-25 border-dashed border-2 border-amber-500 scale-95'
+                              ? 'opacity-25 border-dashed border-2 border-blue-500 scale-95'
                               : isTarget && activeDrag?.isFloating
-                              ? 'border-primary ring-4 ring-primary/40 scale-105 shadow-xl'
-                              : isGlobalEditMode && isManageMode
-                              ? 'border-amber-400 ring-2 ring-amber-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
+                              ? 'border-blue-500 ring-4 ring-blue-500/40 scale-105 shadow-xl'
                               : isSelected
                               ? 'scale-[0.92] ring-4 ring-blue-500 ring-offset-2 ring-offset-background shadow-2xl shadow-blue-500/30 cursor-pointer z-10'
                               : isSelectionMode
                               ? 'scale-100 opacity-80 hover:opacity-100 ring-1 ring-white/20 cursor-pointer'
+                              : isManageMode
+                              ? 'border-border/80 shadow-2xs cursor-default'
                               : 'border-border/80 shadow-2xs hover:shadow-lg hover:scale-[1.02] cursor-pointer'
                           }`}
                         >
+                          {/* Top-Right Corner Blue Line Drag Handle */}
+                          {isAdmin && isGlobalEditMode && !isSelectionMode && (
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              aria-label="Drag to rearrange photo"
+                              title="Drag to rearrange"
+                              data-drag-handle="true"
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                                onPointerDownUnified(index, e);
+                              }}
+                              className="absolute top-0 right-0 z-30 p-2 sm:p-2.5 pt-2 pr-2 cursor-grab active:cursor-grabbing touch-none select-none group/handle pointer-events-auto"
+                            >
+                              <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-blue-500/35 shadow-md shadow-blue-500/15 backdrop-blur-md transition-all duration-200 group-hover/handle:scale-110 group-hover/handle:border-blue-500 group-hover/handle:shadow-blue-500/30 group-active/handle:scale-95 group-active/handle:ring-2 group-active/handle:ring-blue-500/40">
+                                <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                                <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                                <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                              </div>
+                            </div>
+                          )}
+
                           <img
                             src={item.secureUrl || item.url}
                             alt={item.filename || 'Photo'}
@@ -1740,7 +1872,7 @@ export function KbFolderContentViewer({
                           {/* Clean Subtle Hover Tint */}
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-300 pointer-events-none" />
 
-                          {!isManageMode && !isSelectionMode && (
+                          {!isManageMode && !activeDrag?.isFloating && !isSelectionMode && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                               <div className="w-9 h-9 rounded-xl bg-white/90 dark:bg-white/80 text-slate-800 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 scale-90 group-hover:scale-100">
                                 <Maximize2 className="w-4 h-4" />
@@ -1765,20 +1897,6 @@ export function KbFolderContentViewer({
                           {isSelected && (
                             <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-600/30 pointer-events-none rounded-2xl sm:rounded-3xl z-20 backdrop-contrast-105" />
                           )}
-
-                          {/* Organize Mode Overlay: Subtle Tint + Centered Floating Move Button */}
-                          {isGlobalEditMode && isManageMode && (
-                            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in zoom-in-95 duration-200 z-20 cursor-grab active:cursor-grabbing">
-                              <div className="flex flex-col items-center gap-1.5 select-none pointer-events-none group-hover:scale-110 transition-transform duration-200">
-                                <div className="w-11 h-11 rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-slate-100 shadow-2xl flex items-center justify-center ring-4 ring-amber-400/50 backdrop-blur-md">
-                                  <Move className="w-5 h-5 text-amber-500 animate-pulse" />
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                                  Move
-                                </span>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -1801,13 +1919,13 @@ export function KbFolderContentViewer({
                     key={item.id}
                     data-unified-index={index}
                     onPointerDown={(e) => {
-                      onPointerDownUnified(index, e);
                       handleItemPointerDownForSelection(item.id, e);
                     }}
                     onPointerMove={handleItemPointerMoveForSelection}
                     onPointerUp={handleItemPointerUpForSelection}
                     onPointerCancel={handleItemPointerUpForSelection}
                     onClick={() => {
+                      if (isManageMode) return;
                       if (isSelectionMode) {
                         handleItemClickWithSelection(item.id);
                       }
@@ -1823,13 +1941,11 @@ export function KbFolderContentViewer({
                     }}
                     className={`relative rounded-3xl transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
-                        ? 'shadow-2xl ring-4 ring-violet-500 opacity-95 pointer-events-none'
+                        ? 'shadow-2xl ring-4 ring-blue-500 opacity-95 pointer-events-none'
                         : isSource && activeDrag?.isFloating
-                        ? 'opacity-25 border-dashed border-2 border-violet-500 scale-98'
+                        ? 'opacity-25 border-dashed border-2 border-blue-500 scale-98'
                         : isTarget && activeDrag?.isFloating
-                        ? 'ring-4 ring-violet-500/40 bg-violet-50/40 dark:bg-violet-950/40 scale-[1.01]'
-                        : isGlobalEditMode && isManageMode
-                        ? 'border-violet-400 ring-2 ring-violet-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
+                        ? 'ring-4 ring-blue-500/40 bg-blue-50/20 dark:bg-blue-950/20 scale-[1.01]'
                         : isSelected
                         ? 'scale-[0.94] sm:scale-[0.96] ring-4 ring-blue-500 ring-offset-2 ring-offset-background shadow-2xl shadow-blue-500/25 z-10 cursor-pointer'
                         : isSelectionMode
@@ -1837,6 +1953,28 @@ export function KbFolderContentViewer({
                         : ''
                     }`}
                   >
+                    {/* Top-Right Corner Blue Line Drag Handle */}
+                    {isAdmin && isGlobalEditMode && !isSelectionMode && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Drag to rearrange voice note"
+                        title="Drag to rearrange"
+                        data-drag-handle="true"
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          onPointerDownUnified(index, e);
+                        }}
+                        className="absolute top-0 right-0 z-30 p-2 sm:p-2.5 pt-2 pr-2 cursor-grab active:cursor-grabbing touch-none select-none group/handle pointer-events-auto"
+                      >
+                        <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-blue-500/35 shadow-md shadow-blue-500/15 backdrop-blur-md transition-all duration-200 group-hover/handle:scale-110 group-hover/handle:border-blue-500 group-hover/handle:shadow-blue-500/30 group-active/handle:scale-95 group-active/handle:ring-2 group-active/handle:ring-blue-500/40">
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Google Photos Selection Tick & Empty Circle Badge */}
                     {isSelectionMode && (
                       <div className="absolute top-3 left-3 z-30 pointer-events-none transition-transform duration-200">
@@ -1855,29 +1993,19 @@ export function KbFolderContentViewer({
                       <div className="absolute inset-0 bg-blue-500/15 dark:bg-blue-600/25 pointer-events-none rounded-3xl z-20 backdrop-contrast-105" />
                     )}
 
-                    {/* Organize Mode Overlay: Subtle Tint + Centered Floating Move Button */}
-                    {isGlobalEditMode && isManageMode && (
-                      <div className="absolute inset-0 bg-black/35 dark:bg-black/55 backdrop-blur-[2px] rounded-3xl flex items-center justify-center animate-in fade-in zoom-in-95 duration-200 z-20 cursor-grab active:cursor-grabbing">
-                        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-slate-100 shadow-2xl ring-4 ring-amber-400/50 backdrop-blur-md select-none pointer-events-none group-hover:scale-105 transition-transform duration-200">
-                          <Move className="w-5 h-5 text-amber-500 animate-pulse" />
-                          <span className="text-xs font-black uppercase tracking-wider text-foreground">
-                            Drag to Move Audio
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <VoiceNotePlayerCard
-                      id={item.id}
-                      url={item.secureUrl || item.url || ''}
-                      filename={item.filename}
-                      createdAt={item.createdAt}
-                      publicId={item.publicId}
-                      index={index}
-                      isEditMode={false}
-                      onDelete={undefined}
-                      isAdmin={false}
-                    />
+                    <div className={isManageMode ? 'pointer-events-none opacity-85 select-none' : ''}>
+                      <VoiceNotePlayerCard
+                        id={item.id}
+                        url={item.secureUrl || item.url || ''}
+                        filename={item.filename}
+                        createdAt={item.createdAt}
+                        publicId={item.publicId}
+                        index={index}
+                        isEditMode={false}
+                        onDelete={undefined}
+                        isAdmin={false}
+                      />
+                    </div>
                   </div>
                 );
               }
@@ -1911,13 +2039,13 @@ export function KbFolderContentViewer({
                     key={item.id}
                     data-unified-index={index}
                     onPointerDown={(e) => {
-                      onPointerDownUnified(index, e);
                       handleItemPointerDownForSelection(item.id, e);
                     }}
                     onPointerMove={handleItemPointerMoveForSelection}
                     onPointerUp={handleItemPointerUpForSelection}
                     onPointerCancel={handleItemPointerUpForSelection}
                     onClick={() => {
+                      if (isManageMode) return;
                       if (isSelectionMode) {
                         handleItemClickWithSelection(item.id);
                       }
@@ -1933,20 +2061,42 @@ export function KbFolderContentViewer({
                     }}
                     className={`relative overflow-hidden p-4 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border flex flex-col gap-3 select-none transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) ${
                       isFloating
-                        ? 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] ring-4 ring-emerald-500 ring-offset-2 opacity-95 pointer-events-none'
+                        ? 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] ring-4 ring-blue-500 ring-offset-2 opacity-95 pointer-events-none'
                         : isSource && activeDrag?.isFloating
-                        ? 'opacity-25 border-dashed border-2 border-emerald-500 scale-95'
+                        ? 'opacity-25 border-dashed border-2 border-blue-500 scale-95'
                         : isTarget && activeDrag?.isFloating
-                        ? 'border-emerald-600 ring-4 ring-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/40 scale-[1.01] shadow-xl'
-                        : isGlobalEditMode && isManageMode
-                        ? 'border-emerald-400 ring-2 ring-emerald-400/25 shadow-sm cursor-grab active:cursor-grabbing touch-none'
+                        ? 'border-blue-500 ring-4 ring-blue-500/30 bg-blue-50/20 dark:bg-blue-950/20 scale-[1.01] shadow-xl'
                         : isSelected
                         ? 'scale-[0.94] sm:scale-[0.96] ring-4 ring-blue-500 ring-offset-2 ring-offset-background shadow-2xl shadow-blue-500/25 z-10 cursor-pointer'
                         : isSelectionMode
                         ? 'opacity-85 hover:opacity-100 cursor-pointer'
+                        : isManageMode
+                        ? 'border-border/80 shadow-2xs cursor-default'
                         : 'border-border/80 shadow-2xs hover:shadow-md'
                     }`}
                   >
+                    {/* Top-Right Corner Blue Line Drag Handle */}
+                    {isAdmin && isGlobalEditMode && !isSelectionMode && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Drag to rearrange note"
+                        title="Drag to rearrange"
+                        data-drag-handle="true"
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          onPointerDownUnified(index, e);
+                        }}
+                        className="absolute top-0 right-0 z-30 p-2 sm:p-2.5 pt-2 pr-2 cursor-grab active:cursor-grabbing touch-none select-none group/handle pointer-events-auto"
+                      >
+                        <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-blue-500/35 shadow-md shadow-blue-500/15 backdrop-blur-md transition-all duration-200 group-hover/handle:scale-110 group-hover/handle:border-blue-500 group-hover/handle:shadow-blue-500/30 group-active/handle:scale-95 group-active/handle:ring-2 group-active/handle:ring-blue-500/40">
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                          <div className="w-3.5 sm:w-4 h-0.5 rounded-full bg-blue-500" />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Google Photos Selection Tick & Empty Circle Badge */}
                     {isSelectionMode && (
                       <div className="absolute top-4 left-4 z-30 pointer-events-none transition-transform duration-200">
@@ -1972,7 +2122,7 @@ export function KbFolderContentViewer({
                           <FileText className="w-4 h-4" />
                         </div>
 
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 pr-10">
                           <div className="flex items-center gap-2 flex-wrap">
                             {!isManageMode && !isSelectionMode && (
                               <Badge className="bg-slate-700 text-white font-extrabold text-xs px-2 py-0.5 shadow-sm">
@@ -1994,7 +2144,7 @@ export function KbFolderContentViewer({
 
                       {/* Controls (Edit) - Only in standard edit mode when not selecting */}
                       {isAdmin && isGlobalEditMode && !isManageMode && !isSelectionMode && (
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 mr-8">
                           <Button
                             type="button"
                             variant="ghost"
@@ -2009,21 +2159,11 @@ export function KbFolderContentViewer({
                       )}
                     </div>
 
-                    {/* Organize Mode Overlay: Subtle Tint + Centered Floating Move Button */}
-                    {isGlobalEditMode && isManageMode && (
-                      <div className="absolute inset-0 bg-slate-950/30 dark:bg-black/55 backdrop-blur-[2px] rounded-3xl flex items-center justify-center animate-in fade-in zoom-in-95 duration-200 z-20 cursor-grab active:cursor-grabbing">
-                        <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-slate-100 shadow-2xl ring-4 ring-amber-400/50 backdrop-blur-md select-none pointer-events-none group-hover:scale-105 transition-transform duration-200">
-                          <Move className="w-5 h-5 text-amber-500 animate-pulse" />
-                          <span className="text-xs font-black uppercase tracking-wider text-foreground">
-                            Drag to Move Note
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Note Content */}
                     {cleanDescription ? (
-                      <div className="mt-1 pt-3 border-t border-border/60 text-xs sm:text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed font-normal select-text">
+                      <div className={`mt-1 pt-3 border-t border-border/60 text-xs sm:text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed font-normal ${
+                        isManageMode ? 'select-none pointer-events-none' : 'select-text'
+                      }`}>
                         {cleanDescription}
                       </div>
                     ) : (
@@ -2033,116 +2173,60 @@ export function KbFolderContentViewer({
                 );
               }
 
+
               return null;
             })}
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* 4. WHATSAPP-INSPIRED BOTTOM CONTROL DECK (FIXED IN CONTAINER FOOTER)     */}
+        {/* 4. WHATSAPP-INSPIRED BOTTOM CONTROL DECK (FLOATING PILL CAPSULE)          */}
         {/* ========================================================================= */}
         {isAdmin && isGlobalEditMode && (
-          <div className="pt-6 sm:pt-8 mt-6 sm:mt-8 border-t border-border/70 animate-in fade-in slide-in-from-bottom-2 duration-200 opacity-100 grayscale-0">
+          <div className={`pt-6 sm:pt-8 mt-6 sm:mt-8 border-t border-border/50 animate-in fade-in slide-in-from-bottom-2 duration-200 transition-all duration-300 ${
+            isManageMode ? 'opacity-20 pointer-events-none select-none grayscale' : 'opacity-100 grayscale-0'
+          }`}>
             <div
               id="kb-bottom-control-deck"
-              className="mx-auto max-w-lg w-full bg-slate-50/95 dark:bg-slate-850/95 border border-slate-200/90 dark:border-slate-800/90 rounded-2xl sm:rounded-full p-2 sm:p-2.5 flex items-center justify-between gap-1.5 sm:gap-2 shadow-xs transition-all"
+              className="mx-auto w-full max-w-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 rounded-full p-1.5 sm:p-2 flex items-center justify-between shadow-[0_10px_35px_-5px_rgba(0,0,0,0.07),0_0_1px_1px_rgba(0,0,0,0.03)] dark:shadow-[0_12px_40px_-5px_rgba(0,0,0,0.5),0_0_1px_1px_rgba(255,255,255,0.05)] transition-all select-none"
             >
-              {/* 1. LEFT: Rearrange Icon Button */}
-              <div className="flex items-center shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (unifiedItems.length <= 1) {
-                      toast.info('Add more items to rearrange them');
-                      return;
-                    }
-                    if (isManageMode) {
-                      handleDoneOrganize();
-                    } else {
-                      try {
-                        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-                          navigator.vibrate([20, 30]);
-                        }
-                      } catch {}
-                      manageSnapshotRef.current = [...unifiedItems];
-                      setHasOrderChanges(false);
-                      setActiveFilter('ALL');
-                      setIsManageMode(true);
-                      setIsGlobalEditMode(true);
-                    }
-                  }}
-                  title={isManageMode ? 'Done Organizing' : 'Organize & Rearrange Items'}
-                  aria-label={isManageMode ? 'Done Organizing' : 'Organize & Rearrange Items'}
-                  className={`relative group flex items-center justify-center gap-1.5 h-10 px-2.5 sm:px-3.5 rounded-xl sm:rounded-full font-bold text-xs transition-all duration-300 cursor-pointer select-none active:scale-90 hover:scale-105 shrink-0 whitespace-nowrap ${
-                    isManageMode
-                      ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg shadow-amber-500/35 ring-2 ring-amber-400/50 ring-offset-2 ring-offset-background'
-                      : 'bg-white hover:bg-amber-50/50 dark:bg-slate-900 dark:hover:bg-amber-950/20 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-amber-400/50 hover:shadow-amber-500/10'
-                  }`}
-                >
-                  {/* Subtle pulsing aura when active */}
-                  {isManageMode && (
-                    <span className="absolute -inset-0.5 rounded-xl sm:rounded-full bg-gradient-to-r from-amber-500 to-orange-500 opacity-40 blur-xs animate-pulse pointer-events-none" />
-                  )}
-
-                  {/* Moveable Icon with dynamic rotation and spring toggle */}
-                  <span className="relative flex items-center justify-center">
-                    {isSavingOrder ? (
-                      <Loader2 className="w-4 h-4 text-white animate-spin shrink-0" />
-                    ) : (
-                      <Move
-                        className={`w-4 h-4 shrink-0 transition-transform duration-300 ease-out ${
-                          isManageMode
-                            ? 'text-white rotate-45 scale-110 drop-shadow-xs'
-                            : 'text-amber-600 dark:text-amber-400 group-hover:rotate-12 group-hover:scale-110'
-                        }`}
-                      />
-                    )}
-                  </span>
-
-                  <span className="hidden sm:inline font-bold relative">
-                    {isManageMode ? (isSavingOrder ? 'Saving...' : 'Done') : 'Organize'}
-                  </span>
-
-                  {unifiedItems.length > 1 && !isManageMode && (
-                    <span className="hidden md:inline text-[10px] text-muted-foreground font-semibold px-1 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-750">
-                      ({unifiedItems.length})
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              {/* 2. CENTER: Add Notes & Media Upload */}
-              <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-                {/* Add Note Button */}
+              {/* Left Action Group: Note & Media */}
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                {/* 1. Add Note Button */}
                 <button
                   type="button"
                   onClick={handleOpenCreateDoc}
                   title="Add Technical Note"
                   aria-label="Add Technical Note"
-                  className="flex items-center justify-center gap-1 sm:gap-1.5 h-10 px-2.5 sm:px-4 rounded-xl sm:rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/90 dark:border-emerald-800/80 font-bold text-xs shadow-2xs transition-all duration-200 cursor-pointer select-none active:scale-95 shrink-0 whitespace-nowrap"
+                  className="group flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-4 rounded-full bg-emerald-500/10 hover:bg-emerald-500/15 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 dark:border-emerald-500/30 font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer select-none active:scale-[0.97] shrink-0 whitespace-nowrap shadow-2xs hover:shadow-xs"
                 >
-                  <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  </div>
                   <span className="hidden sm:inline">Add Note</span>
                   <span className="sm:hidden text-xs">Note</span>
                 </button>
 
-                {/* Media Upload Button (Photos & Videos) */}
+                {/* 2. Media Upload Button */}
                 <button
                   id="kb-upload-media-btn"
                   type="button"
                   onClick={() => setIsUploadDialogOpen(true)}
                   title="Upload Photos & Videos"
                   aria-label="Upload Photos & Videos"
-                  className="flex items-center justify-center gap-1 sm:gap-1.5 h-10 px-2.5 sm:px-4 rounded-xl sm:rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/90 dark:border-blue-800/80 font-bold text-xs shadow-2xs transition-all duration-200 cursor-pointer select-none active:scale-95 shrink-0 whitespace-nowrap"
+                  className="group flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-4 rounded-full bg-blue-500/10 hover:bg-blue-500/15 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-blue-500/20 dark:border-blue-500/30 font-bold text-xs sm:text-sm tracking-tight transition-all duration-200 cursor-pointer select-none active:scale-[0.97] shrink-0 whitespace-nowrap shadow-2xs hover:shadow-xs"
                 >
-                  <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <div className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full bg-blue-500/15 dark:bg-blue-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  </div>
                   <span className="hidden sm:inline">Upload Media</span>
                   <span className="sm:hidden text-xs">Media</span>
                 </button>
               </div>
 
-              {/* 3. RIGHT: WhatsApp-Style Voice Recording Mic */}
-              <div className="flex items-center justify-end shrink-0">
+              {/* Right Action Group: Mic Button with docking divider */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div className="w-px h-5 sm:h-6 bg-slate-200/80 dark:bg-slate-700/80 shrink-0" />
                 <VoiceRecorderWidget
                   entityId={entityId}
                   onRecordingComplete={handleMediaUploaded}
@@ -2262,32 +2346,32 @@ export function KbFolderContentViewer({
       {/* ========================================================================= */}
       {/* 8B. FLOATING ORGANIZE ACTION BAR (GOOGLE PHOTOS STYLE DONE & CANCEL)      */}
       {/* ========================================================================= */}
-      {isManageMode && (
+      {(isManageMode || hasOrderChanges) && (
         <div
           id="kb-organize-action-bar"
-          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 sm:gap-3 p-1.5 pl-3.5 pr-2 rounded-full bg-slate-950/92 dark:bg-slate-900/95 text-white backdrop-blur-2xl border border-amber-500/40 dark:border-amber-500/50 shadow-[0_20px_50px_rgba(0,0,0,0.55)] ring-1 ring-amber-500/30 animate-in fade-in zoom-in-95 slide-in-from-bottom-5 duration-200 select-none whitespace-nowrap max-w-[calc(100vw-1.5rem)]"
+          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 sm:gap-3 p-1.5 pl-3.5 pr-2 rounded-full bg-slate-950/92 dark:bg-slate-900/95 text-white backdrop-blur-2xl border border-blue-500/40 dark:border-blue-500/50 shadow-[0_20px_50px_rgba(0,0,0,0.55)] ring-1 ring-blue-500/30 animate-in fade-in zoom-in-95 slide-in-from-bottom-5 duration-200 select-none whitespace-nowrap max-w-[calc(100vw-1.5rem)]"
         >
           {isSavingOrder ? (
             /* Unified Premium Saving State: Compact, Centered, No Overlaps! */
             <div className="flex items-center gap-2.5 px-3 py-1 animate-in fade-in zoom-in-95 duration-200 select-none">
-              <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+              <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
               <span className="text-xs sm:text-sm font-bold text-white tracking-tight">
                 Saving sequence...
               </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping shrink-0" />
             </div>
           ) : (
             /* Interactive Organize Controls */
             <>
               {/* Status Indicator */}
               <div className="flex items-center gap-1.5 sm:gap-2 pr-0.5 sm:pr-1 select-none">
-                <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                <span className="flex h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
                 <span className="text-xs sm:text-sm font-black tracking-tight text-white flex items-center gap-1.5">
-                  <Move className="w-3.5 h-3.5 text-amber-400 rotate-45" />
-                  <span>Organize</span>
+                  <Move className="w-3.5 h-3.5 text-blue-400 rotate-45" />
+                  <span>Organizing</span>
                 </span>
                 {hasOrderChanges && (
-                  <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                  <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
                     Modified
                   </span>
                 )}
@@ -2312,7 +2396,7 @@ export function KbFolderContentViewer({
                 type="button"
                 size="sm"
                 onClick={handleDoneOrganize}
-                className="h-8 sm:h-9 px-3.5 sm:px-5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ring-2 ring-amber-400/30 shrink-0"
+                className="h-8 sm:h-9 px-3.5 sm:px-5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ring-2 ring-blue-400/30 shrink-0"
               >
                 <Check className="w-4 h-4 stroke-[3]" />
                 <span>Done</span>

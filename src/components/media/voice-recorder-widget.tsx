@@ -1175,7 +1175,7 @@ export function VoiceRecorderWidget({
       <div className="relative shrink-0 z-30">
         {/* Subtle breathing aura when idle */}
         {status === 'idle' && (
-          <span className="absolute -inset-1.5 rounded-full bg-violet-500/25 blur-sm animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
+          <span className={`absolute ${compact ? '-inset-1' : '-inset-1.5'} rounded-full bg-violet-500/20 blur-xs animate-[pulse_3s_ease-in-out_infinite] pointer-events-none`} />
         )}
 
         <button
@@ -1219,7 +1219,9 @@ export function VoiceRecorderWidget({
               willChange: 'transform',
             } as React.CSSProperties
           }
-          className={`voice-record-btn w-11 h-11 rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 transition-colors duration-150 ${
+          className={`voice-record-btn ${
+            compact ? 'w-9 h-9 sm:w-10 sm:h-10' : 'w-11 h-11'
+          } rounded-full text-white flex items-center justify-center cursor-pointer border touch-none select-none relative shrink-0 transition-colors duration-150 ${
             status === 'uploading'
               ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 ring-2 ring-violet-400/50 shadow-lg shadow-violet-500/40 border-white/40 cursor-wait'
               : isDeleteZone
@@ -1230,6 +1232,8 @@ export function VoiceRecorderWidget({
               ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-4 ring-violet-400/50 border-white/40 shadow-xl shadow-violet-500/60 active:scale-90 animate-in zoom-in-95 duration-150'
               : isRecordingState
               ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 ring-4 ring-violet-400/60 shadow-2xl shadow-violet-500/70 border-white/50'
+              : compact
+              ? 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-1 ring-violet-400/20 border-white/20 active:scale-95 shadow-2xs'
               : 'bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-2 ring-violet-400/30 border-white/30 active:scale-95 shadow-md'
           }`}
           title={
@@ -1252,24 +1256,24 @@ export function VoiceRecorderWidget({
           }
         >
           {status === 'uploading' ? (
-            <Loader2 className="w-5 h-5 text-white animate-spin pointer-events-none select-none" />
+            <Loader2 className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white animate-spin pointer-events-none select-none`} />
           ) : isLocked ? (
-            <Send className="w-5 h-5 text-white fill-white ml-0.5 transition-transform scale-105 pointer-events-none select-none" />
+            <Send className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white fill-white ml-0.5 transition-transform scale-105 pointer-events-none select-none`} />
           ) : isDeleteMorph ? (
             <Trash2
-              className={`w-5 h-5 text-white transition-all duration-150 pointer-events-none select-none ${
+              className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white transition-all duration-150 pointer-events-none select-none ${
                 isDeleteZone ? 'scale-115' : 'scale-100 opacity-90'
               }`}
             />
           ) : isLockMorph ? (
             <Lock
-              className={`w-5 h-5 text-white transition-all duration-150 pointer-events-none select-none ${
+              className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white transition-all duration-150 pointer-events-none select-none ${
                 isLockZone ? 'scale-115' : 'scale-100 opacity-90'
               }`}
             />
           ) : (
             <Mic
-              className={`w-5 h-5 text-white transition-transform pointer-events-none select-none ${
+              className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-white transition-transform pointer-events-none select-none ${
                 isRecordingState ? 'animate-pulse scale-110' : ''
               }`}
             />

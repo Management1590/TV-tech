@@ -123,7 +123,7 @@ export function ModelContextMenu({
   const [newScreenSize, setNewScreenSize] = useState(screenSize ? String(screenSize) : '');
   const [newDescription, setNewDescription] = useState(currentDescription || '');
   const [autoDetectedSize, setAutoDetectedSize] = useState<string | null>(null);
-  const isAdmin = userRole === 'ADMIN';
+  const isAdmin = !!userRole;
 
   // Filter out current model number from collision comparison
   const otherModels = useMemo(() => {
@@ -292,37 +292,31 @@ export function ModelContextMenu({
             className="w-48 p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl border border-border/80 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {isAdmin && (
-              <DropdownMenuItem
-                onClick={() => setIsRenameOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted focus:bg-muted"
-              >
-                <Pencil className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                <span>Rename Model</span>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onClick={() => setIsRenameOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted focus:bg-muted"
+            >
+              <Pencil className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+              <span>Rename Model</span>
+            </DropdownMenuItem>
 
-            {isAdmin && (
-              <DropdownMenuItem
-                onClick={() => setIsDescriptionOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted focus:bg-muted"
-              >
-                <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Edit Description</span>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onClick={() => setIsDescriptionOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer hover:bg-muted focus:bg-muted"
+            >
+              <FileText className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Edit Description</span>
+            </DropdownMenuItem>
 
-            {isAdmin && <DropdownMenuSeparator className="my-1 border-border/60" />}
+            <DropdownMenuSeparator className="my-1 border-border/60" />
 
-            {isAdmin && (
-              <DropdownMenuItem
-                onClick={() => setIsDeleteOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl text-red-600 focus:text-red-700 hover:bg-red-50 focus:bg-red-50 cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete Model</span>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onClick={() => setIsDeleteOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl text-red-600 focus:text-red-700 hover:bg-red-50 focus:bg-red-50 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Model</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -448,74 +442,66 @@ export function ModelContextMenu({
 
                     {/* Options Actions Card */}
                     <div className="w-full bg-muted/40 dark:bg-slate-800/50 rounded-2xl border border-border/60 p-1.5 space-y-1">
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setMobileOpen(false);
-                            setIsRenameOpen(true);
-                          }}
-                          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
-                        >
-                          <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center justify-center shrink-0">
-                            <Pencil className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Rename Model</div>
-                            <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Edit model number and screen size</div>
-                          </div>
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setMobileOpen(false);
+                          setIsRenameOpen(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center justify-center shrink-0">
+                          <Pencil className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Rename Model</div>
+                          <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Edit model number and screen size</div>
+                        </div>
+                      </button>
 
-                      {isAdmin && (
-                        <>
-                          <div className="border-t border-border/50 my-1 mx-1" />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setMobileOpen(false);
-                              setIsDescriptionOpen(true);
-                            }}
-                            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
-                          >
-                            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
-                              <FileText className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Edit Description</div>
-                              <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Update technical notes & specifications</div>
-                            </div>
-                          </button>
-                        </>
-                      )}
+                      <div className="border-t border-border/50 my-1 mx-1" />
 
-                      {isAdmin && (
-                        <>
-                          <div className="border-t border-border/50 my-1 mx-1" />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setMobileOpen(false);
-                              setIsDeleteOpen(true);
-                            }}
-                            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 active:bg-red-100 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
-                          >
-                            <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-800/50 flex items-center justify-center shrink-0">
-                              <Trash2 className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="leading-tight text-red-600 font-bold text-xs sm:text-sm">Delete Model</div>
-                              <div className="text-[10px] sm:text-[11px] font-normal text-red-400 truncate">Permanently delete model and data</div>
-                            </div>
-                          </button>
-                        </>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setMobileOpen(false);
+                          setIsDescriptionOpen(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-foreground/90 hover:bg-white dark:hover:bg-slate-700/80 active:bg-white dark:active:bg-slate-700 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="leading-tight text-foreground font-bold text-xs sm:text-sm">Edit Description</div>
+                          <div className="text-[10px] sm:text-[11px] font-normal text-muted-foreground truncate">Update technical notes & specifications</div>
+                        </div>
+                      </button>
+
+                      <div className="border-t border-border/50 my-1 mx-1" />
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setMobileOpen(false);
+                          setIsDeleteOpen(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 active:bg-red-100 active:scale-[0.98] rounded-xl transition-all cursor-pointer text-left"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 border border-red-200 dark:border-red-800/50 flex items-center justify-center shrink-0">
+                          <Trash2 className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="leading-tight text-red-600 font-bold text-xs sm:text-sm">Delete Model</div>
+                          <div className="text-[10px] sm:text-[11px] font-normal text-red-400 truncate">Permanently delete model and data</div>
+                        </div>
+                      </button>
                     </div>
 
                     {/* iOS Style Pill Cancel Button */}
